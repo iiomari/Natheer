@@ -64,13 +64,24 @@ python -m nazeer.pipeline --mysql-db nazeer_prod_demo --mysql-target nazeer_dev 
 ```
 
 ### الواجهة خطوة بخطوة
-1. **تحميل البيانات:** بيانات العرض، أو رفع ملفات CSV، أو الاتصال بـ MySQL (قراءة فقط).
-2. **ما اكتشفه نظير:** وسوم الأعمدة، ومقارنة نظير بالأداة البسيطة على النص الحر، وعرض ملاحظة
-   واحدة بالتلوين. تستطيع مراجعة الوسوم وتعديلها، وكل تعديل يُسجَّل في التقرير.
-3. **توليد التوأم:** مقنّع أو اصطناعي، مع خيار الكتابة في قاعدة تطوير منفصلة.
-4. **الأدلة:** الحكم، وكل فحص بنتيجته، والأصل بجانب التوأم، واقتراحات k-anonymity مع زر التطبيق،
-   والتنزيل.
-5. **تبويب "لماذا ينجح":** لكل سبب جذري المكوّنُ الذي يعالجه والرقم المقاس من تشغيلك الحالي.
+الواجهة عربية من اليمين لليسار، بخط كبير يصلح للعرض على الشاشة، وتعمل بالوضعين الفاتح والداكن، ولا
+تطلب أي شيء من الإنترنت (الخط مضمَّن في `nazeer/static/`). شريط في الأعلى يبيّن الخطوة الحالية:
+**١. البيانات ← ٢. الكشف ← ٣. النظير ← ٤. الإثبات**، ولكل خطوة زر رئيسي واحد.
+1. **البيانات:** زر «تحميل بيانات العرض» يحمّل بيانات العرض مع مفتاح عرض جاهز، فلا يُكتب شيء. يظهر
+   الجدولان، ومعهما «تتبّع عميل» يظلّل صفوف عميل واحد في كل الجداول ويبقى معك في كل الخطوات.
+2. **الكشف:** رقمان كبيران (ما وجدته الأداة التقليدية مقابل نظير، والإنذارات الكاذبة لكل منهما)، ثم نفس
+   الملاحظة جنبًا إلى جنب. كل تظليل له لون **ونص** معًا: هوية، جوال، آيبان، بريد، اسم، للمراجعة، رُفض.
+3. **النظير:** «ولّد النظير» ثم مقارنة قبل/بعد لنفس العميل ومطالباته، والخلايا التي تغيّرت معلَّمة،
+   مع التحقق من أن الأعداد والمجاميع والروابط لم تتغير.
+4. **الإثبات:** النتيجة وأربع بطاقات: التسريب، صلاحية البدائل، سلامة الروابط، خطر التعرّف بالتركيب
+   (k). يظهر فشل k أولًا مع زر «طبّق الإصلاح المقترح». وزر «ازرع تسريبًا» يزرع هوية حقيقية في نسخة من
+   النظير ليُريك أن فحص التسريب يلتقطها.
+5. **تبويب «ليش يشتغل؟»:** خمسة صفوف: السبب الجذري ← المكوّن ← رقم مقاس من تشغيلك.
+6. **تبويب «جرّب نصّك»:** اكتب ملاحظة وشاهد الأداة التقليدية ونظير والنص بعد الإخفاء.
+
+**«إعدادات متقدمة»** (مطويّة أسفل الصفحة): رفع ملفات CSV، والاتصال بـ MySQL، وكشف الأسماء بـ CamelBERT،
+والنظير الاصطناعي (تجريبي)، والكتابة في قاعدة تطوير منفصلة، ومراجعة وسوم الأعمدة وتعديلها. مفتاح العرض
+الجاهز يُستخدم فقط مع بيانات العرض المولَّدة؛ بياناتك تحتاج `NAZEER_KEY`.
 
 ### معنى المقاييس
 - **الاكتشاف (recall):** نسبة المعرّفات التي وجدها نظير.
@@ -182,14 +193,26 @@ Independent check on hand-written notes: see `docs\HOW_TO_WRITE_NOTES.md`, then 
 `python -m nazeer.eval_human`.
 
 ### Using the UI
-1. **Load data:** the demo dataset, CSV upload, or a read-only MySQL connection.
-2. **What Nazeer found:** column tags, a free-text comparison of Nazeer vs the baseline, and a
-   highlighted note. Review or override any tag; every change is recorded in the report.
-3. **Generate the twin:** masked or synthetic, optionally written to a separate development database.
-4. **Evidence:** the verdict, every check, original vs twin, k-anonymity fixes with an Apply button,
-   and the download.
-5. **"Why it works" tab:** each root cause, the component that addresses it, and the metric measured
-   in your current run.
+The UI is Arabic and right-to-left, sized for a projector, works in light and dark mode, and makes no
+network requests (the font is bundled in `nazeer/static/`). A progress bar shows the four steps:
+**1. Data → 2. Detection → 3. Twin → 4. Proof**, each with one primary button.
+1. **Data:** "Load demo data" loads the demo dataset with a preset demo key, so nothing is typed. Both
+   tables are shown; "Track a customer" highlights one customer's rows in every table and keeps that
+   selection through all steps.
+2. **Detection:** two big numbers (found and false alarms, generic tool vs Nazeer), then the same note side
+   by side. Every highlight has a color **and** a text label (ID, mobile, IBAN, email, name, needs review,
+   rejected).
+3. **Twin:** "Generate the twin", then a before/after view of the tracked customer and their claims with
+   changed cells marked, and a check that counts, totals and links are unchanged.
+4. **Proof:** the verdict and four cards: leaks, validity of the fakes, link integrity, and re-identification
+   risk (k). k-anonymity first shows its FAIL with an "Apply the suggested fix" button. "Plant a leak" puts a
+   real ID into a copy of the twin to show that the leak scan catches it.
+5. **"Why it works" tab:** five rows: root cause → component → live metric from your run.
+6. **"Try your text" tab:** type a note and compare the generic tool, Nazeer, and the masked result.
+
+**Advanced settings** (collapsed at the bottom): CSV upload, MySQL, CamelBERT name detection, the synthetic
+twin (experimental), writing to a separate development database, and reviewing column tags. The preset demo
+key is used only with the generated demo dataset; your own data needs `NAZEER_KEY`.
 
 ### What the metrics mean
 - **Recall / precision:** share of identifiers found / share of flags that were real identifiers.

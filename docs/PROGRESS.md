@@ -21,7 +21,8 @@ This file is updated after every milestone so a new session can resume from it a
 | Independent evaluation harness (human-written notes) | done; **waiting for teammates' notes** | e430dc0 |
 | "Why it works" tab | done | b27683d |
 | Arabic NER (CamelBERT + gazetteer fallback) | done | 04a84ae |
-| Final deliverables (README ar/en, demo runs, internal demo script) | done | (this commit) |
+| Final deliverables (README ar/en, demo runs, internal demo script) | done | e76aef2 |
+| UI redesign for clarity (presentation only) | done | (this commit) |
 | HMA multi-table synthesis | **out of scope for the hackathon** | — |
 | PDF report | **out of scope for the hackathon** | — |
 
@@ -250,6 +251,33 @@ torch 2.2) are incompatible, so always use the venv.
 54. **NER caveat: the demo is biased toward the gazetteer.** The demo generator draws names from
     the same lists the gazetteer uses, so the gazetteer's recall on the demo is optimistic.
     The hand-written notes are the fair comparison.
+
+### UI redesign (user, 2026-10-01): presentation layer only
+55. **Preset demo key.** "تحميل بيانات العرض" also enables a public, hard-coded demo key, so the demo needs
+    nothing typed. It is used **only** for the generated demo dataset and **only** when `NAZEER_KEY` is not
+    set; uploads and MySQL still require `NAZEER_KEY` (tested). When it is used, the app writes
+    `key.source = "preset demo key (generated demo dataset only; public, not a secret)"` into the report, so
+    the report stays truthful. This is the only change to report content, and it happens in the UI.
+56. **"للمراجعة" (needs review) is a display label for span confidence ≤ 0.7**: a lone first name with no
+    family name or cue, or an ID next to an invoice-like word. The pipeline still replaces every span at or
+    above `min_span_confidence` (0.5). Nothing about detection changed.
+57. **Two of the four proof cards are readouts, not new report checks.** "صلاحية البدائل" is PASS when 100% of
+    fake identifiers pass the official validators, and "سلامة الروابط" is PASS at 0 orphan foreign keys. Both
+    reuse `ui_logic.fake_validity` / `referential_integrity`, which the "Why it works" tab already showed. The
+    verdict banner still comes from the report's blocking checks only.
+58. **`tests/test_app.py` was adapted to the new navigation.** Every existing test keeps its name and its
+    behavioural assertions. Only the click path changed (next → next → generate) and English label
+    assertions became Arabic. `test_missing_key_shows_message_not_traceback` now simulates non-demo data,
+    because demo mode intentionally has a key.
+59. **Slow actions use "pending" flags instead of `st.rerun()`.** A test found that `st.rerun()` in the middle
+    of a script run dropped the state of widgets not yet rendered in that run (the twin mode silently
+    reset to masked).
+60. **Numbers use `unicode-bidi: isolate-override`, not just an isolate.** Found on screen: inside an LTR
+    isolate, a space between two Arabic-Indic digit groups still resolves right-to-left (bidi rule N1), so
+    `٠٥٠ ٣٣١ ٨٨٤٢` showed as `٨٨٤٢ ٣٣١ ٠٥٠`. Text containing Arabic letters keeps a plain isolate.
+61. **Step 3's sentence "نفس الأعداد والمجاميع والروابط — بدون عميل حقيقي."** is the requested wording. It is
+    shown only when the live row-count, total and orphan-link checks all hold. The PDPL caveat (a masked
+    twin is still likely personal data) is unchanged in the report's limitations.
 
 ## Milestone log
 
@@ -558,10 +586,64 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
   PowerShell install/run, MySQL flow, UI steps, metric meanings, known limitations. There is
   no commercial section and no criteria.
 
+### UI redesign for clarity (presentation only)
+**Why:** the first audience sees Nazeer for the first time on a projector and must get the story in under
+three minutes. The old UI was one long English page with every table, control and metric at once, small
+text, and no guidance.
+
+**What changed (`nazeer/app.py`, `nazeer/ui_logic.py`, `nazeer/static/`, `.streamlit/config.toml`):**
+- **Guided flow:** a four-step stepper (**١. البيانات ← ٢. الكشف ← ٣. النظير ← ٤. الإثبات**), one primary button
+  per step, a "رجوع" (back) button, "إعادة البدء" (start over), and two secondary tabs, **ليش يشتغل؟** and
+  **جرّب نصّك**.
+- **Demo mode by default:** one button loads the demo data and the preset demo key (deviation 55).
+- **Advanced settings:** CSV upload, MySQL, name detector, synthetic mode (labelled "تجريبي" with its
+  trade-off), seed, write-to-database and the column-review editor are collapsed under "إعدادات متقدمة".
+- **Customer tracking:** one customer is followed through all steps. By default it is the customer whose
+  notes best show what a generic tool misses (on the seed-42 demo, مصعب الحمدان · 102009).
+- **Step 2 (detection):**
+  - two cards: found / false alarms. Generic tool 2,987 / 707; Nazeer 15,865 / 0, out of 15,989 planted.
+  - the same note side by side. Every highlight has a color and a text label: هوية، جوال، آيبان، بريد، اسم،
+    للمراجعة، رُفض، إنذار كاذب.
+- **Step 3 (twin):** a before/after view of the tracked customer and their claims, with changed cells marked.
+  Live checks show equal row counts, equal amount totals and 0 broken links.
+- **Step 4 (proof):** four cards: leaks, validity of the fakes, link integrity, and k-anonymity.
+  - k shows FAIL first, with "طبّق الإصلاح المقترح" (the recommended fix): **k = 1 → 5**, then PASS.
+  - "ازرع تسريباً" writes the tracked customer's real ID (Arabic digits, spaced) into a **copy** of the twin
+    and runs the pipeline's own leak scan, which turns FAIL. The delivered twin is untouched (tested).
+- **Visual design:**
+  - Arabic RTL throughout, with numbers LTR-isolated (deviation 60).
+  - 18 px base font and large headline numbers.
+  - One palette, defined in `nazeer/static/nazeer.css` and the `[theme.light]` / `[theme.dark]` sections of
+    `config.toml`: original = blue, twin = violet, detected = red, needs review = amber.
+  - Plain-Arabic tooltips on k, recall, false alarm, checksum, DCR, AUC and TSTR.
+  - Friendly Arabic error messages.
+- **No network:**
+  - IBM Plex Sans Arabic (SIL OFL 1.1, license file next to the font) is served from `nazeer/static/fonts/`
+    by Streamlit static serving.
+  - Verified with Playwright that the browser makes no request outside localhost.
+  - The emoji favicon is an inline SVG. Material icons are avoided, because a material favicon would load
+    from gstatic.
+
+**Unchanged:** `pipeline.py`, `detect.py`, `transform.py`, `evaluate.py`, `kanon.py`, `report.py`, policy and
+thresholds, and every metric. All numbers on screen come from those modules.
+
+**Tests: 241 passed, 4 skipped** (MySQL credentials):
+- `test_app.py` adds `test_demo_walkthrough_four_steps`, an AppTest smoke run of the pitch path with no key
+  typed: load → detect → generate → proof → apply fix (PASS) → plant leak (caught, twin untouched) → reset.
+  It also adds `test_try_your_text_tab`.
+- `test_ui_logic.py` adds 7 tests: tracking, labels for rejected look-alikes and baseline false alarms, the
+  no-answer-key summary, totals, proof cards, the planted leak, the text-masking preview, and the "why" rows.
+
+**Screenshots:** `docs\ui\before-*.png` and `docs\ui\after-*.png` (light and dark), indexed in
+`docs\ui\README.md`. Regenerate them with `scripts\ui_screenshots.py`. Playwright is a documentation tool
+only, not a project dependency.
+
+**Demo script:** the click paths in `docs\internal\DEMO_SCRIPT.md` now follow the new UI.
+
 ## Final status (2026-10-01)
 
 All numbers are from the final runs in `out\` (summary: `out\METRICS_SUMMARY.md`, built by
-`python scripts\summarize_runs.py`). Tests: **232 passed, 4 skipped**. The 4 skipped are the live
+`python scripts\summarize_runs.py`). Tests: **241 passed, 4 skipped** (after the UI redesign; 232 before). The 4 skipped are the live
 MySQL integration tests, waiting for credentials.
 
 ### Complete
@@ -574,6 +656,8 @@ MySQL integration tests, waiting for credentials.
 - "Why it works" tab with five live metrics, and a guard test that keeps criteria and weights
   out of every judge-facing file.
 - Arabic NER: CamelBERT + gazetteer union (optional), and the gazetteer default.
+- UI redesign: a four-step Arabic flow, demo mode with no typing, customer tracking, proof cards with the
+  k-anonymity fix and a planted-leak demo, and no network requests (see "UI redesign for clarity").
 - Final deliverables:
   - bilingual README (no commercial section, no criteria);
   - demo runs `out\masked_no_fix`, `out\masked`, `out\synthetic`, `out\detection_scores.json`

@@ -1,0 +1,188 @@
+/* Nazeer UI: one palette, defined once (mirrors .streamlit/config.toml).
+   original/real data = blue · twin = violet · detected personal data = red
+   needs review = amber · rejected / false alarm = slate · PASS = green · FAIL = red
+   *-solid tokens carry white text and are the same in both themes. */
+:root {
+  --nz-real: #2563eb;   --nz-real-tint: rgba(37, 99, 235, .12);   --nz-real-solid: #1d4ed8;
+  --nz-twin: #7c3aed;   --nz-twin-tint: rgba(124, 58, 237, .13);  --nz-twin-solid: #6d28d9;
+  --nz-hit: #dc2626;    --nz-hit-tint: rgba(220, 38, 38, .13);    --nz-hit-solid: #b91c1c;
+  --nz-review: #d97706; --nz-review-tint: rgba(217, 119, 6, .18); --nz-review-solid: #b45309;
+  --nz-muted: #64748b;  --nz-muted-tint: rgba(100, 116, 139, .14); --nz-muted-solid: #475569;
+  --nz-pass: #15803d;   --nz-pass-tint: rgba(21, 128, 61, .11);   --nz-pass-solid: #15803d;
+  --nz-fail: #b91c1c;   --nz-fail-tint: rgba(185, 28, 28, .10);   --nz-fail-solid: #b91c1c;
+  --nz-border: rgba(100, 116, 139, .32);
+  --nz-surface: rgba(100, 116, 139, .05);
+  --nz-tip-bg: #111827; --nz-tip-fg: #ffffff;
+  --nz-radius: 14px;
+}
+/* Dark theme: the app renders a .nz-theme-dark marker when Streamlit reports a dark theme;
+   with no marker yet, follow the system setting. */
+:root:has(.nz-theme-dark) {
+  --nz-real: #60a5fa;   --nz-real-tint: rgba(96, 165, 250, .18);
+  --nz-twin: #a78bfa;   --nz-twin-tint: rgba(167, 139, 250, .20);
+  --nz-hit: #f87171;    --nz-hit-tint: rgba(248, 113, 113, .20);
+  --nz-review: #fbbf24; --nz-review-tint: rgba(251, 191, 36, .20);
+  --nz-muted: #94a3b8;  --nz-muted-tint: rgba(148, 163, 184, .18);
+  --nz-pass: #4ade80;   --nz-pass-tint: rgba(74, 222, 128, .13);
+  --nz-fail: #f87171;   --nz-fail-tint: rgba(248, 113, 113, .14);
+  --nz-border: rgba(148, 163, 184, .30);
+  --nz-surface: rgba(148, 163, 184, .06);
+  --nz-tip-bg: #f9fafb; --nz-tip-fg: #111827;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not(:has(.nz-theme-light)):not(:has(.nz-theme-dark)) {
+    --nz-real: #60a5fa;   --nz-real-tint: rgba(96, 165, 250, .18);
+    --nz-twin: #a78bfa;   --nz-twin-tint: rgba(167, 139, 250, .20);
+    --nz-hit: #f87171;    --nz-hit-tint: rgba(248, 113, 113, .20);
+    --nz-review: #fbbf24; --nz-review-tint: rgba(251, 191, 36, .20);
+    --nz-muted: #94a3b8;  --nz-muted-tint: rgba(148, 163, 184, .18);
+    --nz-pass: #4ade80;   --nz-pass-tint: rgba(74, 222, 128, .13);
+    --nz-fail: #f87171;   --nz-fail-tint: rgba(248, 113, 113, .14);
+    --nz-border: rgba(148, 163, 184, .30);
+    --nz-surface: rgba(148, 163, 184, .06);
+    --nz-tip-bg: #f9fafb; --nz-tip-fg: #111827;
+  }
+}
+
+/* ------------------------------------------------------------ RTL everywhere */
+body, .stApp { direction: rtl; }
+.stApp [data-testid="stMarkdownContainer"], .stApp [data-testid="stCaptionContainer"],
+.stApp [data-testid="stWidgetLabel"], .stApp [data-testid="stAlertContainer"] { text-align: right; }
+/* Canvas grids, JSON and code read left-to-right. */
+.stApp [data-testid="stDataFrame"], .stApp [data-testid="stDataEditor"], .stApp [data-testid="stJson"],
+.stApp pre, .stApp code { direction: ltr; text-align: left; }
+/* Numbers and identifiers: override, not just isolate. Inside an isolate a space between two
+   Arabic-Indic digit groups still resolves right-to-left (bidi rule N1), which would show
+   "٠٥٠ ٣٣١ ٨٨٤٢" as "٨٨٤٢ ٣٣١ ٠٥٠". Text containing Arabic letters only gets an isolate. */
+bdi.nz-ltr { direction: ltr; unicode-bidi: isolate-override; white-space: nowrap; }
+bdi.nz-ltr-text { direction: ltr; unicode-bidi: isolate; }
+[data-testid="stMainBlockContainer"] { max-width: 1440px; padding-top: 2.2rem; }
+[data-testid="stHeaderActionElements"] { display: none; }
+
+/* Bigger, clearer actions and tabs */
+[data-testid="stBaseButton-primary"] { min-height: 3.1rem; padding: .55rem 1.8rem; }
+[data-testid="stBaseButton-primary"] p { font-size: 1.15rem; font-weight: 700; }
+[data-testid="stTab"] p { font-size: 1.2rem !important; font-weight: 700; }
+[data-testid="stExpander"] summary p { font-size: 1.02rem; font-weight: 700; }
+
+/* ------------------------------------------------------------ header + stepper */
+.nz-brand { display: flex; align-items: baseline; gap: .9rem; flex-wrap: wrap; }
+.nz-logo { font-size: 2.6rem; font-weight: 700; color: var(--nz-twin); line-height: 1.2; }
+.nz-logo-en { font-size: 1.05rem; opacity: .65; font-weight: 700; }
+.nz-tagline { font-size: 1.15rem; opacity: .85; }
+.nz-steps { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; list-style: none;
+            margin: .4rem 0 1.2rem; padding: 0; }
+.nz-steps li.nz-step { display: inline-flex; align-items: center; gap: .5rem; font-size: 1.12rem; font-weight: 700;
+                       padding: .45rem 1.05rem; border-radius: 999px; border: 2px solid var(--nz-border); opacity: .6; }
+.nz-steps li.nz-step.done { opacity: 1; border-color: var(--nz-twin); color: var(--nz-twin); }
+.nz-steps li.nz-step.current { opacity: 1; background: var(--nz-twin-solid); border-color: var(--nz-twin-solid); color: #fff; }
+.nz-steps li.nz-arrow { opacity: .45; font-size: 1.2rem; }
+.nz-lead { font-size: 1.25rem; margin: .2rem 0 .9rem; line-height: 1.8; }
+.nz-note { font-size: .98rem; opacity: .8; line-height: 1.7; }
+
+/* ------------------------------------------------------------ cards + numbers */
+.nz-card { border: 1px solid var(--nz-border); border-radius: var(--nz-radius); padding: 1rem 1.25rem;
+           background: var(--nz-surface); height: 100%; }
+.nz-card.real { border-top: 6px solid var(--nz-real); }
+.nz-card.twin { border-top: 6px solid var(--nz-twin); }
+.nz-card.pass { border-top: 6px solid var(--nz-pass); background: var(--nz-pass-tint); }
+.nz-card.fail { border-top: 6px solid var(--nz-fail); background: var(--nz-fail-tint); }
+.nz-card.muted { border-top: 6px solid var(--nz-muted); }
+.nz-card h4 { margin: 0 0 .35rem; font-size: 1.2rem; font-weight: 700; padding: 0; }
+.nz-big { font-size: 3.3rem; font-weight: 700; line-height: 1.15; }
+.nz-mid { font-size: 1.6rem; font-weight: 700; line-height: 1.3; }
+.nz-sub { font-size: 1rem; opacity: .82; line-height: 1.6; }
+.nz-row { display: flex; gap: 1.6rem; align-items: flex-end; flex-wrap: wrap; }
+.nz-row > div { min-width: 9rem; }
+.nz-title-real { color: var(--nz-real); font-weight: 700; }
+.nz-title-twin { color: var(--nz-twin); font-weight: 700; }
+.nz-badge { display: inline-block; font-weight: 700; font-size: 1.5rem; line-height: 1.3; padding: .1rem .85rem;
+            border-radius: 10px; color: #fff; }
+.nz-badge.pass { background: var(--nz-pass-solid); }
+.nz-badge.fail { background: var(--nz-fail-solid); }
+.nz-badge.info { background: var(--nz-muted-solid); }
+.nz-verdict { border-radius: var(--nz-radius); padding: 1rem 1.4rem; margin: .3rem 0 1.1rem; display: flex;
+              align-items: center; gap: 1rem; flex-wrap: wrap; font-size: 1.25rem; }
+.nz-verdict.pass { background: var(--nz-pass-tint); border: 2px solid var(--nz-pass); }
+.nz-verdict.fail { background: var(--nz-fail-tint); border: 2px solid var(--nz-fail); }
+.nz-verdict .nz-badge { font-size: 1.9rem; }
+.nz-strip { display: flex; gap: .8rem; flex-wrap: wrap; margin: .6rem 0; }
+.nz-pill { border: 1px solid var(--nz-border); border-radius: 999px; padding: .3rem .95rem; font-size: 1rem;
+           background: var(--nz-surface); }
+.nz-pill b { font-weight: 700; }
+.nz-pill.ok { border-color: var(--nz-pass); }
+.nz-pill.warn { border-color: var(--nz-review); background: var(--nz-review-tint); }
+.nz-pill.real { border-color: var(--nz-real); background: var(--nz-real-tint); }
+.nz-pill.twin { border-color: var(--nz-twin); background: var(--nz-twin-tint); }
+
+/* ------------------------------------------------------------ highlighted text */
+.nz-text { font-size: 1.15rem; line-height: 2.45; padding: .9rem 1.2rem; border-radius: var(--nz-radius);
+           border: 1px solid var(--nz-border); background: var(--nz-surface); }
+.nz-text.real { border-inline-start: 6px solid var(--nz-real); }
+.nz-text.twin { border-inline-start: 6px solid var(--nz-twin); }
+mark.nz-hl { color: inherit; background: var(--nz-hit-tint); border-bottom: 3px solid var(--nz-hit);
+             border-radius: 6px; padding: .05em .25em; white-space: nowrap; }
+mark.nz-hl.review { background: var(--nz-review-tint); border-bottom-color: var(--nz-review); }
+mark.nz-hl.rejected { background: var(--nz-muted-tint); border-bottom: 3px dashed var(--nz-muted); }
+mark.nz-hl.rejected .nz-val { text-decoration: line-through; text-decoration-thickness: 2px; }
+mark.nz-hl.false_alarm { background: var(--nz-muted-tint); border-bottom: 3px dashed var(--nz-muted); }
+mark.nz-hl.twin { background: var(--nz-twin-tint); border-bottom-color: var(--nz-twin); }
+mark.nz-hl.leak { background: var(--nz-hit-tint); border: 2px solid var(--nz-hit); }
+.nz-lab { display: inline-block; color: #fff; background: var(--nz-hit-solid); font-size: .68em; font-weight: 700;
+          line-height: 1.5; border-radius: 5px; padding: 0 .4em; margin-inline-start: .3em; vertical-align: .2em;
+          white-space: nowrap; }
+.review > .nz-lab, .nz-lab.review { background: var(--nz-review-solid); }
+.rejected > .nz-lab, .false_alarm > .nz-lab, .nz-lab.rejected, .nz-lab.false_alarm { background: var(--nz-muted-solid); }
+.twin > .nz-lab, .nz-lab.twin { background: var(--nz-twin-solid); }
+.nz-legend { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin: .4rem 0 .8rem; font-size: 1rem; }
+.nz-legend .nz-lab { font-size: .85rem; vertical-align: 0; margin: 0; }
+
+/* ------------------------------------------------------------ tables */
+.nz-tablewrap { overflow-x: auto; border: 1px solid var(--nz-border); border-radius: var(--nz-radius); }
+table.nz-table { width: 100%; border-collapse: collapse; font-size: .95rem; margin: 0; }
+table.nz-table th { text-align: right; font-weight: 700; padding: .5rem .7rem; white-space: nowrap;
+                    background: var(--nz-surface); border-bottom: 2px solid var(--nz-border); }
+table.nz-table td { text-align: right; padding: .45rem .7rem; border-bottom: 1px solid var(--nz-border); vertical-align: top;
+                    white-space: nowrap; }
+table.nz-table td.nz-wrap, table.nz-table td.nz-prose { white-space: normal; }
+table.nz-table tr:last-child td { border-bottom: 0; }
+table.nz-table td.nz-clip { max-width: 26rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+table.nz-table td.nz-wrap { min-width: 22rem; line-height: 1.9; }
+table.nz-table tr.tracked td { background: var(--nz-real-tint); }
+table.nz-table tr.tracked td:first-child { box-shadow: inset -6px 0 0 var(--nz-real); }
+table.nz-table.twin tr.tracked td { background: transparent; }
+table.nz-table.twin tr.tracked td:first-child { box-shadow: inset -6px 0 0 var(--nz-twin); }
+table.nz-table td.changed { background: var(--nz-twin-tint) !important; font-weight: 700; }
+table.nz-table td.changed::before { content: "●"; color: var(--nz-twin); font-size: .7em; margin-inline-end: .35em; }
+table.nz-table td.same { opacity: .9; }
+table.nz-table th.real { color: var(--nz-real); }
+table.nz-table th.twin { color: var(--nz-twin); }
+.nz-tracked-tag { display: inline-block; font-size: .72rem; font-weight: 700; color: #fff; background: var(--nz-real-solid);
+                  border-radius: 5px; padding: 0 .4em; margin-inline-start: .4em; vertical-align: .1em; }
+
+/* ------------------------------------------------------------ "why it works" rows */
+.nz-why { display: grid; grid-template-columns: 1fr auto 1.3fr auto 1fr; gap: .8rem; align-items: stretch;
+          margin-bottom: .8rem; }
+.nz-why > .nz-cell { border: 1px solid var(--nz-border); border-radius: var(--nz-radius); padding: .8rem 1rem;
+                     background: var(--nz-surface); font-size: 1.05rem; line-height: 1.7; }
+.nz-why > .nz-cell.cause { border-inline-start: 6px solid var(--nz-hit); }
+.nz-why > .nz-cell.comp { border-inline-start: 6px solid var(--nz-twin); }
+.nz-why > .nz-cell.metric { border-inline-start: 6px solid var(--nz-pass); }
+.nz-why > .nz-cell.metric.pending { border-inline-start-color: var(--nz-muted); }
+.nz-why .nz-arrow { align-self: center; font-size: 1.5rem; opacity: .5; }
+.nz-why .nz-kicker { font-size: .8rem; font-weight: 700; opacity: .6; display: block; }
+.nz-why-head { display: grid; grid-template-columns: 1fr auto 1.3fr auto 1fr; gap: .8rem; font-weight: 700;
+               opacity: .7; margin-bottom: .3rem; }
+@media (max-width: 900px) {
+  .nz-why, .nz-why-head { grid-template-columns: 1fr; }
+  .nz-why .nz-arrow { display: none; }
+}
+
+/* ------------------------------------------------------------ plain-Arabic tooltips */
+.nz-term { border-bottom: 2px dotted currentColor; cursor: help; position: relative; white-space: nowrap; }
+.nz-term::after { content: attr(data-tip); position: absolute; inset-inline-start: 0; top: 135%; z-index: 1000;
+                  width: max-content; max-width: 22rem; white-space: normal; background: var(--nz-tip-bg);
+                  color: var(--nz-tip-fg); font-size: .9rem; font-weight: 400; line-height: 1.65; padding: .55rem .8rem;
+                  border-radius: 8px; box-shadow: 0 6px 24px rgba(0, 0, 0, .25); opacity: 0; visibility: hidden;
+                  transition: opacity .12s; pointer-events: none; text-align: right; direction: rtl; }
+.nz-term:hover::after, .nz-term:focus::after { opacity: 1; visibility: visible; }

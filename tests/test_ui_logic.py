@@ -71,3 +71,81 @@ def test_suggestion_frame(analysis):
     frame = ui_logic.suggestion_frame(k)
     if not k["passed_before"]:
         assert len(frame) == len(k["suggestions"]) and {"k before", "k after", "rows affected"} <= set(frame.columns)
+
+
+# ---------------------------------------------------------------- redesigned UI helpers
+
+@pytest.fixture(scope="module")
+def masked(analysis):
+    return pipeline.run_masked(analysis, load_policy(pipeline.DEFAULT_POLICY), KEY)
+
+
+def test_entity_tracking_follows_one_customer_across_tables(analysis):
+    assert ui_logic.entity_key(analysis.profile) == ("customers", "customer_id")
+    who = ui_logic.default_entity(analysis)
+    rows = ui_logic.entity_rows(analysis, who)
+    assert len(rows["customers"]) == 1 and rows["claims"]
+    assert set(analysis.tables["claims"]["customer_id"].iloc[rows["claims"]]) == {who}
+    labels = ui_logic.entity_labels(analysis)
+    assert labels[who] == ui_logic.entity_label(analysis, who) and who in labels[who]
+    assert ui_logic.entity_notes(analysis, who)  # the default customer has notes worth showing
+
+
+def test_note_marks_label_rejected_lookalikes_and_baseline_false_alarms():
+    from nazeer import detect
+    from nazeer.models import Span
+
+    text = "هويته ١١١٠٧٠٤٣٤١ ورقم الفاتورة 1234567890 وجواله ٠٥٠ ٣٣١ ٨٨٤٢"
+    naz = [Span("t", 0, "c", a, b, k, conf, src) for a, b, k, conf, src in detect.find_spans(text)]
+    base = [Span("t", 0, "c", a, b, k, conf, src) for a, b, k, conf, src in detect.baseline_find_spans(text)]
+    base_marks, naz_marks = ui_logic.note_marks(text, naz, base)
+    invoice = (text.index("1234567890"), text.index("1234567890") + 10)
+    assert (*invoice, "false_alarm", "SAUDI_ID") in base_marks  # baseline flags the invoice number
+    assert (*invoice, "rejected", "SAUDI_ID") in naz_marks  # Nazeer shows it was checked and refused
+    assert {m[3] for m in naz_marks if m[2] == "hit"} == {"SAUDI_ID", "MOBILE"}
+
+
+def test_detection_summary_without_answer_key(analysis):
+    no_key = ui_logic.detection_summary(analysis, None)
+    assert no_key["nazeer"]["found"] == len(analysis.spans) and no_key["nazeer"]["false_alarms"] is None
+    assert no_key["baseline"]["false_alarms"] >= 0
+
+
+def test_twin_totals_and_proof_cards(analysis, masked):
+    tot = ui_logic.twin_totals(analysis, masked)
+    assert tot["all_same"] and tot["orphans"] == 0
+    assert all(s["column"] not in ("mobile", "national_id") for t in tot["tables"] for s in t["sums"])
+    p = ui_logic.proof(analysis, masked)
+    assert p["leak"]["status"] == "PASS" and p["validity"]["status"] == "PASS" and p["links"]["status"] == "PASS"
+    assert p["k"]["status"] == masked.report["checks"][[c["name"] for c in masked.report["checks"]].index(
+        "k_anonymity[customers]")]["status"]
+
+
+def test_plant_leak_is_caught_and_leaves_the_twin_untouched(analysis, masked):
+    who = ui_logic.default_entity(analysis)
+    before = {t: df.copy() for t, df in masked.twin.items()}
+    planted = ui_logic.plant_leak(analysis, masked, who)
+    assert planted["leak"]["verdict"] == "FAIL" and planted["leak"]["leaked_by_kind"][planted["kind"]] >= 1
+    assert any(loc["row"] == planted["row"] for loc in planted["leak"]["locations"])
+    assert all(masked.twin[t].equals(before[t]) for t in before)
+    assert ui_logic.disguise("SAUDI_ID", "1110704341") == "١١١ ٠٧٠ ٤٣٤١"
+
+
+def test_mask_text_preview_replaces_identifiers_with_valid_fakes():
+    from nazeer import detect
+    from nazeer import saudi_ids as s
+
+    text = "هويته 1110704341 وجواله 0503318842"
+    spans = [(a, b, k) for a, b, k, _, _ in detect.find_spans(text)]
+    out = ui_logic.mask_text(text, spans, KEY)
+    assert "1110704341" not in out and "0503318842" not in out
+    found = {k: out[a:b] for a, b, k, _, _ in detect.find_spans(out, names=False)}
+    assert s.is_valid("SAUDI_ID", found["SAUDI_ID"]) and s.is_valid("MOBILE", found["MOBILE"])
+    assert ui_logic.mask_text(text, spans, KEY) == out  # deterministic for one key
+
+
+def test_why_it_works_has_five_rows(analysis, masked):
+    rows = ui_logic.why_it_works(analysis, masked, None)
+    assert len(rows) == 5 and all(r["cause"] and r["component"] for r in rows)
+    assert rows[1]["metric"] == "100% صالحة"
+    assert ui_logic.why_it_works(analysis, None, None)[0]["metric"] is None  # not measured yet
