@@ -150,3 +150,16 @@ def test_secure_headers_and_errors_carry_codes_only(app, client):
     r = client.post("/api/auth/signup", json={"account_type": "individual", "email": "x@y.example.com",
                                               "password": "1110704341-secret", "full_name": 5})
     assert r.status_code == 422 and "1110704341" not in r.text and r.json()["code"] == "invalid_request"
+
+
+def test_preview_origin_regex(app):
+    from dataclasses import replace
+
+    app.state.settings = replace(app.state.settings, allowed_origin_regex=r"https://nazeer-[a-z0-9-]+-team\.vercel\.app")
+    c = new_client(app)
+    ok = c.post("/api/auth/login", json={"email": "a@b.example.com", "password": PASSWORD},
+                headers={"Origin": "https://nazeer-git-main-team.vercel.app"})
+    assert ok.status_code == 401  # passed the origin check, failed on credentials
+    bad = c.post("/api/auth/login", json={"email": "a@b.example.com", "password": PASSWORD},
+                 headers={"Origin": "https://nazeer-git-main-team.vercel.app.evil.example"})
+    assert bad.json()["code"] == "origin_not_allowed"

@@ -1,0 +1,197 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ------------------------------------------------------------------ Nazeer design tokens
+   One palette for the whole product. Status is never shown by color alone: every colored
+   chip/card also carries a text label or an icon.
+     primary   deep navy     actions, links, active navigation
+     twin      teal          the twin, "safe", PASS
+     sensitive muted red     real personal data, FAIL, destructive
+     review    amber         needs human review
+   8px spacing grid (Tailwind's 2 = 8px), 12px card radius, soft shadows, no gradients. */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-plex-ar), var(--font-plex-latin), "Segoe UI", Tahoma, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  /* Nazeer semantic colors */
+  --color-twin: var(--twin);
+  --color-twin-soft: var(--twin-soft);
+  --color-sensitive: var(--sensitive);
+  --color-sensitive-soft: var(--sensitive-soft);
+  --color-review: var(--review);
+  --color-review-soft: var(--review-soft);
+  --color-surface: var(--surface);
+  --shadow-card: var(--shadow-card);
+  --shadow-raised: var(--shadow-raised);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.67);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.33);
+  --radius-2xl: calc(var(--radius) * 1.67);
+  --radius-3xl: calc(var(--radius) * 2);
+  --radius-4xl: calc(var(--radius) * 2.67);
+}
+
+:root {
+  --radius: 0.75rem; /* 12px cards */
+  --background: #f3f5f7;
+  --surface: #ffffff;
+  --foreground: #142033;
+  --card: #ffffff;
+  --card-foreground: #142033;
+  --popover: #ffffff;
+  --popover-foreground: #142033;
+  --primary: #1f3a68;
+  --primary-foreground: #ffffff;
+  --secondary: #e9eef5;
+  --secondary-foreground: #1f3a68;
+  --muted: #eef1f5;
+  --muted-foreground: #5a6678;
+  --accent: #e6ecf5;
+  --accent-foreground: #1f3a68;
+  --destructive: #b2322a;
+  --border: #dde3ea;
+  --input: #cdd5df;
+  --ring: #1f3a68;
+  --twin: #0b7a6e;
+  --twin-soft: #e2f3f0;
+  --sensitive: #b2322a;
+  --sensitive-soft: #fbeae8;
+  --review: #8c5a00;
+  --review-soft: #fbf1dc;
+  --chart-1: #1f3a68;
+  --chart-2: #0b7a6e;
+  --chart-3: #8c5a00;
+  --chart-4: #b2322a;
+  --chart-5: #5a6678;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #142033;
+  --sidebar-primary: #1f3a68;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e9eef5;
+  --sidebar-accent-foreground: #1f3a68;
+  --sidebar-border: #dde3ea;
+  --sidebar-ring: #1f3a68;
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+  --shadow-raised: 0 4px 12px rgb(16 24 40 / 0.08), 0 2px 4px rgb(16 24 40 / 0.04);
+}
+
+.dark {
+  --background: #0d131b;
+  --surface: #141c27;
+  --foreground: #e5eaf1;
+  --card: #141c27;
+  --card-foreground: #e5eaf1;
+  --popover: #18212e;
+  --popover-foreground: #e5eaf1;
+  --primary: #8fb1ea;
+  --primary-foreground: #0d131b;
+  --secondary: #1c2635;
+  --secondary-foreground: #c9d7ef;
+  --muted: #1a2330;
+  --muted-foreground: #9aa6b6;
+  --accent: #1f2b3d;
+  --accent-foreground: #c9d7ef;
+  --destructive: #f0857b;
+  --border: #253142;
+  --input: #2e3b4f;
+  --ring: #8fb1ea;
+  --twin: #52c7b5;
+  --twin-soft: #10302c;
+  --sensitive: #f0857b;
+  --sensitive-soft: #3a1c1a;
+  --review: #e3b35b;
+  --review-soft: #352812;
+  --chart-1: #8fb1ea;
+  --chart-2: #52c7b5;
+  --chart-3: #e3b35b;
+  --chart-4: #f0857b;
+  --chart-5: #9aa6b6;
+  --sidebar: #111823;
+  --sidebar-foreground: #e5eaf1;
+  --sidebar-primary: #8fb1ea;
+  --sidebar-primary-foreground: #0d131b;
+  --sidebar-accent: #1c2635;
+  --sidebar-accent-foreground: #c9d7ef;
+  --sidebar-border: #253142;
+  --sidebar-ring: #8fb1ea;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-raised: 0 6px 16px rgb(0 0 0 / 0.4);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    font-size: 16px;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  /* Type scale: page title 28-32px, section 20px, body 16px. */
+  .page-title {
+    @apply text-[1.75rem] leading-[1.3] font-bold tracking-tight md:text-[2rem];
+  }
+  .section-title {
+    @apply text-xl leading-snug font-bold;
+  }
+  .lead {
+    @apply text-base text-muted-foreground leading-7;
+  }
+  /* Numbers, IDs, IBANs: shown in stored order. A plain isolate is not enough: a space between
+     two Arabic-Indic digit groups still resolves right-to-left (Unicode bidi rule N1). */
+  .ltr-num {
+    direction: ltr;
+    unicode-bidi: isolate-override;
+    white-space: nowrap;
+  }
+  /* Latin text (emails, column names) inside Arabic sentences. */
+  .ltr-text {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+}

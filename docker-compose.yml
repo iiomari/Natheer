@@ -1,5 +1,6 @@
-# Local development stack only (not production). The web service is added in P2.
-#   docker compose up --build
+# Local development stack only (not production).
+#   $env:NAZEER_MASTER_KEY = python -c "import os,base64;print(base64.urlsafe_b64encode(os.urandom(32)).decode())"
+#   docker compose up --build        -> web http://localhost:3000, mail http://localhost:8025
 services:
   mysql:
     image: mysql:8.4
@@ -18,20 +19,21 @@ services:
     image: axllent/mailpit:latest
     ports: ["8025:8025", "1025:1025"]
 
+  # API and worker run as separate services locally (same image); in production one container
+  # runs both (python -m nazeer_api.serve) so they share the persistent volume.
   api:
     build: { context: ., dockerfile: Dockerfile.api }
+    command: ["sh", "-c", "alembic -c nazeer_api/alembic.ini upgrade head && uvicorn nazeer_api.main:app --host 0.0.0.0 --port 8000"]
     environment: &api-env
       DATABASE_URL: mysql+pymysql://root:devroot@mysql:3306/nazeer_app?charset=utf8mb4
       NAZEER_MASTER_KEY: ${NAZEER_MASTER_KEY:?set NAZEER_MASTER_KEY in your shell or .env}
       APP_BASE_URL: http://localhost:3000
       ALLOWED_ORIGINS: http://localhost:3000
       COOKIE_SECURE: "0"
-      TRUST_PROXY: "1"
       MAIL_BACKEND: smtp
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
-    ports: ["8000:8000"]
-    volumes: [storage:/app/storage]
+    volumes: [storage:/data/storage]
     depends_on:
       mysql: { condition: service_healthy }
 
@@ -39,11 +41,22 @@ services:
     build: { context: ., dockerfile: Dockerfile.api }
     command: ["python", "-m", "nazeer_api.worker"]
     environment: *api-env
-    volumes: [storage:/app/storage]
+    volumes: [storage:/data/storage]
     depends_on:
-      mysql: { condition: service_healthy }
+      api: { condition: service_started }
+
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["sh", "-c", "npm ci && npm run dev -- -H 0.0.0.0"]
+    environment:
+      API_ORIGIN: http://api:8000
+    ports: ["3000:3000"]
+    volumes: ["./web:/app", "web-node-modules:/app/node_modules"]
+    depends_on:
       api: { condition: service_started }
 
 volumes:
   mysql-data:
   storage:
+  web-node-modules:

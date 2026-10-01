@@ -266,7 +266,9 @@ $env:NAZEER_MASTER_KEY = python -c "import os,base64;print(base64.urlsafe_b64enc
 $env:COOKIE_SECURE = "0"; $env:MAIL_BACKEND = "memory"
 alembic -c nazeer_api\alembic.ini upgrade head
 uvicorn nazeer_api.main:app --port 8000      # in a second window: python -m nazeer_api.worker
+cd web; npm install; npm run dev             # the website on http://localhost:3000 (proxies /api/*)
 ```
+Hosted deployment (Vercel + Railway + managed MySQL + Resend): see `docs/DEPLOY.md`.
 
 ### Known limitations (stated plainly)
 - Detection is never complete. What the detector misses in free text is not replaced, and the leak

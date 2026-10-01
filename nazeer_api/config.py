@@ -50,6 +50,8 @@ class Settings:
     master_key: bytes = field(repr=False)
     app_base_url: str = "http://localhost:3000"
     allowed_origins: tuple[str, ...] = ("http://localhost:3000",)
+    # Optional: this project's Vercel preview URLs, e.g. ^https://nazeer-[a-z0-9-]+-myteam\.vercel\.app$
+    allowed_origin_regex: str | None = None
     # Same-origin deployment: the browser talks only to the web origin, which proxies /api/* to this
     # API (Next.js rewrites). Cookies are therefore host-only (no Domain) and first-party.
     cookie_secure: bool = True
@@ -64,6 +66,10 @@ class Settings:
     smtp_password: str | None = field(default=None, repr=False)
     smtp_from: str = "Nazeer <no-reply@localhost>"
     smtp_starttls: bool = False
+    # PEM text of the database server's CA (managed MySQL with TLS). Never logged.
+    database_ca_pem: str | None = field(default=None, repr=False)
+    # Persistent storage for encrypted twins and returned files (a mounted volume in production).
+    storage_dir: str = "storage"
     job_stale_seconds: int = 300
     job_max_attempts: int = 3
 
@@ -97,6 +103,7 @@ def load_settings(env_file: Path | None = None) -> Settings:
         master_key=decode_master_key(raw_key),
         app_base_url=base,
         allowed_origins=tuple(_list("ALLOWED_ORIGINS", [base])),
+        allowed_origin_regex=os.environ.get("ALLOWED_ORIGIN_REGEX", "").strip() or None,
         cookie_secure=_flag("COOKIE_SECURE", True),
         cookie_domain=os.environ.get("COOKIE_DOMAIN", "").strip() or None,
         trust_proxy=_flag("TRUST_PROXY", False),
@@ -107,7 +114,18 @@ def load_settings(env_file: Path | None = None) -> Settings:
         smtp_password=os.environ.get("SMTP_PASSWORD") or None,
         smtp_from=os.environ.get("SMTP_FROM", "Nazeer <no-reply@localhost>"),
         smtp_starttls=_flag("SMTP_STARTTLS", False),
+        database_ca_pem=os.environ.get("DATABASE_CA_PEM") or None,
+        storage_dir=os.environ.get("NAZEER_STORAGE_DIR", "storage"),
     )
+
+
+def origin_allowed(settings: Settings, origin: str) -> bool:
+    import re
+
+    origin = origin.rstrip("/")
+    if origin in settings.allowed_origins:
+        return True
+    return bool(settings.allowed_origin_regex and re.fullmatch(settings.allowed_origin_regex, origin))
 
 
 @lru_cache(maxsize=1)

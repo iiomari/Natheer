@@ -24,6 +24,7 @@ This file is updated after every milestone so a new session can resume from it a
 | Final deliverables (README ar/en, demo runs, internal demo script) | done | e76aef2 |
 | UI redesign for clarity (presentation only) | done; superseded by the web product | c24ad10 |
 | **Web product** P1 Backend foundation (auth, orgs, roles, tenancy, migrations, job worker) | done | (this commit) |
+| **Site + infrastructure first** (user, 2026-10-01): Next.js app (design system, public site, auth, workspace shell, team/audit/settings), deployment setup (Railway + Aiven + Vercel + Resend), CI | done | (this commit) |
 | P2 Vertical slice (upload → detect → masked twin → report → share → recipient) | next | — |
 | P3 Design system + all pages · P4 Cleaning · P5 Returns + re-linking · P6 Team/audit/settings/email · P7 Public site + demo seed · P8 Hardening + E2E · P9 Deployment · P10 Final docs | not started | — |
 | HMA multi-table synthesis | **out of scope for the hackathon** | — |
@@ -386,6 +387,92 @@ torch 2.2) are incompatible, so always use the venv.
 - Encrypted twin storage and the report.
 - Share to members and external emails, gated by the PASS verdict.
 - Recipient's "البيانات المستلمة", with downloads through signed expiring URLs.
+
+### Site and infrastructure first (user, 2026-10-01)
+72. **Milestone order changed at the user's request.** The website foundation (most of P3) and the
+    deployment infrastructure (most of P9) were built before P2, because account, domain and DNS setup
+    take the longest. P2 (the data flow) builds on both. Not yet part of this: nonce-based CSP (P8),
+    the E2E story (P8), and the seed data (P7).
+73. **Hosting choices**, recorded with sources in `docs/DEPLOY.md`.
+    - **The backend cannot run on Vercel.** Functions run at most 300 s (Hobby) or 800 s (Pro); there are
+      no background processes and no persistent filesystem; request bodies are limited to 4.5 MB; the
+      Python bundle limit is 500 MB.
+    - **Chosen backend: Railway Hobby**, one container running API + worker (`nazeer_api/serve.py`)
+      because a volume attaches to a single service; a volume at `/data/storage`. About $10–20/month.
+    - **Database: Aiven for MySQL, Developer plan**, managed, TLS with its own CA (`DATABASE_CA_PEM`).
+      About $5/month.
+    - **Email: Resend SMTP.**
+    - **Frontend: Vercel.** Hobby is non-commercial only; Pro ($20/month) is needed for a commercial
+      launch.
+74. **torch cannot be removed from the backend.** SDV depends on CTGAN, which depends on torch. A
+    "lean" install measured **1.19 GB of site-packages, torch 544 MB**. Docker and CI therefore install
+    the **CPU-only** torch wheel first (`--index-url https://download.pytorch.org/whl/cpu`); otherwise pip
+    on Linux pulls several GB of CUDA libraries. transformers stays out of the server image.
+75. **Measured memory** (`scripts/measure_memory.py`, lean venv, full demo with 3,000 customers and
+    7,160 claims):
+    - masked run: **105 MB peak, 3.8 s**;
+    - synthetic run: **381 MB peak, 10.2 s**;
+    - so 1 GB is enough for the demo. The synthetic row cap is set in P2 from these numbers.
+76. **Vercel preview URLs.** Through the same-origin proxy, the browser's `Origin` is the preview host.
+    The optional `ALLOWED_ORIGIN_REGEX` (anchored full match, tested) admits only this project's preview
+    URLs.
+77. **Web CSP still allows `'unsafe-inline'` scripts**, for Next's inline bootstrap. There are no
+    third-party origins anywhere. Nonce-based CSP via `proxy.ts` is a P8 hardening item.
+78. **Toasts sit bottom-left** (the end side in RTL). The first screenshot run showed a success toast at
+    top-centre covering controls under it.
+79. **Workspace pages for unbuilt features** (datasets, shares, returns, received) show honest empty
+    states and a "قريباً" (coming soon) label in the sidebar. Nothing fake.
+80. **Web checks.** `npm run lint`, `tsc` and `next build` run in CI. `scripts/web_screenshots.py`
+    (Playwright, run locally against a live API) is the website smoke test for now. It signs up,
+    invites, visits every page, and **fails on any request outside localhost**. The full E2E story
+    comes in P8.
+
+### Site + infrastructure (before P2, at the user's request)
+**Web (`web/`, Next.js 16 App Router + TypeScript + Tailwind 4 + shadcn/ui on Base UI, RTL):**
+- **Design system:**
+  - tokens in `globals.css`: navy `#1F3A68`, twin teal `#0B7A6E`, sensitive `#B2322A`, review
+    `#8C5A00`, background `#F3F5F7`, 12px radius, soft shadows, full dark mode;
+  - components in `components/nz.tsx`: chips with labels, verdict/stat cards, empty states, notices,
+    `Num`/`Ltr` bidi isolation;
+  - buttons and inputs resized to the 8px grid;
+  - IBM Plex Sans Arabic bundled through `next/font/local` (OFL).
+- **Public site:** landing (problem, how it works, security principles, FAQ, contact), privacy and terms
+  (drafts; the terms carry the demo-data notice).
+- **Auth:** login, signup (organization or individual), forgot and reset password, verify email, accept
+  invitation.
+- **Workspace:**
+  - right-hand sidebar that depends on the role, org switcher, user menu, theme toggle, verification
+    banner, mobile sheet;
+  - dashboard with a getting-started checklist;
+  - **team** (members, invite dialog, roles, data manager, remove, pending invitations);
+  - **audit log** (Arabic action names);
+  - **settings** (org name, key version);
+  - honest empty states for datasets (with the "يُرجى استخدام بيانات تجريبية في هذه النسخة." notice),
+    shares, returns and received data.
+- `proxy.ts` redirects `/app/*` to `/login` when there is no session cookie (convenience only; the API
+  authorizes every call).
+- `next.config.ts`: the `/api/*` rewrite to `API_ORIGIN` and security headers.
+
+**Infrastructure:**
+- `nazeer_api/serve.py`: migrations, then API + worker.
+- `Dockerfile.api` with CPU-only torch; `railway.json`; compose now includes `web`.
+- `.github/workflows/ci.yml`: pytest, plus web lint, typecheck and build.
+- `docs/DEPLOY.md`: the exact steps for GitHub, the Vercel domain, Aiven, Railway, the Vercel project,
+  DNS, Resend, verification, migrations and rollback.
+- API additions: `DATABASE_CA_PEM` (MySQL TLS), `NAZEER_STORAGE_DIR`, `ALLOWED_ORIGIN_REGEX`.
+
+**Verified locally:**
+- `npm run lint`, `tsc` and `npm run build` are clean (19 routes).
+- Live walkthrough with `scripts/web_screenshots.py`, against the real API on :8000 and the production
+  build on :3000:
+  - signup as «الواحة للتأمين» → dashboard → invite a member → audit shows it → settings → datasets
+    → dark mode → mobile menu → login error;
+  - **0 requests outside localhost**.
+- Screenshots in `docs/ui/web/`.
+- API tests: **35 passed**.
+
+**Not yet verified:** a real deployment (needs your accounts), and `docker compose` (Docker isn't
+installed).
 
 ## Milestone log
 

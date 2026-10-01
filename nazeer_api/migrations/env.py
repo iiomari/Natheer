@@ -40,7 +40,7 @@ def run_migrations_online() -> None:
         with context.begin_transaction():
             context.run_migrations()
         return
-    engine = make_engine(_url())
+    engine = make_engine(_url(), os.environ.get("DATABASE_CA_PEM") or None)
     try:
         with engine.connect() as conn:
             context.configure(connection=conn, target_metadata=target_metadata, render_as_batch=True)

@@ -86,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
     configure_logging()
     enforce_offline()
     settings = get_settings()
-    sessionmaker = make_sessionmaker(make_engine(settings.database_url))
+    sessionmaker = make_sessionmaker(make_engine(settings.database_url, settings.database_ca_pem))
     worker_id = f"{socket.gethostname()}:{os.getpid()}"[:64]
     stopping = False
 

@@ -32,7 +32,7 @@ def create_app(settings: Settings | None = None, mailer: Mailer | None = None) -
     configure_logging()
     enforce_offline()
     app = FastAPI(title="Nazeer API", version=__version__, docs_url=None, redoc_url=None, openapi_url=None)
-    engine = make_engine(settings.database_url)
+    engine = make_engine(settings.database_url, settings.database_ca_pem)
     app.state.settings = settings
     app.state.engine = engine
     app.state.sessionmaker = make_sessionmaker(engine)
@@ -40,7 +40,8 @@ def create_app(settings: Settings | None = None, mailer: Mailer | None = None) -
     app.state.limiter = RateLimiter()
 
     app.add_middleware(
-        CORSMiddleware, allow_origins=list(settings.allowed_origins), allow_credentials=True,
+        CORSMiddleware, allow_origins=list(settings.allowed_origins), allow_origin_regex=settings.allowed_origin_regex,
+        allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"], allow_headers=["Content-Type", CSRF_HEADER],
         max_age=600)
 

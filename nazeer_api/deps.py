@@ -13,7 +13,7 @@ from fastapi import Depends, HTTPException, Request
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session as DbSession
 
-from nazeer_api.config import Settings
+from nazeer_api.config import Settings, origin_allowed
 from nazeer_api.db import utcnow
 from nazeer_api.models import Membership, Session, User
 from nazeer_api.security import CSRF_HEADER, UNSAFE_METHODS, csrf_ok, token_hash
@@ -51,7 +51,7 @@ def check_csrf(request: Request) -> None:
         return
     settings: Settings = request.app.state.settings
     origin = request.headers.get("origin")
-    if origin and origin.rstrip("/") not in settings.allowed_origins:
+    if origin and not origin_allowed(settings, origin):
         raise api_error(403, "origin_not_allowed")
     if not csrf_ok(request.cookies.get(settings.csrf_cookie), request.headers.get(CSRF_HEADER)):
         raise api_error(403, "csrf_failed")
