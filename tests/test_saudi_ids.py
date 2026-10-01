@@ -211,3 +211,22 @@ def test_mobile_formats_share_canonical_form():
 def test_canonical_id_and_iban():
     assert s.canonical("SAUDI_ID", "١١١ ٠٧٠ ٤٣٤١") == "1110704341"
     assert s.canonical("IBAN", "sa03 8000 0000 6080 1016 7519") == "SA0380000000608010167519"
+
+
+@pytest.mark.parametrize(
+    "kind, raw",
+    [
+        ("MOBILE", "٠٥٠ ٣٣١ ٨٨٤٢"),
+        ("MOBILE", "+966 50 331 8842"),
+        ("SAUDI_ID", "١١١-٠٧٠-٤٣٤١"),
+        ("IBAN", "sa03 8000 0000 6080 1016 7519"),
+        ("EMAIL", " a@example.com "),
+    ],
+)
+def test_is_valid_accepts_any_spelling(kind, raw):
+    assert s.is_valid(kind, raw)
+
+
+@pytest.mark.parametrize("kind, raw", [("MOBILE", "503318842"), ("MOBILE", "٠٦٠ ٣٣١ ٨٨٤٢"), ("SAUDI_ID", "١٢٣٤٥٦٧٨٩٠")])
+def test_is_valid_rejects(kind, raw):
+    assert not s.is_valid(kind, raw)

@@ -7,9 +7,9 @@ This file is updated after every milestone so a new session can resume from it a
 
 | Milestone | Status | Commit |
 |---|---|---|
-| M0 Setup + dependency verification | built, tests pass, commit pending | — |
-| M1 saudi_ids + normalization | built, tests pass, commit pending | — |
-| M2 Demo data + golden labels | not started | — |
+| M0 Setup + dependency verification | done | f7abbd5 |
+| M1 saudi_ids + normalization | done | f338cbe |
+| M2 Demo data + golden labels | done | (this commit) |
 | M3 Profile + detection + baseline | not started | — |
 | M4 Policy + transform | not started | — |
 | M5 Evaluation + report + k-anon backend | not started | — |
@@ -52,10 +52,37 @@ torch 2.2) are incompatible, so always use the venv.
    appear in Arabic text around numbers. A run of more than 3 separator characters splits
    the number.
 
+5. **M2: added `saudi_ids.is_valid(kind, raw)` and `flatten(raw)`.** `canonical("MOBILE")`
+   is the 9-digit national number (the HMAC input) and is intentionally not a valid
+   display format, so raw spans need a separate "validate any spelling" entry point.
+6. **M2: extra demo outputs.** Besides `golden_labels.csv`, the generator writes
+   `hard_negatives.csv` (look-alike IDs, other numbers, name-like words such as "أمل")
+   for false-positive counting, and `golden_columns.csv` (expected column tags) for the
+   column-level detector test.
+
+## Milestone log
+
+### M2: Demo data + golden labels
+- `python -m data_gen.make_demo_data --seed 42 --n 3000` gives 3,000 customers and 7,160
+  claims. The output is byte-identical across two runs, for all 5 files.
+- Golden labels: 15,989 planted identifiers in notes (PERSON_NAME 6,512, MOBILE 3,945,
+  SAUDI_ID 3,044, IBAN 1,523, EMAIL 965), in 5,326 of 7,160 notes.
+- Hard negatives: 6,756 (LOOKALIKE_ID 2,787, NUMBER 2,862, NAME_WORD 1,107).
+- Digit rendering: ASCII 50%, Arabic-Indic 40%, Persian 10%. Separators: none 50%,
+  space 32%, hyphen 18%. Mobiles appear as 05 / +966 / 966 / 00966.
+- Customer columns are messy on purpose: 3% of national IDs stored in Arabic-Indic, and
+  15% of mobiles stored as +966/966.
+- Notes reuse the claimant's own name, ID and mobile, so M4 can test column↔text consistency.
+- Signal: amount = base(type) × age factor × (1 + 0.25·prior claims) × lognormal noise.
+  P90 = 14,916 SAR.
+- The generator self-checks: every golden span passes `is_valid`, and every look-alike
+  fails both the ID and mobile validators.
+- Tests: 93 passed (6 new demo-data tests).
+
 ## Known issues
 
 (none yet)
 
 ## Next step
 
-Commit M0 and M1, then build M2 (demo data + golden labels).
+M3: profiling + column/free-text detection + baseline, scored against golden labels.

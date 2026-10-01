@@ -149,6 +149,19 @@ VALIDATORS: dict[Kind, Callable[[str], bool]] = {
 # -------------------------------------------------------------- canonical forms
 
 
+def flatten(value: str) -> str:
+    """ASCII digits with in-number separators and all whitespace removed; prefixes kept."""
+    return "".join(ch for ch in normalize(value)[0] if not ch.isspace())
+
+
+def is_valid(kind: Kind, raw: str) -> bool:
+    """Validate a raw value in any accepted spelling (digit script, separators, case)."""
+    if kind in ("PERSON_NAME", "EMAIL"):
+        return VALIDATORS[kind](raw.strip())
+    flat = flatten(raw)
+    return VALIDATORS[kind](flat.upper() if kind == "IBAN" else flat)
+
+
 def canonical(kind: Kind, value: str) -> str:
     """One spelling per real-world value: the pseudonymization (HMAC) input.
 
@@ -159,7 +172,7 @@ def canonical(kind: Kind, value: str) -> str:
         return normalize_name(value)
     if kind == "EMAIL":
         return value.strip().lower()
-    flat = "".join(ch for ch in normalize(value)[0] if not ch.isspace())
+    flat = flatten(value)
     if kind == "SAUDI_ID":
         return flat
     if kind == "IBAN":
