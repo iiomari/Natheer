@@ -12,8 +12,8 @@ This file is updated after every milestone so a new session can resume from it a
 | M2 Demo data + golden labels | done | 810dc40 |
 | M3 Profile + detection + baseline | done | c20dbeb |
 | M4 Policy + transform | done | 29a4efa |
-| M5 Evaluation + report + k-anon backend | done | (this commit) |
-| M6a Minimal Streamlit flow | not started | — |
+| M5 Evaluation + report + k-anon backend | done | 174da99 |
+| M6a Minimal Streamlit flow | done | (this commit) |
 | M7 Synthetic 5b + fidelity + TSTR + DCR | not started | — |
 | M6b UI polish + overrides + k-anon apply | not started | — |
 | M8 Stretch (NER, HMA, PDF, Postgres) | not started | — |
@@ -107,6 +107,11 @@ torch 2.2) are incompatible, so always use the venv.
 21. **M5: k-anonymity is computed on the twin after policy generalization** (age in 10-year
     bins). Suggestions combine `widen_<col>`, `region_<col>` and `suppress`, and are ranked
     by reaching k_min first, then fewest rows affected, then fewest steps.
+22. **M6a: `app.py` removes its own folder from `sys.path`** and imports the package from
+    the repo root. `NAZEER_DEMO_DIR` (env) can point the "Use demo dataset" button at
+    another folder; the tests use this.
+23. **M6a: the key is only read from `NAZEER_KEY`; the UI has no key input field.** If the
+    variable is missing, the UI shows the PowerShell command to set it.
 
 ## Milestone log
 
@@ -202,7 +207,7 @@ Results on the full demo (3,000 customers, 7,160 claims):
 - A masked run takes about 25 s end to end on a laptop CPU. The leak scan over 64k cells is
   about 10 s of that.
 
-Tests: 168 passed. They cover:
+Tests: 162 passed. They cover:
 - empty leak scan on the demo;
 - deliberate leaks causing FAIL: an Arabic-Indic spaced ID in text, an ID glued so only the
   exhaustive pass sees it, structured mobile/ID columns, and a kept full name;
@@ -210,10 +215,28 @@ Tests: 168 passed. They cover:
 - schema validation, and the original k FAIL staying visible;
 - the CLI end to end, with no identifier, name or key in the logs or the report.
 
+### M6a: Minimal Streamlit flow
+- `streamlit run nazeerpp.py`. One page with these steps:
+  1. **Load:** a demo button or CSV upload.
+  2. **What Nazeer found:** keys/FKs, a column tag table (color by tag, confidence, review
+     flag, reason), baseline vs Nazeer counts per identifier type, recall/precision against
+     the demo answer key, and a side-by-side note viewer highlighting baseline spans vs
+     Nazeer spans.
+  3. **Run:** masked or synthetic. Synthetic arrives in M7.
+  4. **Evidence:** verdict banner, check table, original vs twin side by side, a zip
+     download (twin + report.json, or the report only if the twin is withheld), the full
+     JSON and the limitations.
+- Errors show a generic message. The details go to the filtered log (type and frames only).
+- Verified: `tests/test_app.py` drives the full flow headlessly with Streamlit `AppTest`, and
+  checks that a missing key gives a message, not a traceback. A real
+  `streamlit run --server.headless true` answered `/_stcore/health` = ok and bound to
+  localhost only.
+- Tests: 164 passed.
+
 ## Known issues
 
 (none yet)
 
 ## Next step
 
-M6a: minimal Streamlit flow (upload → detection + baseline panel → run → metrics → download).
+M7: synthetic twin 5b (Synthesizer protocol + SDV GaussianCopula), fidelity, TSTR utility, DCR.

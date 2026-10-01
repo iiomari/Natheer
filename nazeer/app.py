@@ -1,0 +1,268 @@
+"""Nazeer Streamlit UI (runs locally, inside the data owner's environment).
+
+    $env:NAZEER_KEY = "<at least 32 random characters>"
+    streamlit run nazeer\\app.py
+
+Flow: load tables -> detection (with baseline comparison) -> run -> metrics -> download.
+Originals are shown only in this local session's memory; nothing is cached to disk.
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+# `streamlit run nazeer\app.py` puts nazeer\ on sys.path; our module names must not
+# shadow anything, so import the package from the repository root instead.
+_HERE = Path(__file__).resolve().parent
+sys.path[:] = [p for p in sys.path if Path(p or ".").resolve() != _HERE]
+sys.path.insert(0, str(_HERE.parent))
+
+import html  # noqa: E402
+import io as _io  # noqa: E402
+import json  # noqa: E402
+import logging  # noqa: E402
+import os  # noqa: E402
+import zipfile  # noqa: E402
+from collections import Counter  # noqa: E402
+
+import pandas as pd  # noqa: E402
+import streamlit as st  # noqa: E402
+
+from nazeer import pipeline  # noqa: E402
+from nazeer.config import KeyConfigError, load_key  # noqa: E402
+from nazeer.policy import load_policy  # noqa: E402
+from nazeer.safe_log import configure_logging  # noqa: E402
+from nazeer.tableio import load_csv_folder, read_csv  # noqa: E402
+
+log = logging.getLogger("nazeer.app")
+ROOT = _HERE.parent
+DEMO_DIR = Path(os.environ.get("NAZEER_DEMO_DIR", ROOT / "data" / "demo"))
+
+TAG_COLORS = {"DIRECT_ID": "#f8d0d0", "QUASI_ID": "#fde3bd", "SENSITIVE": "#e6d7f5",
+              "FREE_TEXT": "#d4e6fb", "NORMAL": "#ececec"}
+SPAN_COLORS = {"SAUDI_ID": "#ffb3b3", "MOBILE": "#ffd59e", "IBAN": "#c9b6f2", "EMAIL": "#b7e4c7",
+               "PERSON_NAME": "#a9d2f5"}
+
+
+# ---------------------------------------------------------------- helpers
+
+def _init() -> None:
+    if "logging" not in st.session_state:
+        configure_logging()
+        st.session_state["logging"] = True
+    for k in ("tables", "source", "golden_dir", "analysis", "result", "error"):
+        st.session_state.setdefault(k, None)
+
+
+def _reset_after_load() -> None:
+    for k in ("analysis", "result", "error"):
+        st.session_state[k] = None
+
+
+def _guarded(fn, *args, **kwargs):
+    """Run a step; on error show a generic message and log type + frames only (never values)."""
+    st.session_state["error"] = None
+    try:
+        return fn(*args, **kwargs)
+    except KeyConfigError as e:
+        st.session_state["error"] = str(e)
+    except Exception as e:  # noqa: BLE001 - UI boundary
+        log.error("UI step %s failed", getattr(fn, "__name__", "step"), exc_info=True)
+        st.session_state["error"] = f"{type(e).__name__}: the step failed. Details are in the server log (values suppressed)."
+    return None
+
+
+def load_demo() -> None:
+    if not (DEMO_DIR / "customers.csv").exists():
+        from data_gen import make_demo_data
+        make_demo_data.main(["--seed", "42", "--n", "3000", "--out", str(DEMO_DIR)])
+    st.session_state.update(tables=load_csv_folder(DEMO_DIR), source="demo dataset (generated, no real people)",
+                            golden_dir=DEMO_DIR / "_golden")
+    _reset_after_load()
+
+
+def load_uploads(files) -> None:
+    tables = {Path(f.name).stem: read_csv(f) for f in files}
+    st.session_state.update(tables=tables, source=f"{len(tables)} uploaded CSV file(s)", golden_dir=None)
+    _reset_after_load()
+
+
+def highlight(text: str, spans: list[tuple[int, int, str]]) -> str:
+    out, last = [], 0
+    for a, b, kind in sorted(spans):
+        if a < last:
+            continue
+        out.append(html.escape(text[last:a]))
+        out.append(f'<mark style="background:{SPAN_COLORS.get(kind, "#eee")};padding:0 2px;border-radius:3px" '
+                   f'title="{kind}">{html.escape(text[a:b])}</mark>')
+        last = b
+    out.append(html.escape(text[last:]))
+    return (f'<div dir="rtl" style="font-size:1.05rem;line-height:2;border:1px solid #ddd;border-radius:8px;'
+            f'padding:10px 14px;background:#fff;color:#222">{"".join(out)}</div>')
+
+
+def legend() -> str:
+    return " ".join(f'<span style="background:{c};padding:1px 6px;border-radius:3px;margin-right:4px">{k}</span>'
+                    for k, c in SPAN_COLORS.items())
+
+
+def twin_zip(result: pipeline.RunResult) -> bytes:
+    buf = _io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        if not result.twin_withheld:
+            for name, df in result.twin.items():
+                z.writestr(f"twin/{name}.csv", df.to_csv(index=False, lineterminator="\n"))
+        z.writestr("report.json", json.dumps(result.report, ensure_ascii=False, indent=2, default=str))
+    return buf.getvalue()
+
+
+# ---------------------------------------------------------------- sections
+
+def section_input() -> None:
+    st.header("1 · Load data")
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        if st.button("Use demo dataset", type="primary", key="demo"):
+            _guarded(load_demo)
+    with c2:
+        files = st.file_uploader("…or upload CSV files (one table per file)", type="csv",
+                                 accept_multiple_files=True, key="upload")
+        if files and st.button("Load uploaded files", key="load_uploads"):
+            _guarded(load_uploads, files)
+    if st.session_state["tables"] is not None:
+        st.caption(f"Loaded: {st.session_state['source']} — " + ", ".join(
+            f"{n} ({len(df):,} rows × {df.shape[1]} cols)" for n, df in st.session_state["tables"].items()))
+
+
+def section_detection() -> None:
+    if st.session_state["tables"] is None:
+        return
+    if st.session_state["analysis"] is None:
+        with st.spinner("Profiling and detecting personal data…"):
+            st.session_state["analysis"] = _guarded(pipeline.analyze, st.session_state["tables"],
+                                                    st.session_state["source"])
+    an: pipeline.Analysis | None = st.session_state["analysis"]
+    if an is None:
+        return
+    st.header("2 · What Nazeer found")
+    keys = [f"{n}: PK `{t.primary_key}`" for n, t in an.profile.tables.items()]
+    fks = [f"`{f.child_table}.{f.child_column}` → `{f.parent_table}.{f.parent_column}`" for f in an.profile.foreign_keys]
+    st.markdown("**Keys** — " + "; ".join(keys) + ("  \n**Relationships** — " + "; ".join(fks) if fks else ""))
+
+    rows = [{"table": d.table, "column": d.column, "type": an.profile.column(d.table, d.column).dtype,
+             "tag": d.tag, "identifier": d.kind or "", "confidence": round(d.score, 2),
+             "needs review": "yes" if d.needs_review else "", "why": d.reason} for d in an.detections]
+    df = pd.DataFrame(rows)
+    st.dataframe(df.style.apply(lambda r: [f"background-color:{TAG_COLORS[r['tag']]}"] * len(r), axis=1),
+                 hide_index=True, width="stretch")
+
+    if an.spans or an.baseline_spans:
+        st.subheader("Identifiers hidden in Arabic free text")
+        naz, base = Counter(s.type for s in an.spans), Counter(s.type for s in an.baseline_spans)
+        kinds = ["SAUDI_ID", "MOBILE", "IBAN", "EMAIL", "PERSON_NAME"]
+        cols = st.columns(len(kinds) + 1)
+        cols[0].metric("Baseline (generic regex)", f"{sum(base.values()):,}")
+        cols[1].metric("Nazeer", f"{sum(naz.values()):,}", delta=f"{sum(naz.values()) - sum(base.values()):+,}")
+        comp = pd.DataFrame({"identifier": kinds, "baseline found": [base[k] for k in kinds],
+                             "Nazeer found": [naz[k] for k in kinds]})
+        st.dataframe(comp, hide_index=True, width="content")
+        golden = st.session_state["golden_dir"]
+        if golden is not None and (golden / "golden_labels.csv").exists():
+            scores = pipeline._golden_scores(an, golden)
+            st.caption("Against the demo answer key (planted identifiers): "
+                       f"Nazeer recall **{scores['nazeer']['overall_recall']:.1%}**, precision "
+                       f"**{scores['nazeer']['overall_precision']:.1%}** · baseline recall "
+                       f"**{scores['baseline']['overall_recall']:.1%}**, precision "
+                       f"**{scores['baseline']['overall_precision']:.1%}**")
+        _note_viewer(an)
+
+
+def _note_viewer(an: pipeline.Analysis) -> None:
+    per_row = Counter((s.table, s.column, s.row) for s in an.spans)
+    base_row = Counter((s.table, s.column, s.row) for s in an.baseline_spans)
+    ranked = sorted(per_row, key=lambda k: (-(per_row[k] - base_row.get(k, 0)), k))[:50]
+    if not ranked:
+        return
+    choice = st.selectbox("Compare on one note (notes where Nazeer finds the most that the baseline misses):",
+                          ranked, format_func=lambda k: f"{k[0]}.{k[1]} row {k[2]} — Nazeer {per_row[k]}, baseline {base_row.get(k, 0)}",
+                          key="note_pick")
+    t, c, r = choice
+    text = an.tables[t][c].iat[r]
+    st.markdown(legend(), unsafe_allow_html=True)
+    left, right = st.columns(2)
+    left.markdown("**Baseline**")
+    left.markdown(highlight(text, [(s.start, s.end, s.type) for s in an.baseline_spans if (s.table, s.column, s.row) == choice]),
+                  unsafe_allow_html=True)
+    right.markdown("**Nazeer**")
+    right.markdown(highlight(text, [(s.start, s.end, s.type) for s in an.spans if (s.table, s.column, s.row) == choice]),
+                   unsafe_allow_html=True)
+
+
+def section_run() -> None:
+    an = st.session_state["analysis"]
+    if an is None:
+        return
+    st.header("3 · Generate the twin")
+    mode = st.radio("Mode", ["masked", "synthetic"], horizontal=True, key="mode",
+                    format_func=lambda m: {"masked": "Masked twin (5a) — same rows, pseudonymized, for testing",
+                                           "synthetic": "Synthetic twin (5b) — new rows, for analytics/AI"}[m])
+    if st.button("Run Nazeer", type="primary", key="run"):
+        with st.spinner("Transforming, scanning for leaks, measuring…"):
+            policy = load_policy(pipeline.DEFAULT_POLICY)
+            if mode == "masked":
+                st.session_state["result"] = _guarded(
+                    lambda: pipeline.run_masked(an, policy, load_key(), golden_dir=st.session_state["golden_dir"]))
+            else:
+                st.session_state["result"] = _guarded(
+                    lambda: pipeline.run_synthetic(an, policy, golden_dir=st.session_state["golden_dir"]))
+
+
+def section_results() -> None:
+    res: pipeline.RunResult | None = st.session_state["result"]
+    if res is None:
+        return
+    rep = res.report
+    st.header("4 · Evidence")
+    (st.success if rep["verdict"] == "PASS" else st.error)(
+        f"Verdict: **{rep['verdict']}**" + (f" — failed: {', '.join(rep['failed_checks'])}" if rep["failed_checks"] else ""))
+    checks = pd.DataFrame([{"check": c["name"], "status": c["status"], "blocks verdict": "yes" if c["blocking"] else "",
+                            "detail": c["detail"]} for c in rep["checks"]])
+    colors = {"PASS": "#d3f2d9", "FAIL": "#f8d0d0", "INFO": "#eef2f7", "NOT_RUN": "#ececec"}
+    st.dataframe(checks.style.apply(lambda r: [f"background-color:{colors[r['status']]}"] * len(r), axis=1),
+                 hide_index=True, width="stretch")
+
+    if res.twin_withheld:
+        st.warning("The leak scan failed, so the twin is withheld. Only the report can be downloaded.")
+    else:
+        st.subheader("Original vs twin")
+        table = st.selectbox("Table", list(res.twin), key="cmp_table")
+        n = st.slider("Rows", 5, 50, 10, key="cmp_rows")
+        left, right = st.columns(2)
+        left.markdown("**Original** (stays here)")
+        left.dataframe(st.session_state["analysis"].tables[table].head(n), hide_index=True, width="stretch")
+        right.markdown("**Twin**")
+        right.dataframe(res.twin[table].head(n), hide_index=True, width="stretch")
+
+    st.download_button("Download twin + report (zip)" if not res.twin_withheld else "Download report (zip)",
+                       data=twin_zip(res), file_name=f"nazeer-{res.run_id}.zip", mime="application/zip", key="dl")
+    with st.expander("Full report (JSON)"):
+        st.json(rep, expanded=False)
+    with st.expander("Known limitations"):
+        for line in rep["limitations"]:
+            st.markdown(f"- {line}")
+
+
+def main() -> None:
+    st.set_page_config(page_title="Nazeer · نظير", page_icon="🛡️", layout="wide")
+    _init()
+    st.title("Nazeer · نَظير")
+    st.caption("Saudi-aware masked & synthetic data — runs locally; data never leaves this machine.")
+    section_input()
+    section_detection()
+    section_run()
+    if st.session_state["error"]:
+        st.error(st.session_state["error"])
+    section_results()
+
+
+main()
