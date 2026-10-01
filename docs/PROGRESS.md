@@ -627,10 +627,12 @@ text, and no guidance.
 **Unchanged:** `pipeline.py`, `detect.py`, `transform.py`, `evaluate.py`, `kanon.py`, `report.py`, policy and
 thresholds, and every metric. All numbers on screen come from those modules.
 
-**Tests: 241 passed, 4 skipped** (MySQL credentials):
+**Tests: 242 passed, 4 skipped** (MySQL credentials):
 - `test_app.py` adds `test_demo_walkthrough_four_steps`, an AppTest smoke run of the pitch path with no key
   typed: load → detect → generate → proof → apply fix (PASS) → plant leak (caught, twin untouched) → reset.
-  It also adds `test_try_your_text_tab`.
+  It also adds `test_try_your_text_tab`, and `test_session_from_before_the_redesign_does_not_crash` (a tab
+  opened before the redesign kept its analysis across the code reload but had no tracking keys, so step 2
+  raised AttributeError; the derived state is now rebuilt whenever it is missing).
 - `test_ui_logic.py` adds 7 tests: tracking, labels for rejected look-alikes and baseline false alarms, the
   no-answer-key summary, totals, proof cards, the planted leak, the text-masking preview, and the "why" rows.
 
@@ -643,7 +645,7 @@ only, not a project dependency.
 ## Final status (2026-10-01)
 
 All numbers are from the final runs in `out\` (summary: `out\METRICS_SUMMARY.md`, built by
-`python scripts\summarize_runs.py`). Tests: **241 passed, 4 skipped** (after the UI redesign; 232 before). The 4 skipped are the live
+`python scripts\summarize_runs.py`). Tests: **242 passed, 4 skipped** (after the UI redesign; 232 before). The 4 skipped are the live
 MySQL integration tests, waiting for credentials.
 
 ### Complete

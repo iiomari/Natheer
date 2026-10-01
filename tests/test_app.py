@@ -108,6 +108,19 @@ def test_demo_walkthrough_four_steps(app, monkeypatch):
     assert app.session_state["tables"] is None and app.session_state["step"] == 1
 
 
+def test_session_from_before_the_redesign_does_not_crash(app):
+    """A browser tab opened before the redesign keeps its analysis across a code reload but has
+    no tracking keys; the derived state must be rebuilt instead of raising AttributeError."""
+    app.button(key="demo").click().run()
+    for k in ("labels", "tracked", "golden"):
+        app.session_state[k] = None
+    app.run()
+    app.button(key="next_1").click().run()
+    assert not app.exception
+    assert app.session_state["labels"] and app.session_state["tracked"] in app.session_state["labels"]
+    assert app.session_state["golden"] is not None and "أداة تقليدية" in _md(app)
+
+
 def test_flow_load_detect_run_results(app, monkeypatch):
     monkeypatch.setenv("NAZEER_KEY", KEY)
     app.button(key="demo").click().run()

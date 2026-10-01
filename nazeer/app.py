@@ -205,20 +205,32 @@ def _ner_changed() -> None:
 
 
 def ensure_analysis() -> None:
-    if st.session_state["tables"] is None or st.session_state["analysis"] is not None:
+    if st.session_state["tables"] is None:
         return
-    slow = st.session_state.get("ner_mode") == "union"
-    msg = "نقرأ الجداول ونبحث عن البيانات الشخصية…" + (" (نموذج الأسماء يحتاج دقائق على المعالج)" if slow else "")
-    with st.spinner(msg):
-        schema = st.session_state["mysql_schema"]
-        an = _guarded(lambda: pipeline.analyze(
-            st.session_state["tables"], st.session_state["source"], ner=_name_detector(),
-            db_fks=schema.foreign_keys if schema else None, db_pks=schema.primary_keys if schema else None))
+    if st.session_state["analysis"] is None:
+        slow = st.session_state.get("ner_mode") == "union"
+        msg = "نقرأ الجداول ونبحث عن البيانات الشخصية…" + (" (نموذج الأسماء يحتاج دقائق على المعالج)" if slow else "")
+        with st.spinner(msg):
+            schema = st.session_state["mysql_schema"]
+            an = _guarded(lambda: pipeline.analyze(
+                st.session_state["tables"], st.session_state["source"], ner=_name_detector(),
+                db_fks=schema.foreign_keys if schema else None, db_pks=schema.primary_keys if schema else None))
         if an is None:
             return
-        golden = st.session_state["golden_dir"]
-        st.session_state.update(analysis=an, labels=ui.entity_labels(an), tracked=ui.default_entity(an),
-                                golden=pipeline._golden_scores(an, golden) if golden is not None else None)
+        st.session_state.update(analysis=an, labels=None, tracked=None, golden=None)
+    _ensure_derived(st.session_state["analysis"])
+
+
+def _ensure_derived(an) -> None:
+    """Labels, tracked entity and answer-key scores, rebuilt whenever missing (e.g. a browser
+    session that was opened before these keys existed survives a code reload)."""
+    if st.session_state["labels"] is None:
+        st.session_state["labels"] = ui.entity_labels(an)
+    if st.session_state["tracked"] not in st.session_state["labels"]:
+        st.session_state["tracked"] = ui.default_entity(an)
+    golden = st.session_state["golden_dir"]
+    if st.session_state["golden"] is None and golden is not None:
+        st.session_state["golden"] = pipeline._golden_scores(an, golden)
 
 
 # ---------------------------------------------------------------- html helpers
@@ -485,7 +497,7 @@ def step_detect() -> None:
                    unsafe_allow_html=True)
 
     cells = ui.entity_notes(an, st.session_state["tracked"])
-    title = f"ملاحظات {st.session_state['labels'].get(st.session_state['tracked'], '')}"
+    title = f"ملاحظات {(st.session_state['labels'] or {}).get(st.session_state['tracked'], '')}"
     if not cells:
         best = _best_note(an)
         cells, title = ([best] if best else []), "ملاحظة من البيانات"
