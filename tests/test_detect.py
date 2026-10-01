@@ -37,7 +37,7 @@ def test_profile_types(demo_data):
 
 def test_column_tags_match_golden(demo_data):
     out, tables, prof = demo_data
-    golden = read_csv(out / "golden_columns.csv")
+    golden = read_csv(out / "_golden" / "golden_columns.csv")
     got = {(d.table, d.column): d for d in detect.detect_columns(tables, prof)}
     for g in golden.itertuples(index=False):
         d = got[(g.table, g.column)]
@@ -49,7 +49,7 @@ def test_column_tags_match_golden(demo_data):
 def _scores(demo_data, finder):
     out, tables, _ = demo_data
     spans = finder(tables, [("claims", "notes")])
-    return score_detection(spans, read_csv(out / "golden_labels.csv"), read_csv(out / "hard_negatives.csv"))
+    return score_detection(spans, read_csv(out / "_golden" / "golden_labels.csv"), read_csv(out / "_golden" / "hard_negatives.csv"))
 
 
 def test_free_text_recall_meets_target(demo_data):
@@ -62,9 +62,9 @@ def test_free_text_recall_meets_target(demo_data):
 def test_lookalike_ids_are_rejected(demo_data):
     out, tables, _ = demo_data
     spans = detect.detect_free_text(tables, [("claims", "notes")])
-    negatives = read_csv(out / "hard_negatives.csv")
+    negatives = read_csv(out / "_golden" / "hard_negatives.csv")
     lookalikes = negatives[negatives.kind == "LOOKALIKE_ID"]
-    res = score_detection(spans, read_csv(out / "golden_labels.csv"), lookalikes)
+    res = score_detection(spans, read_csv(out / "_golden" / "golden_labels.csv"), lookalikes)
     assert res["hard_negative_hits"] == 0
 
 

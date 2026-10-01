@@ -22,8 +22,8 @@ def main() -> None:
     ap.add_argument("--json", type=Path, default=None, help="optional path to write the scores")
     args = ap.parse_args()
     tables = load_csv_folder(args.data, ["customers", "claims"])
-    golden = read_csv(args.data / "golden_labels.csv")
-    negatives = read_csv(args.data / "hard_negatives.csv")
+    golden = read_csv(args.data / "_golden" / "golden_labels.csv")
+    negatives = read_csv(args.data / "_golden" / "hard_negatives.csv")
     cols = [("claims", "notes")]
     results = {
         "nazeer": score_detection(detect.detect_free_text(tables, cols), golden, negatives),

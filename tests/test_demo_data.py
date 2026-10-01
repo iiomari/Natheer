@@ -22,8 +22,14 @@ def demo_dir(tmp_path_factory):
 
 def test_byte_identical_across_runs(demo_dir, tmp_path):
     demo.main(["--seed", "7", "--n", "300", "--out", str(tmp_path)])
-    for name in ("customers", "claims", "golden_labels", "hard_negatives", "golden_columns"):
-        assert filecmp.cmp(demo_dir / f"{name}.csv", tmp_path / f"{name}.csv", shallow=False), name
+    for rel in ("customers.csv", "claims.csv", "_golden/golden_labels.csv",
+                "_golden/hard_negatives.csv", "_golden/golden_columns.csv"):
+        assert filecmp.cmp(demo_dir / rel, tmp_path / rel, shallow=False), rel
+
+
+def test_table_folder_contains_only_tables(demo_dir):
+    from nazeer.tableio import load_csv_folder
+    assert set(load_csv_folder(demo_dir)) == {"customers", "claims"}
 
 
 def test_schema_and_foreign_keys(demo_dir):
@@ -46,7 +52,7 @@ def test_structured_identifiers_validate(demo_dir):
 
 def test_every_golden_span_validates(demo_dir):
     claims = _read(demo_dir / "claims.csv")
-    golden = _read(demo_dir / "golden_labels.csv")
+    golden = _read(demo_dir / "_golden" / "golden_labels.csv")
     assert golden
     for g in golden:
         span = claims[int(g["row"])]["notes"][int(g["start"]):int(g["end"])]
@@ -57,7 +63,7 @@ def test_every_golden_span_validates(demo_dir):
 
 def test_hard_negatives_fail_validation(demo_dir):
     claims = _read(demo_dir / "claims.csv")
-    negatives = _read(demo_dir / "hard_negatives.csv")
+    negatives = _read(demo_dir / "_golden" / "hard_negatives.csv")
     lookalikes = [h for h in negatives if h["kind"] == "LOOKALIKE_ID"]
     assert lookalikes
     for h in lookalikes:
@@ -68,7 +74,7 @@ def test_hard_negatives_fail_validation(demo_dir):
 
 def test_digit_scripts_and_spacing_are_mixed(demo_dir):
     claims = _read(demo_dir / "claims.csv")
-    golden = [g for g in _read(demo_dir / "golden_labels.csv") if g["type"] in ("SAUDI_ID", "MOBILE")]
+    golden = [g for g in _read(demo_dir / "_golden" / "golden_labels.csv") if g["type"] in ("SAUDI_ID", "MOBILE")]
     spans = [claims[int(g["row"])]["notes"][int(g["start"]):int(g["end"])] for g in golden]
     assert any(any("٠" <= ch <= "٩" for ch in sp) for sp in spans)
     assert any(any("۰" <= ch <= "۹" for ch in sp) for sp in spans)

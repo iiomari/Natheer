@@ -2,12 +2,13 @@
 
     python -m data_gen.make_demo_data --seed 42 --n 3000 --out data\\demo
 
-Writes:
-  customers.csv        customer_id, full_name, national_id, mobile, city, age, gender
-  claims.csv           claim_id, customer_id (FK), claim_date, claim_type, amount, notes
-  golden_labels.csv    every planted identifier in notes: table,row,column,start,end,type
-  hard_negatives.csv   look-alikes that must NOT be flagged: table,row,column,start,end,kind
-  golden_columns.csv   expected column-level tag and identifier kind
+Writes the input tables to --out and the answer key to --out\_golden (a subfolder,
+so loading the table folder never picks up the golden files):
+  customers.csv                customer_id, full_name, national_id, mobile, city, age, gender
+  claims.csv                   claim_id, customer_id (FK), claim_date, claim_type, amount, notes
+  _golden/golden_labels.csv    every planted identifier in notes: table,row,column,start,end,type
+  _golden/hard_negatives.csv   look-alikes that must NOT be flagged: table,row,column,start,end,kind
+  _golden/golden_columns.csv   expected column-level tag and identifier kind
 
 Planted signal for the utility test: claim amount grows with age, claim type
 and the customer's number of prior claims.
@@ -312,10 +313,15 @@ def _self_check(claims: list[dict], golden: list[dict], negatives: list[dict]) -
                 raise AssertionError(f"hard negative at row {h['row']} validates")
 
 
+GOLDEN_DIR = "_golden"
+GOLDEN_FILES = ("golden_labels", "hard_negatives", "golden_columns")
+
+
 def write(tables: dict[str, list[dict]], out_dir: Path) -> None:
-    out_dir.mkdir(parents=True, exist_ok=True)
     for name, rows in tables.items():
-        with (out_dir / f"{name}.csv").open("w", encoding="utf-8", newline="") as f:
+        folder = out_dir / GOLDEN_DIR if name in GOLDEN_FILES else out_dir
+        folder.mkdir(parents=True, exist_ok=True)
+        with (folder / f"{name}.csv").open("w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()), lineterminator="\n")
             writer.writeheader()
             writer.writerows(rows)

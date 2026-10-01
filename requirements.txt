@@ -16,6 +16,8 @@ torch==2.14.0
 huggingface-hub==1.33.0
 streamlit==1.63.0
 PyYAML==6.0.3
+# Report schema validation
+jsonschema==4.26.0
 
 # Tests
 pytest==9.1.1

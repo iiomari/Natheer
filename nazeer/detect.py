@@ -117,7 +117,8 @@ def _reason(tag: Tag, dtype: str) -> str:
 # ---------------------------------------------------------------- free text
 
 
-def find_spans(text: str, ner: NameDetector | None = None) -> list[tuple[int, int, s.Kind, float, str]]:
+def find_spans(text: str, ner: NameDetector | None = None,
+               names: bool = True) -> list[tuple[int, int, s.Kind, float, str]]:
     """All identifier spans in one text: (start, end, kind, confidence, source), original offsets."""
     norm, offsets = s.normalize(text)
     found: list[tuple[int, int, s.Kind, float, str]] = []
@@ -142,8 +143,9 @@ def find_spans(text: str, ner: NameDetector | None = None) -> list[tuple[int, in
             context = norm[max(0, a - 25):a]
             conf = 0.6 if (kind == "SAUDI_ID" and _INVOICE_CONTEXT.search(context)) else 0.95
             claim(a, b, kind, conf)
-    for a, b, conf in (ner or GazetteerNER()).find(text):
-        found.append((a, b, "PERSON_NAME", conf, getattr(ner, "name", "gazetteer")))
+    if names:
+        for a, b, conf in (ner or GazetteerNER()).find(text):
+            found.append((a, b, "PERSON_NAME", conf, getattr(ner, "name", "gazetteer")))
     return sorted(found)
 
 

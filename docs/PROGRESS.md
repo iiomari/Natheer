@@ -11,8 +11,8 @@ This file is updated after every milestone so a new session can resume from it a
 | M1 saudi_ids + normalization | done | f338cbe |
 | M2 Demo data + golden labels | done | 810dc40 |
 | M3 Profile + detection + baseline | done | c20dbeb |
-| M4 Policy + transform | done | (this commit) |
-| M5 Evaluation + report + k-anon backend | not started | — |
+| M4 Policy + transform | done | 29a4efa |
+| M5 Evaluation + report + k-anon backend | done | (this commit) |
 | M6a Minimal Streamlit flow | not started | — |
 | M7 Synthetic 5b + fidelity + TSTR + DCR | not started | — |
 | M6b UI polish + overrides + k-anon apply | not started | — |
@@ -90,6 +90,23 @@ torch 2.2) are incompatible, so always use the venv.
     upper-case IBAN, lower-case email, `normalize_name` per name token.
 15. **M4: `drop` was added as a policy action** (unused by default), for columns a reviewer
     wants removed entirely.
+16. **M5: demo golden files moved to `data\demo\_golden\`.** The table loader reads every
+    `*.csv` in the input folder, so the answer key must not sit next to the tables. The
+    pipeline picks up `<csv>\_golden` automatically, for the demo only.
+17. **M5: if the leak scan fails, the twin is withheld.** Only `report.json` and the log are
+    written. This is stricter than "the run fails", and it was chosen so a leaking twin can
+    never be picked up by mistake.
+18. **M5: checks carry a `blocking` flag.** "k-anonymity before fix" is recorded as a
+    non-blocking FAIL, so the original failure stays visible after the user applies a fix.
+    The verdict depends only on blocking checks.
+19. **M5: the leak scan's exhaustive pass** checks every 10-digit window (IDs), every
+    `05…`/`9665…` window (mobiles), every 22-digit window (IBANs) and every email in every
+    normalized cell. It is independent of the detector.
+20. **M5: `jsonschema==4.26.0` was added to `requirements.txt`** for report schema validation.
+    It was already installed as a Streamlit dependency.
+21. **M5: k-anonymity is computed on the twin after policy generalization** (age in 10-year
+    bins). Suggestions combine `widen_<col>`, `region_<col>` and `suppress`, and are ranked
+    by reaching k_min first, then fewest rows affected, then fewest steps.
 
 ## Milestone log
 
@@ -163,10 +180,40 @@ torch 2.2) are incompatible, so always use the venv.
   - policy override precedence.
 - Tests: 145 passed.
 
+### M5: Evaluation + report + k-anon backend
+Commands:
+- `python -m nazeer.pipeline --csv data\demo --mode masked --out out\masked` (no fix applied)
+- the same command with `--apply-fix auto` (auto fix)
+
+Results on the full demo (3,000 customers, 7,160 claims):
+- **Leak scan: PASS.** 0 original identifiers in 63,960 twin cells (detector and exhaustive
+  passes), and 0 rows keeping their original full name.
+- **Exact copies: 0.**
+- 15,865 free-text spans replaced (SAUDI_ID 3,044, MOBILE 3,945, IBAN 1,523, EMAIL 965,
+  PERSON_NAME 6,388).
+- Pseudonym collisions resolved: FIRST_NAME 1, claim_id 35, customer_id 7.
+- **k-anonymity on customers (city, age, gender): k=1 before any fix, a real FAIL** with 182
+  rows in classes smaller than 5.
+  - Generalization alone (age → 20-year bins, city → region) still gives k=1, because rare
+    age/region/gender combinations remain.
+  - The best fix, `widen_age+region_city+suppress`, reaches k=5 by suppressing 43 rows.
+  - `suppress` alone needs 182 rows.
+- Verdict: FAIL without a fix (correct), PASS with `--apply-fix auto`. Exit codes are 2 and 0.
+- A masked run takes about 25 s end to end on a laptop CPU. The leak scan over 64k cells is
+  about 10 s of that.
+
+Tests: 168 passed. They cover:
+- empty leak scan on the demo;
+- deliberate leaks causing FAIL: an Arabic-Indic spaced ID in text, an ID glued so only the
+  exhaustive pass sees it, structured mobile/ID columns, and a kept full name;
+- a human "keep" override on a DIRECT_ID column causing FAIL and withholding the twin;
+- schema validation, and the original k FAIL staying visible;
+- the CLI end to end, with no identifier, name or key in the logs or the report.
+
 ## Known issues
 
 (none yet)
 
 ## Next step
 
-M5: leak scan, exact copies, DCR, k-anonymity + suggestions, JSON report, pipeline CLI.
+M6a: minimal Streamlit flow (upload → detection + baseline panel → run → metrics → download).
