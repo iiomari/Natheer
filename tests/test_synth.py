@@ -57,7 +57,7 @@ def test_stratified_copula_picks_the_driving_column(parts):
     model.fit({"view": x}, synth.SynthSchema(tables={"view": modelled}))
     assert model.details["stratified_by"] == "claim_type"
     out = model.sample(1.0)["view"]
-    assert set(out.columns) == set(modelled) and abs(len(out) - len(x)) <= model.details["strata"]
+    assert set(out.columns) == set(modelled) and len(out) == len(x)
 
 
 def test_stratified_copula_falls_back_without_a_driver():
@@ -130,3 +130,29 @@ def test_tstr_on_real_copy_has_no_drop(parts):
     x_train, x_hold = synth.typed_view(vt.df, modelled), synth.typed_view(vh.df, modelled)
     u = evaluate.utility_tstr(x_train, x_train, x_hold, modelled, TARGET)
     assert abs(u["max_auc_drop"]) < 1e-9
+
+
+def test_small_strata_use_pooled_copula(parts):
+    *_, vt, vh, modelled, excluded = parts
+    x = synth.typed_view(vt.df, modelled)
+    model = synth.make_synthesizer("stratified_copula", min_rows=400)
+    model.fit({"view": x}, synth.SynthSchema(tables={"view": modelled}))
+    d = model.details
+    assert d["strata_from_pooled_copula"], "expected some strata below 400 rows"
+    assert all(n < 400 for n in d["strata_from_pooled_copula"].values())
+    assert all(n >= 400 for n in d["strata_with_own_copula"].values())
+    out = model.sample(1.0)["view"]
+    counts = out["claim_type"].value_counts()
+    for value, n in {**d["strata_from_pooled_copula"], **d["strata_with_own_copula"]}.items():
+        assert counts.get(value, 0) == n  # each stratum keeps its real-train size
+
+
+def test_dcr_per_stratum_and_robustness(analysis, parts):
+    *_, vt, vh, modelled, excluded = parts
+    x_train, x_hold = synth.typed_view(vt.df, modelled), synth.typed_view(vh.df, modelled)
+    d = evaluate.dcr(x_train, x_train.sample(300, random_state=1), x_hold, modelled, strata="claim_type")
+    assert d["per_stratum"] and all("passed" in v for v in d["per_stratum"].values())
+    r = pipeline.dcr_robustness(analysis, analysis.detections, "stratified_copula", seeds=2)
+    assert r["seeds"] == 2 and len(r["runs"]) == 2
+    assert r["median_dcr_twin_to_train"]["min"] <= r["median_dcr_twin_to_train"]["mean"] <= r["median_dcr_twin_to_train"]["max"]
+    assert 0 <= r["passed_runs"] <= 2

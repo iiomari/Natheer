@@ -1,7 +1,7 @@
 import random
 
 import pytest
-from hypothesis import given
+from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from nazeer import saudi_ids as s
@@ -166,6 +166,8 @@ _ALPHABET = st.sampled_from(
 )
 
 
+# Timing checks off: under machine load input generation can be slow; the property itself is unchanged.
+@settings(suppress_health_check=[HealthCheck.too_slow], deadline=None)
 @given(st.lists(_ALPHABET, max_size=80).map("".join))
 def test_offset_map_properties(text):
     norm, offsets = s.normalize(text)

@@ -350,7 +350,8 @@ def utility_tstr(train: pd.DataFrame, twin: pd.DataFrame, holdout: pd.DataFrame,
 
 # ---------------------------------------------------------------- privacy: DCR (5b)
 
-def dcr(train: pd.DataFrame, twin: pd.DataFrame, holdout: pd.DataFrame, kinds: dict[str, str], seed: int = 0) -> dict:
+def dcr(train: pd.DataFrame, twin: pd.DataFrame, holdout: pd.DataFrame, kinds: dict[str, str], seed: int = 0,
+        strata: str | None = None) -> dict:
     """Distance to closest record in real-train, for twin rows vs holdout rows.
 
     Agreed rule: PASS if median DCR(twin -> train) >= median DCR(holdout -> train).
@@ -396,7 +397,19 @@ def dcr(train: pd.DataFrame, twin: pd.DataFrame, holdout: pd.DataFrame, kinds: d
     d_sub = NearestNeighbors(n_neighbors=1).fit(sub).kneighbors(x_twin)[0][:, 0]
     d_h = NearestNeighbors(n_neighbors=1).fit(x_hold).kneighbors(x_twin)[0][:, 0]
     med_twin, med_hold = float(np.median(d_twin)), float(np.median(d_hold))
+    per_stratum = None
+    if strata and strata in twin.columns and strata in holdout.columns:
+        per_stratum = {}
+        tw_vals, ho_vals = twin[strata].astype(str).to_numpy(), holdout[strata].astype(str).to_numpy()
+        for v in sorted(set(tw_vals) | set(ho_vals)):
+            a, b = d_twin[tw_vals == v], d_hold[ho_vals == v]
+            if len(a) and len(b):
+                per_stratum[v] = {"twin_rows": int(len(a)), "holdout_rows": int(len(b)),
+                                  "median_dcr_twin_to_train": round(float(np.median(a)), 5),
+                                  "median_dcr_holdout_to_train": round(float(np.median(b)), 5),
+                                  "passed": bool(np.median(a) >= np.median(b))}
     return {
+        "per_stratum": per_stratum,
         "median_dcr_twin_to_train": round(med_twin, 5),
         "median_dcr_holdout_to_train": round(med_hold, 5),
         "passed": bool(med_twin >= med_hold),

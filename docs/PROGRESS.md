@@ -15,8 +15,15 @@ This file is updated after every milestone so a new session can resume from it a
 | M5 Evaluation + report + k-anon backend | done | 174da99 |
 | M6a Minimal Streamlit flow | done | 8a2edc4 |
 | M7 Synthetic 5b + fidelity + TSTR + DCR | done (code + tests); committed under "WIP: pause", no separate M7 commit | WIP: pause |
+| R1 DCR robustness (5 seeds, per stratum, min stratum fallback) | done | (this commit) |
 | M6b UI polish + overrides + k-anon apply | not started | — |
-| M8 Stretch (NER, HMA, PDF, Postgres) | not started | — |
+| MySQL input + output (replaces PostgreSQL) | not started | — |
+| Independent evaluation harness (human-written notes) | not started | — |
+| "Why it works" tab | not started | — |
+| Arabic NER (CamelBERT + gazetteer fallback) | not started | — |
+| Final deliverables (README ar/en, demo runs, internal demo script) | not started | — |
+| HMA multi-table synthesis | **out of scope for the hackathon** | — |
+| PDF report | **out of scope for the hackathon** | — |
 
 ## Setup notes
 
@@ -136,6 +143,52 @@ torch 2.2) are incompatible, so always use the venv.
     and listed in the report.
 28. **M7: DCR "rows at distance zero" uses a 1e-6 tolerance.** sklearn's Euclidean distance
     returns about 1e-8 for identical rows. A test (memorizing synthesizer) found this.
+
+### Scope change (user, 2026-10-01): applies to all remaining work
+29. **New order of the remaining work:**
+    1. DCR robustness check
+    2. M6b
+    3. MySQL input and output
+    4. Independent evaluation harness for human-written notes
+    5. "Why it works" tab
+    6. Arabic NER
+    7. Final deliverables
+30. **Dropped: HMA multi-table synthesis and the PDF report** are out of scope for the
+    hackathon. The `SdvMultiTable` adapter already in `synth.py` stays as an unused seam,
+    and `report.py` writes JSON only.
+31. **PostgreSQL → MySQL.**
+    - Driver: SQLAlchemy + PyMySQL, always with `charset=utf8mb4`.
+    - FKs are read from `information_schema.KEY_COLUMN_USAGE`.
+    - The source is read-only (SELECT only).
+    - Optional output goes to a *separate* database with the same PKs/FKs, `utf8mb4` and
+      `utf8mb4_unicode_ci`. The run is refused if target == source.
+    - `python -m data_gen.load_mysql` creates `nazeer_prod_demo`.
+    - Credentials come from `NAZEER_MYSQL_*` environment variables or a local `.env`
+      (python-dotenv). Real environment variables win. `.env` is gitignored, and
+      `.env.example` is committed.
+    - If the password is still `CHANGE_ME`, the MySQL steps are marked "waiting for
+      credentials" and their tests are skipped with a reason.
+32. **Judging criteria and weights are internal only.** They appear only in
+    `docs/internal/DEMO_SCRIPT.md` (headed "Internal team document — do not share."). They
+    never appear in the app, the README, reports or any judge-facing file. Metric values may
+    be shown anywhere. There is no business or commercial section anywhere.
+33. **New: independent evaluation harness.** Teammates write `data/human_notes.csv`
+    (`author,note`, identifiers wrapped as `⟦TYPE:value⟧`) without seeing the generator.
+    `python -m nazeer.eval_human` scores Nazeer vs baseline and lists misses by type and
+    position only. `data/human_notes.csv` is gitignored: hand-written notes could accidentally
+    contain a real identifier.
+34. **New: "Why it works" tab.** It shows only root cause → Nazeer component → live metric.
+35. **R1: minimum stratum size is 100 training rows (was 50 with a merged "other" copula).**
+    A smaller stratum gets no copula of its own. Its rows are drawn from a **pooled** copula
+    fitted on all training rows and sampled conditionally on the stratum value
+    (`sample_from_conditions`). On the full demo one stratum (97 rows) now uses the pooled
+    fallback.
+36. **R1: the DCR PASS rule is unchanged.** Robustness and per-stratum DCR are added as
+    non-blocking INFO checks (`--dcr-seeds 5` by default in the CLI). Each seed is a different
+    holdout split, and therefore a different fit.
+37. **R1: Hypothesis timing health checks are off for the offset-map property test.** Under
+    machine load, input generation took 1.6 s and tripped `too_slow`. The property assertions
+    are unchanged.
 
 ## Milestone log
 
@@ -295,6 +348,39 @@ They include:
 - **a memorizing "synthesizer" failing DCR and exact copies**;
 - TSTR on a real copy giving no drop.
 
+### R1: DCR robustness check
+Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "is_large_claim=amount>p90" --out out\synthetic`
+(5 robustness seeds; about 48 s in total)
+
+- **Main run (seed 0): DCR PASS.** Median twin→train 0.13514 ≥ holdout→train 0.13097, and
+  53% of twin rows are closer to train than to holdout. Utility worst AUC drop 0.0034;
+  SDMetrics quality 0.942.
+- **Robustness over 5 splits: the DCR rule holds in only 1/5.**
+  - twin→train median 0.1316 ± 0.0029 (sd);
+  - holdout→train median 0.1371 ± 0.0069;
+  - mean margin −0.0056 (range −0.0189 … +0.0042);
+  - closer-to-train share 51% ± 1%.
+
+  **Honest reading:** the seed-0 PASS is partly luck. The stratified twin is consistently
+  about 4% closer to the training data than unseen real rows are. It is not copying rows
+  (0 exact copies, and the closer-to-train share is near the 50% ideal), but the margin is
+  real and slightly negative.
+- **Per stratum (main run):** 6/8 claim types pass. أسنان and عمليات جراحية are closer to
+  train than holdout.
+- **Trade-off measured over the same 5 splits:**
+
+  | synthesizer | DCR rule passed | mean margin | mean AUC drop |
+  |---|---|---|---|
+  | plain Gaussian copula | 4/5 | +0.0056 | 0.327 (fails utility) |
+  | stratified, min 100 rows (default) | 1/5 | −0.0056 | 0.003 |
+  | stratified, min 300 rows | 2/5 | −0.0037 | 0.038 |
+
+  Stratifying buys utility at a small DCR cost. The default stays at stratified/100.
+  Even the plain copula's margin goes negative on one seed, which shows that the DCR rule
+  is noisy at this data size (about 5,700 training rows). This is listed as a top risk.
+- Tests: 178 passed. They add a pooled-fallback test (sizes per stratum preserved) and a
+  per-stratum DCR + robustness test.
+
 ## Paused here (user request, 2026-10-01)
 - **Current milestone:** M7 is finished. The code is written, the full suite passes
   (176 passed), and real numbers are recorded above. It was committed with the message
@@ -326,4 +412,4 @@ They include:
 
 ## Next step
 
-M6b: UI polish, overrides UX, k-anonymity Apply UI (see "Paused here" above for the exact plan).
+M6b: overrides editor + k-anonymity Apply with before/after k.

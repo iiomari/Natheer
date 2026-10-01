@@ -102,19 +102,26 @@ class SdvStratifiedCopula:
     """One Gaussian copula per value of the categorical column that drives the numeric
     columns most (largest mean correlation ratio eta^2 on real-train). A plain copula
     models dependence as linear correlation in a latent space and cannot express
-    "amount depends on WHICH claim type"; stratifying restores that. Strata smaller
-    than `min_rows` are merged into one "other" stratum (no copula on a handful of rows).
-    Falls back to a single copula when no column qualifies.
+    "amount depends on WHICH claim type"; stratifying restores that.
+
+    Minimum stratum size: a stratum with fewer than `min_rows` training rows gets no
+    copula of its own (too few rows to fit one without memorising). Its rows are drawn
+    from a POOLED copula fitted on all training rows, sampled conditionally on the
+    stratum value. Falls back to a single pooled copula when no column qualifies.
     """
     license = "BUSL-1.1 (SDV, copulas, rdt)"
     seed_note = "fixed by SDV (no seed parameter; sampling is deterministic per fit)"
     name = "sdv.gaussian_copula.stratified"
-    OTHER = "__other__"
+    MIN_ROWS = 100
 
-    def __init__(self, by: str | None = None, min_rows: int = 50, max_categories: int = 12, min_eta2: float = 0.1):
+    def __init__(self, by: str | None = None, min_rows: int = MIN_ROWS, max_categories: int = 12,
+                 min_eta2: float = 0.1):
         self.by, self.min_rows, self.max_categories, self.min_eta2 = by, min_rows, max_categories, min_eta2
         self._models: dict[str, tuple[object, int]] = {}
+        self._pooled = None
+        self._pooled_counts: dict[str, int] = {}
         self._table = None
+        self._columns: list[str] = []
         self.details: dict = {}
 
     @staticmethod
@@ -140,41 +147,55 @@ class SdvStratifiedCopula:
         best = max(scores, key=scores.get) if scores else None
         return (best if best and scores[best] >= self.min_eta2 else None), scores
 
-    def fit(self, tables: dict[str, pd.DataFrame], schema: SynthSchema) -> None:
+    def _copula(self, kinds: dict[str, SdType], data: pd.DataFrame):
         from sdv.single_table import GaussianCopulaSynthesizer
 
+        model = GaussianCopulaSynthesizer(_sdv_metadata(SynthSchema(tables={self._table: kinds})))
+        route_library_loggers()
+        model.fit(data[list(kinds)].reset_index(drop=True))
+        return model
+
+    def fit(self, tables: dict[str, pd.DataFrame], schema: SynthSchema) -> None:
         (self._table, df), = tables.items()
         kinds = schema.tables[self._table]
+        self._columns = list(kinds)
         by, scores = (self.by, {}) if self.by else self._choose(df, kinds)
-        self.details = {"stratified_by": by, "eta2_by_candidate": scores, "min_rows": self.min_rows}
-        if by is None:
-            groups = {self.OTHER: df}
-        else:
-            counts = df[by].value_counts()
-            big = [v for v, n in counts.items() if n >= self.min_rows]
-            groups = {v: df[df[by] == v] for v in big}
-            small = df[~df[by].isin(big)]
-            if len(small):
-                groups[self.OTHER] = small
-            self.details.update(strata=len(groups), merged_small_strata=int(len(counts) - len(big)),
-                                smallest_stratum_rows=int(min(len(g) for g in groups.values())))
-        for value, part in groups.items():
-            sub_kinds = dict(kinds) if value == self.OTHER else {k: v for k, v in kinds.items() if k != by}
-            model = GaussianCopulaSynthesizer(_sdv_metadata(SynthSchema(tables={self._table: sub_kinds})))
-            route_library_loggers()
-            model.fit(part[list(sub_kinds)].reset_index(drop=True))
-            self._models[value] = (model, len(part))
         self.by = by
+        self.details = {"stratified_by": by, "eta2_by_candidate": scores, "min_stratum_rows": self.min_rows}
+        if by is None:
+            self._pooled = self._copula(kinds, df)
+            self._pooled_counts = {None: len(df)}
+            self.details.update(strata_with_own_copula={}, strata_from_pooled_copula={})
+            return
+        counts = df[by].value_counts()
+        own = {v: int(n) for v, n in counts.items() if n >= self.min_rows}
+        pooled = {v: int(n) for v, n in counts.items() if n < self.min_rows}
+        sub_kinds = {k: v for k, v in kinds.items() if k != by}
+        for value, n in own.items():
+            self._models[value] = (self._copula(sub_kinds, df[df[by] == value]), n)
+        if pooled:
+            self._pooled = self._copula(kinds, df)
+            self._pooled_counts = pooled
+        self.details.update(strata_with_own_copula=own, strata_from_pooled_copula=pooled)
 
     def sample(self, scale: float = 1.0, seed: int | None = None) -> dict[str, pd.DataFrame]:
+        from sdv.sampling import Condition
+
         parts = []
         for value, (model, n) in self._models.items():
             model.reset_sampling()
             part = model.sample(num_rows=max(1, int(round(n * scale))))
-            if value != self.OTHER:
-                part[self.by] = value
+            part[self.by] = value
             parts.append(part)
-        return {self._table: pd.concat(parts, ignore_index=True)}
+        if self._pooled is not None:
+            self._pooled.reset_sampling()
+            if self.by is None:
+                parts.append(self._pooled.sample(num_rows=max(1, int(round(self._pooled_counts[None] * scale)))))
+            else:
+                conditions = [Condition(column_values={self.by: v}, num_rows=max(1, int(round(n * scale))))
+                              for v, n in self._pooled_counts.items()]
+                parts.append(self._pooled.sample_from_conditions(conditions))
+        return {self._table: pd.concat(parts, ignore_index=True)[self._columns]}
 
 
 class SdvMultiTable:

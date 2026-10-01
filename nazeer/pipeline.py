@@ -244,9 +244,59 @@ def run_masked(analysis: Analysis, policy: Policy, key: bytes, overrides: dict |
 
 # ---------------------------------------------------------------- synthetic mode (5b)
 
+def fit_synthetic_view(analysis: Analysis, dets: list[ColumnDetection], seed: int, method: str) -> dict:
+    """Split (before any fitting), build the flat view, fit on real-train, sample."""
+    from nazeer import synth
+
+    prof = analysis.profile
+    train_t, hold_t, split = synth.split_holdout(analysis.tables, prof, frac=0.2, seed=seed)
+    view_train, view_hold = synth.build_view(train_t, prof), synth.build_view(hold_t, prof)
+    modelled, excluded = synth.view_plan(view_train, prof, dets)
+    x_train = synth.typed_view(view_train.df, modelled)
+    x_hold = synth.typed_view(view_hold.df, modelled)
+    t0 = time.perf_counter()
+    model = synth.make_synthesizer(method)
+    model.fit({"view": x_train}, synth.SynthSchema(tables={"view": modelled}))
+    sampled = model.sample(1.0, seed)["view"][list(modelled)]
+    return {"split": split, "view_train": view_train, "modelled": modelled, "excluded": excluded,
+            "x_train": x_train, "x_hold": x_hold, "model": model, "sampled": sampled,
+            "seconds": round(time.perf_counter() - t0, 2)}
+
+
+def dcr_robustness(analysis: Analysis, dets: list[ColumnDetection], method: str, seeds: int = 5) -> dict:
+    """Repeat split -> fit -> sample -> DCR for several seeds. Each seed is a different
+    holdout split and therefore a different fit. Reports mean and spread; the PASS rule
+    itself is unchanged and is applied to the main run only."""
+    import numpy as np
+
+    runs = []
+    for seed in range(seeds):
+        f = fit_synthetic_view(analysis, dets, seed, method)
+        x_twin = f["sampled"]
+        d = evaluate.dcr(f["x_train"], x_twin, f["x_hold"], f["modelled"], seed)
+        runs.append({"seed": seed, "median_dcr_twin_to_train": d["median_dcr_twin_to_train"],
+                     "median_dcr_holdout_to_train": d["median_dcr_holdout_to_train"],
+                     "share_twin_closer_to_train_than_holdout": d["share_twin_closer_to_train_than_holdout"],
+                     "passed": d["passed"]})
+
+    def stats(key: str) -> dict:
+        v = np.array([r[key] for r in runs], dtype=float)
+        return {"mean": round(float(v.mean()), 5), "std": round(float(v.std(ddof=1)) if len(v) > 1 else 0.0, 5),
+                "min": round(float(v.min()), 5), "max": round(float(v.max()), 5)}
+
+    margins = np.array([r["median_dcr_twin_to_train"] - r["median_dcr_holdout_to_train"] for r in runs])
+    return {"seeds": seeds, "runs": runs, "passed_runs": int(sum(r["passed"] for r in runs)),
+            "median_dcr_twin_to_train": stats("median_dcr_twin_to_train"),
+            "median_dcr_holdout_to_train": stats("median_dcr_holdout_to_train"),
+            "share_twin_closer_to_train_than_holdout": stats("share_twin_closer_to_train_than_holdout"),
+            "margin": {"mean": round(float(margins.mean()), 5), "min": round(float(margins.min()), 5),
+                       "max": round(float(margins.max()), 5)},
+            "note": "information only; the PASS rule is applied to the main run"}
+
+
 def run_synthetic(analysis: Analysis, policy: Policy, overrides: dict | None = None,
                   target: str | None = None, golden_dir: Path | None = None,
-                  method: str = "stratified_copula", seed: int = 0) -> RunResult:
+                  method: str = "stratified_copula", seed: int = 0, robustness_seeds: int = 0) -> RunResult:
     from nazeer import synth
     from nazeer import saudi_ids as s
 
@@ -256,19 +306,12 @@ def run_synthetic(analysis: Analysis, policy: Policy, overrides: dict | None = N
     dets = apply_overrides(analysis.detections, overrides)
     decisions = resolve(policy, prof, analysis.detections, overrides)
 
-    # 1. split BEFORE anything is fitted
-    train_t, hold_t, split = synth.split_holdout(analysis.tables, prof, frac=0.2, seed=seed)
-    view_train, view_hold = synth.build_view(train_t, prof), synth.build_view(hold_t, prof)
-    modelled, excluded = synth.view_plan(view_train, prof, dets)
-    x_train = synth.typed_view(view_train.df, modelled)
-    x_hold = synth.typed_view(view_hold.df, modelled)
-
-    # 2. fit on real-train only (direct identifiers, text and keys excluded)
-    t0 = time.perf_counter()
-    model = synth.make_synthesizer(method)
-    model.fit({"view": x_train}, synth.SynthSchema(tables={"view": modelled}))
-    sampled = model.sample(1.0, seed)["view"][list(modelled)]
-    fit_seconds = round(time.perf_counter() - t0, 2)
+    # 1-2. split BEFORE anything is fitted, then fit on real-train only
+    fitted = fit_synthetic_view(analysis, dets, seed, method)
+    split, view_train = fitted["split"], fitted["view_train"]
+    modelled, excluded = fitted["modelled"], fitted["excluded"]
+    x_train, x_hold, model, sampled = fitted["x_train"], fitted["x_hold"], fitted["model"], fitted["sampled"]
+    fit_seconds = fitted["seconds"]
 
     # 3. fill identifiers / keys / text with Nazeer's generators (never equal to an original)
     originals = evaluate.original_identifier_values(analysis.tables, dets, analysis.spans)
@@ -282,7 +325,9 @@ def run_synthetic(analysis: Analysis, policy: Policy, overrides: dict | None = N
     fid = evaluate.fidelity(x_train, x_twin, modelled)
     fid["sdmetrics_quality_score"] = evaluate.sdmetrics_quality(x_train, x_twin, modelled)
     util = evaluate.utility_tstr(x_train, x_twin, x_hold, modelled, target, seed) if target else None
-    dcr = evaluate.dcr(x_train, x_twin, x_hold, modelled, seed)
+    strat = getattr(model, "details", {}).get("stratified_by")
+    dcr = evaluate.dcr(x_train, x_twin, x_hold, modelled, seed, strata=strat)
+    robustness = dcr_robustness(analysis, dets, method, robustness_seeds) if robustness_seeds else None
     copies = evaluate.exact_copies(x_train, x_twin, list(modelled))
     leak = evaluate.leak_scan(originals, twin, "synthetic")
     by_col = {(d.table, d.column): d for d in dets}
@@ -311,7 +356,7 @@ def run_synthetic(analysis: Analysis, policy: Policy, overrides: dict | None = N
     }
     base["fidelity"] = fid
     base["utility"] = util or {"note": "no target given; utility not measured"}
-    base["privacy"] = {"exact_copies": {twin_name: copies}, "dcr": dcr}
+    base["privacy"] = {"exact_copies": {twin_name: copies}, "dcr": dcr, "dcr_robustness": robustness}
     base["leak_scan"] = leak
     golden = _golden_scores(analysis, golden_dir)
     if golden:
@@ -339,7 +384,20 @@ def run_synthetic(analysis: Analysis, policy: Policy, overrides: dict | None = N
     b.add("fidelity", "INFO", False,
           f"SDMetrics quality {fid['sdmetrics_quality_score']}; mean per-column distance {fid['mean_column_distance']}; "
           f"numeric correlation diff {fid['numeric_correlation_mean_abs_diff']}", value=fid["sdmetrics_quality_score"])
-    strat = getattr(model, "details", {}).get("stratified_by")
+    if robustness:
+        r = robustness
+        b.add("dcr_robustness", "INFO", False,
+              f"{r['seeds']} seeds (different holdout splits): DCR rule passed in {r['passed_runs']}/{r['seeds']}; "
+              f"twin→train median {r['median_dcr_twin_to_train']['mean']} ± {r['median_dcr_twin_to_train']['std']}, "
+              f"holdout→train {r['median_dcr_holdout_to_train']['mean']} ± {r['median_dcr_holdout_to_train']['std']}; "
+              f"closer-to-train share {r['share_twin_closer_to_train_than_holdout']['mean']:.0%} "
+              f"± {r['share_twin_closer_to_train_than_holdout']['std']:.0%}", value=r["margin"])
+    if dcr.get("per_stratum"):
+        failing = [v for v, d in dcr["per_stratum"].items() if not d["passed"]]
+        b.add("dcr_per_stratum", "INFO", False,
+              f"{len(dcr['per_stratum']) - len(failing)}/{len(dcr['per_stratum'])} strata of {strat} have twin no closer "
+              f"to train than holdout" + (f"; closer in: {', '.join(failing)}" if failing else ""),
+              value={v: d["passed"] for v, d in dcr["per_stratum"].items()})
     b.add("synthesizer", "INFO", False, f"{model.name} ({model.license})"
           + (f"; stratified by {strat}" if strat else "") + f"; seed {model.seed_note}")
     _review_check(b, dets)
@@ -376,6 +434,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--overrides", type=Path, help='JSON: {"table.column": {"tag": ..., "kind": ..., "action": {...}}}')
     ap.add_argument("--apply-fix", default=None, help='k-anonymity fix to apply: a suggested fix name, or "auto"')
     ap.add_argument("--target", default=None, help='synthetic mode: utility target, e.g. "is_large_claim=amount>p90"')
+    ap.add_argument("--dcr-seeds", type=int, default=5, help="synthetic mode: DCR robustness repeats (0 = off)")
     ap.add_argument("--synthesizer", default="stratified_copula",
                     choices=["stratified_copula", "gaussian_copula", "ctgan"], help="synthetic mode: model")
     ap.add_argument("--golden", type=Path, default=None, help="demo answer key folder (default: <csv>\\_golden if present)")
@@ -396,7 +455,7 @@ def main(argv: list[str] | None = None) -> int:
         result = run_masked(analysis, policy, load_key(), overrides, args.apply_fix, golden)
     else:
         result = run_synthetic(analysis, policy, overrides, target=args.target, golden_dir=golden,
-                               method=args.synthesizer)
+                               method=args.synthesizer, robustness_seeds=args.dcr_seeds)
 
     write_outputs(result, args.out)
     rep = result.report

@@ -13,3 +13,6 @@ __pycache__/
 data/demo/
 out/
 *.log
+
+# Hand-written evaluation notes (may accidentally contain real identifiers)
+data/human_notes.csv
