@@ -99,3 +99,18 @@ def _cue_gap_ok(text: str, a: int, b: int, cue: str) -> bool:
     if cue in _ABBREVIATED_CUES:
         return set(gap) <= {" ", "."}
     return gap.isspace()
+
+
+def get_name_detector(mode: str = "auto") -> NameDetector:
+    """"gazetteer", "camel" (raises NERUnavailable if the local model is missing), or "auto"
+    (CamelBERT when available locally, otherwise the gazetteer fallback)."""
+    if mode == "gazetteer":
+        return GazetteerNER()
+    try:
+        from nazeer.camel_ner import CamelNER  # noqa: PLC0415 - optional heavy dependency
+
+        return CamelNER.load()
+    except Exception as e:  # noqa: BLE001
+        if mode == "camel":
+            raise NERUnavailable(f"CamelBERT NER unavailable ({type(e).__name__})") from None
+        return GazetteerNER()

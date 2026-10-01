@@ -17,8 +17,8 @@ This file is updated after every milestone so a new session can resume from it a
 | M7 Synthetic 5b + fidelity + TSTR + DCR | done (code + tests); committed under "WIP: pause", no separate M7 commit | WIP: pause |
 | R1 DCR robustness (5 seeds, per stratum, min stratum fallback) | done | 2126e4c |
 | M6b UI polish + overrides + k-anon apply | done | bf9106d |
-| MySQL input + output (replaces PostgreSQL) | code + unit tests done; **live MySQL steps waiting for credentials** | (this commit) |
-| Independent evaluation harness (human-written notes) | not started | — |
+| MySQL input + output (replaces PostgreSQL) | code + unit tests done; **live MySQL steps waiting for credentials** | 9b23043 |
+| Independent evaluation harness (human-written notes) | done; **waiting for teammates' notes** | (this commit) |
 | "Why it works" tab | not started | — |
 | Arabic NER (CamelBERT + gazetteer fallback) | not started | — |
 | Final deliverables (README ar/en, demo runs, internal demo script) | not started | — |
@@ -218,6 +218,16 @@ torch 2.2) are incompatible, so always use the venv.
 46. **MySQL in the UI: credentials are never entered on the page.** Only the database names
     are typed in the UI. `MySQLError` messages are shown verbatim, because they contain no
     credentials or values by construction.
+47. **Evaluation harness: recall is reported twice**, on all marked identifiers and on
+    format-valid ones only. Hand-invented 10-digit "IDs" usually fail the national-ID
+    checksum, and Nazeer rejects those by design (that is what separates an ID from an invoice
+    number). `--make-ids N` prints valid fake identifiers for writers to paste. Names have no
+    official format and always count in both.
+48. **Evaluation harness: an `EMAIL` marker was added** (the request listed ID, MOBILE, IBAN
+    and NAME). Malformed markup (unknown type, empty, nested, unbalanced) is reported per row
+    and the row is skipped. It never crashes the run.
+49. **`ner.get_name_detector("auto" | "gazetteer" | "camel")`** was added ahead of the NER step.
+    For now "auto" falls back to the gazetteer, because CamelBERT is not installed yet.
 
 ## Milestone log
 
@@ -456,6 +466,26 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
   - UI tests: a missing password shows "waiting for credentials"; writing to the source
     database is refused with a visible message.
 
+### Independent evaluation harness (done; waiting for teammates' notes)
+- `python -m nazeer.eval_human --notes data\human_notes.csv` strips the `⟦TYPE:value⟧` markers,
+  runs Nazeer and the baseline on the clean text, and prints recall/precision per type, overall,
+  and on format-valid identifiers only. It lists every missed span and every extra span by
+  **type and position only**, and writes `out\human_eval.json`.
+- `data\human_notes_TEMPLATE.csv` (committed): 5 example rows with fake but valid identifiers,
+  Arabic-Indic and spaced digits, `+966`, a grouped IBAN, names with and without a family name,
+  and two unmarked invoice/order numbers that fail the checksum. Score on the template:
+  Nazeer 9/9 (recall 1.0, precision 1.0); baseline recall 0.111, precision 0.333. Five rows
+  are a format check, not evidence.
+- `docs\HOW_TO_WRITE_NOTES.md`: the Arabic guide for teammates (no real data, how to mark,
+  what NOT to mark, how to vary styles, how to run).
+- **Real human-notes results: pending.** `data\human_notes.csv` does not exist yet. The file is
+  gitignored.
+- Tests: 221 passed, 4 skipped (MySQL credentials). `test_eval_human.py` (11) covers marker
+  parsing and clean text, malformed markup rejected, the template scored with no values in
+  the output, misses and invalid-format reported by position only, an unmarked but
+  checksum-valid invoice number surfacing as an honest "extra" (false positive), valid
+  `--make-ids`, and a helpful message when the file is missing.
+
 ## Paused here (user request, 2026-10-01)
 - **Current milestone:** M7 is finished. The code is written, the full suite passes
   (176 passed), and real numbers are recorded above. It was committed with the message
@@ -487,4 +517,4 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
 
 ## Next step
 
-Independent evaluation harness (`python -m nazeer.eval_human`, template CSV, Arabic writing guide).
+"Why it works" tab (root cause → component → live metric; no criteria or weights).
