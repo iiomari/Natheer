@@ -86,6 +86,19 @@ python -m nazeer.pipeline --mysql-db nazeer_prod_demo --mysql-target nazeer_dev 
 - **التطابق الإحصائي:** اختبار KS للأعمدة الرقمية، والمسافة الكلية (TVD) للفئوية، ومقياس جودة
   SDMetrics.
 
+### نتائج العرض (بيانات مولَّدة بلا أشخاص حقيقيين)
+الأرقام من `out\METRICS_SUMMARY.md`: 3,000 عميل و7,160 مطالبة، وفيها 15,989 معرّفًا مزروعًا داخل الملاحظات.
+| المقياس | النتيجة |
+|---|---|
+| اكتشاف المعرّفات في النص الحر | نظير **99.2%** بدقة **100%**، مقابل **18.7%** للأداة البسيطة بدقة 80.9% |
+| أرقام تشبه الهوية (فواتير وطلبات) عُلِّمت خطأً | نظير **0** من 6,756، والأداة البسيطة 707 |
+| التوأم المقنّع | **0** تسرّب في 63,960 خلية، و**0** نسخ مطابقة، و**100%** من الهويات والجوالات الوهمية صالحة، و**0** مفاتيح أجنبية يتيمة |
+| k-anonymity | **1 (FAIL)** قبل الإصلاح، ثم **5** بعد الإصلاح المقترح (43 صفًا من 3,000 أُخفيت قيمها) |
+| التوأم الاصطناعي (TSTR) | AUC من **0.984 إلى 0.983** (انحدار لوجستي)، ومن **0.984 إلى 0.981** (غابة عشوائية)، وجودة SDMetrics **94.2%** |
+| DCR | ناجح في التشغيل الرئيسي، و**1 من 5** في اختبار المتانة (انظر القيود) |
+
+هذه أرقام على بيانات مولَّدة، ولا تتنبأ بالأداء على بيانات حقيقية.
+
 ### القيود المعروفة (بصراحة)
 - الاكتشاف ليس كاملًا أبدًا. ما يفوت المكتشِف في النص الحر لا يُستبدل ولا يستطيع فحص التسرّب العثور
   عليه.
@@ -97,8 +110,9 @@ python -m nazeer.pipeline --mysql-db nazeer_prod_demo --mysql-target nazeer_dev 
 - في التوأم الاصطناعي على بيانات العرض، تحقق شرط DCR في التشغيل الرئيسي، لكنه تحقق في تشغيل واحد
   فقط من 5 تقسيمات مختلفة: التوأم أقرب قليلًا (نحو 4%) إلى بيانات التدريب من البيانات المحجوزة.
   التفاصيل في التقرير.
-- نموذج الأسماء العربي بطيء على المعالج (نحو 0.2 ثانية لكل ملاحظة)، لذلك الوضع الافتراضي يستخدم
-  قوائم الأسماء.
+- نموذج الأسماء العربي (CamelBERT مع القوائم) يرفع اكتشاف الأسماء على بيانات العرض من 98.1% إلى 99.4%،
+  لكنه بطيء على المعالج (نحو 0.12 ثانية لكل ملاحظة، أي قرابة 15 دقيقة لـ 7,160 ملاحظة)، لذلك
+  الوضع الافتراضي يستخدم قوائم الأسماء.
 - SDV ومكتباته بترخيص BUSL-1.1.
 
 ---
@@ -189,6 +203,19 @@ Independent check on hand-written notes: see `docs\HOW_TO_WRITE_NOTES.md`, then 
   real data. A small AUC drop means the twin is useful.
 - **Fidelity:** KS (numeric), total variation distance (categorical), SDMetrics quality score.
 
+### Demo results (generated data, no real people)
+From `out\METRICS_SUMMARY.md`: 3,000 customers, 7,160 claims, and 15,989 identifiers planted in notes.
+| Metric | Result |
+|---|---|
+| Identifiers found in free text | Nazeer **99.2%** recall, **100%** precision; baseline **18.7%**, 80.9% |
+| Look-alike invoice/order numbers wrongly flagged | Nazeer **0** of 6,756; baseline 707 |
+| Masked twin | **0** leaks in 63,960 cells, **0** exact copies, **100%** of fake IDs and mobiles valid, **0** orphan foreign keys |
+| k-anonymity | **1 (FAIL)** before the fix → **5** after the suggested fix (43 of 3,000 rows suppressed) |
+| Synthetic twin (TSTR) | AUC **0.984 → 0.983** (logistic regression), **0.984 → 0.981** (random forest); SDMetrics quality **94.2%** |
+| DCR | passes on the main run; **1 of 5** in the robustness check (see limitations) |
+
+These numbers come from generated data and do not predict performance on real production text.
+
 ### Known limitations (stated plainly)
 - Detection is never complete. What the detector misses in free text is not replaced, and the leak
   scan cannot find it.
@@ -201,5 +228,7 @@ Independent check on hand-written notes: see `docs\HOW_TO_WRITE_NOTES.md`, then 
 - On the demo synthetic twin, the DCR rule holds on the main run but in only 1 of 5 different
   holdout splits. The twin is slightly (about 4%) closer to the training data than held-out rows.
   Details are in the report.
-- The Arabic NER model is slow on CPU (about 0.2 s per note), so the default uses the name lists.
+- The Arabic NER model (CamelBERT + name lists) raises demo name recall from 98.1% to 99.4%, but
+  it is slow on CPU (about 0.12 s per note, about 15 minutes for 7,160 notes), so the default uses
+  the name lists.
 - SDV and its dependencies are licensed BUSL-1.1.

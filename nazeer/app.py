@@ -169,7 +169,7 @@ def section_input() -> None:
             _guarded(load_uploads, files)
     st.radio("Name detection in free text", ["gazetteer", "union"], key="ner_mode", horizontal=True,
              format_func=lambda m: {"gazetteer": "Fast (Arabic name lists)",
-                                    "union": "Best recall (CamelBERT + name lists; ~0.2 s per note on CPU)"}[m])
+                                    "union": "Best recall (CamelBERT + name lists; ~0.1 s per note on CPU)"}[m])
     if st.session_state["tables"] is not None:
         st.caption(f"Loaded: {st.session_state['source']} — " + ", ".join(
             f"{n} ({len(df):,} rows × {df.shape[1]} cols)" for n, df in st.session_state["tables"].items()))

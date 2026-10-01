@@ -495,7 +495,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--target", default=None, help='synthetic mode: utility target, e.g. "is_large_claim=amount>p90"')
     ap.add_argument("--dcr-seeds", type=int, default=5, help="synthetic mode: DCR robustness repeats (0 = off)")
     ap.add_argument("--ner", choices=["gazetteer", "union", "camel", "auto"], default="gazetteer",
-                    help="name detector for free text (union = CamelBERT + gazetteer, ~0.2 s per note on CPU)")
+                    help="name detector for free text (union = CamelBERT + gazetteer, ~0.1 s per note on CPU)")
     ap.add_argument("--synthesizer", default="stratified_copula",
                     choices=["stratified_copula", "gaussian_copula", "ctgan"], help="synthetic mode: model")
     ap.add_argument("--golden", type=Path, default=None, help="demo answer key folder (default: <csv>\\_golden if present)")

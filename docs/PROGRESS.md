@@ -20,8 +20,8 @@ This file is updated after every milestone so a new session can resume from it a
 | MySQL input + output (replaces PostgreSQL) | code + unit tests done; **live MySQL steps waiting for credentials** | 9b23043 |
 | Independent evaluation harness (human-written notes) | done; **waiting for teammates' notes** | e430dc0 |
 | "Why it works" tab | done | b27683d |
-| Arabic NER (CamelBERT + gazetteer fallback) | done (full-demo measurement running) | (this commit) |
-| Final deliverables (README ar/en, demo runs, internal demo script) | not started | — |
+| Arabic NER (CamelBERT + gazetteer fallback) | done | 04a84ae |
+| Final deliverables (README ar/en, demo runs, internal demo script) | done | (this commit) |
 | HMA multi-table synthesis | **out of scope for the hackathon** | — |
 | PDF report | **out of scope for the hackathon** | — |
 
@@ -536,8 +536,17 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
   | CamelBERT | 0.940 | 1.000 | 253/385 | 0/65 | about 300 ms/note |
   | CamelBERT + gazetteer | **0.990** | 1.000 | 380/385 | 0/65 | about 215 ms/note |
 
-  Cold model load took 84 s the first time. The full-demo measurement (7,160 notes) is
-  running and will be recorded in the final section.
+  Cold model load took 84 s the first time (8 s warm).
+- **Full demo: 7,160 notes, 6,512 planted names, 1,107 name-like words.**
+
+  | detector | recall | precision | exact spans | name-like words flagged | time |
+  |---|---|---|---|---|---|
+  | gazetteer | 0.981 | 1.000 | 6,388/6,512 | 0/1,107 | 1 s |
+  | CamelBERT | 0.943 | 0.9999 | 4,530/6,512 | 0/1,107 | 863 s (121 ms/note) |
+  | CamelBERT + gazetteer | **0.994** | 0.9998 | 6,468/6,512 | 0/1,107 | 888 s (124 ms/note) |
+
+  The speed wording in the README, UI and CLI help was corrected from "~0.2 s" to the measured
+  ~0.12 s per note.
 - Template notes (5 rows) with the union: Nazeer recall 1.0 and precision 1.0; baseline 0.111 and
   0.333.
 - Tests: 232 passed, 4 skipped (MySQL credentials).
@@ -549,7 +558,69 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
   PowerShell install/run, MySQL flow, UI steps, metric meanings, known limitations. There is
   no commercial section and no criteria.
 
-## Paused here (user request, 2026-10-01)
+## Final status (2026-10-01)
+
+All numbers are from the final runs in `out\` (summary: `out\METRICS_SUMMARY.md`, built by
+`python scripts\summarize_runs.py`). Tests: **232 passed, 4 skipped**. The 4 skipped are the live
+MySQL integration tests, waiting for credentials.
+
+### Complete
+- M0–M5, M6a, M6b, M7 (as planned, plus deviations 1–54 above).
+- R1 DCR robustness: 5 seeds, per-stratum DCR, and a pooled fallback for strata under 100 rows.
+- MySQL input/output: code, CLI, UI and unit tests (read-only source, separate utf8mb4 target,
+  same PKs/FKs, refuses the source, leak scan re-run on the target).
+- Independent evaluation harness: `python -m nazeer.eval_human`, a template, and the Arabic
+  writing guide.
+- "Why it works" tab with five live metrics, and a guard test that keeps criteria and weights
+  out of every judge-facing file.
+- Arabic NER: CamelBERT + gazetteer union (optional), and the gazetteer default.
+- Final deliverables:
+  - bilingual README (no commercial section, no criteria);
+  - demo runs `out\masked_no_fix`, `out\masked`, `out\synthetic`, `out\detection_scores.json`
+    and `out\METRICS_SUMMARY.md`;
+  - `docs\internal\DEMO_SCRIPT.md`.
+
+### Final demo numbers (seed 42, 3,000 customers, 7,160 claims)
+
+| | result |
+|---|---|
+| Free-text detection (15,989 planted) | Nazeer recall **0.992**, precision **1.000**; baseline 0.187 / 0.809 |
+| Look-alikes wrongly flagged | Nazeer **0** / 6,756; baseline 707 / 6,756 |
+| Masked twin | verdict **PASS** with fix (FAIL without); leak scan 0 in 63,960 cells; exact copies 0; 15,865 spans replaced; fake IDs/mobiles 100% valid; 0 orphan FKs |
+| k-anonymity | **k=1 → 5** with `widen_age+region_city+suppress` (43 of 3,000 rows suppressed; 233 → 67 classes) |
+| Synthetic twin | verdict **PASS**; AUC 0.9842→0.9831 (LR), 0.9841→0.9807 (RF), worst drop **0.0034**; SDMetrics 0.942; exact copies 0; leak scan 0 in 57,000 cells |
+| DCR | main run PASS (0.1351 ≥ 0.1310); **robustness 1/5 splits**, mean margin −0.0056 |
+| Names (full demo) | gazetteer 0.981; CamelBERT + gazetteer **0.994**; CamelBERT alone 0.943 |
+| Hand-written notes | **not available yet** (no `data\human_notes.csv`) |
+
+### Partial
+- **MySQL live path: waiting for credentials.** The service `wampmysqld64` (MySQL 9.1.0) is
+  stopped, and `.env` still has `CHANGE_ME`. The code is unit-tested, but the 4 live tests
+  (Arabic round trip, FK detection, read-only source, prod → dev with a target leak scan) have
+  never run. Steps: see the MySQL section above. There is no `out\mysql_masked` run yet.
+- **Human-notes evaluation:** the harness is ready, and the teammates' notes are pending.
+- **Demo script weights:** the six criteria are in place, but their weights were never provided
+  (the message was truncated). The time split is an explicit equal placeholder.
+
+### Not built
+- HMA multi-table synthesis and the PDF report: **out of scope for the hackathon** (user decision).
+  The `SdvMultiTable` adapter remains as an unused seam.
+- Our own scipy copula replacing SDV (only the `Synthesizer` seam exists).
+- UI editing of `generalize` parameters (policy file only).
+
+### Top 3 risks before presenting
+1. **The "production DB → development DB" demo depends on MySQL, which has never run live here.**
+   Start the service, set the password, run `python -m data_gen.load_mysql` and
+   `python -m pytest tests\test_mysql.py -rs` **before** the day. If anything fails, use the CSV
+   fallback in the demo script (same numbers).
+2. **Synthetic privacy margin.** DCR passes on the main run but in only 1/5 holdout splits (the
+   twin is about 4% closer to training data than unseen rows). Say it before being asked, along
+   with the measured trade-off (the plain copula passes 4/5 but loses all utility).
+3. **Detection evidence comes only from generated data**, and demo names come from the gazetteer's
+   own lists. Get the teammates' hand-written notes scored with `python -m nazeer.eval_human`
+   before the pitch, and put those numbers in the demo script.
+
+## Earlier pause note (historical, superseded by Final status)
 - **Current milestone:** M7 is finished. The code is written, the full suite passes
   (176 passed), and real numbers are recorded above. It was committed with the message
   "WIP: pause" instead of "M7: …" because the user asked to stop.
@@ -580,4 +651,4 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
 
 ## Next step
 
-Final deliverables: demo runs in out\ + METRICS_SUMMARY.md, docs\internal\DEMO_SCRIPT.md, final PROGRESS section.
+Remaining actions are the user's: MySQL credentials + service, hand-written notes, criteria weights (see Final status).

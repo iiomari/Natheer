@@ -107,7 +107,7 @@ NER_MODES = ("gazetteer", "union", "camel", "auto")
 def get_name_detector(mode: str = "gazetteer") -> NameDetector:
     """Name detector by mode:
     gazetteer  fast first-name list + family-name extension (default for whole datasets)
-    union      CamelBERT + gazetteer (best recall; ~0.2 s per note on CPU)
+    union      CamelBERT + gazetteer (best recall; ~0.1 s per note on CPU)
     camel      CamelBERT only
     auto       union when the model is installed locally, otherwise gazetteer
     "union"/"camel" raise NERUnavailable if the local model is missing."""
