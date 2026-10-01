@@ -245,8 +245,108 @@ def run_masked(analysis: Analysis, policy: Policy, key: bytes, overrides: dict |
 # ---------------------------------------------------------------- synthetic mode (5b)
 
 def run_synthetic(analysis: Analysis, policy: Policy, overrides: dict | None = None,
-                  target: str | None = None, golden_dir: Path | None = None) -> RunResult:
-    raise NotImplementedError("synthetic mode is built in milestone M7")
+                  target: str | None = None, golden_dir: Path | None = None,
+                  method: str = "stratified_copula", seed: int = 0) -> RunResult:
+    from nazeer import synth
+    from nazeer import saudi_ids as s
+
+    run_id = new_run_id()
+    overrides = overrides or {}
+    prof = analysis.profile
+    dets = apply_overrides(analysis.detections, overrides)
+    decisions = resolve(policy, prof, analysis.detections, overrides)
+
+    # 1. split BEFORE anything is fitted
+    train_t, hold_t, split = synth.split_holdout(analysis.tables, prof, frac=0.2, seed=seed)
+    view_train, view_hold = synth.build_view(train_t, prof), synth.build_view(hold_t, prof)
+    modelled, excluded = synth.view_plan(view_train, prof, dets)
+    x_train = synth.typed_view(view_train.df, modelled)
+    x_hold = synth.typed_view(view_hold.df, modelled)
+
+    # 2. fit on real-train only (direct identifiers, text and keys excluded)
+    t0 = time.perf_counter()
+    model = synth.make_synthesizer(method)
+    model.fit({"view": x_train}, synth.SynthSchema(tables={"view": modelled}))
+    sampled = model.sample(1.0, seed)["view"][list(modelled)]
+    fit_seconds = round(time.perf_counter() - t0, 2)
+
+    # 3. fill identifiers / keys / text with Nazeer's generators (never equal to an original)
+    originals = evaluate.original_identifier_values(analysis.tables, dets, analysis.spans)
+    twin_view = synth.fill_synthetic(sampled, view_train, view_train.df.reset_index(drop=True),
+                                     excluded, dets, originals, seed)
+    twin_name = f"{view_train.base_table}_synthetic"
+    twin = {twin_name: twin_view}
+    x_twin = synth.typed_view(twin_view, modelled)
+
+    # 4. measure
+    fid = evaluate.fidelity(x_train, x_twin, modelled)
+    fid["sdmetrics_quality_score"] = evaluate.sdmetrics_quality(x_train, x_twin, modelled)
+    util = evaluate.utility_tstr(x_train, x_twin, x_hold, modelled, target, seed) if target else None
+    dcr = evaluate.dcr(x_train, x_twin, x_hold, modelled, seed)
+    copies = evaluate.exact_copies(x_train, x_twin, list(modelled))
+    leak = evaluate.leak_scan(originals, twin, "synthetic")
+    by_col = {(d.table, d.column): d for d in dets}
+    name_cols = [c for c, (t, oc) in view_train.origin.items()
+                 if t != "<derived>" and by_col[(t, oc)].kind == "PERSON_NAME" and by_col[(t, oc)].tag == "DIRECT_ID"]
+    orig_names = {s.normalize_name(v) for c in name_cols for v in view_train.df[c].dropna()}
+    twin_names = {s.normalize_name(v) for c in name_cols for v in twin_view[c].dropna()}
+    leak["names"] = {"columns": [f"{twin_name}.{c}" for c in name_cols],
+                     "full_name_overlap_rate": round(len(twin_names & orig_names) / len(twin_names), 4) if twin_names else 0.0,
+                     "note": "information only: generated from the same name lists, so common full names recur by chance"}
+
+    # 5. report
+    base = _base_report(analysis, run_id, "synthetic", policy, decisions, dets)
+    view_action = {c: ("synthesized" if c in modelled else f"not trained on: {excluded[c]}") for c in view_train.origin}
+    for entry in base["columns"]:
+        col = next((vc for vc, (t, oc) in view_train.origin.items() if (t, oc) == (entry["table"], entry["column"])), None)
+        entry["action"] = view_action.get(col, "not part of the synthetic view")
+        entry["rule"] = "synthetic mode"
+    base["synthetic"] = {
+        "synthesizer": model.name, "license": model.license, "seed": model.seed_note, "fit_and_sample_seconds": fit_seconds,
+        "synthesizer_details": getattr(model, "details", {}),
+        "split": split, "twin_table": twin_name, "view_base_table": view_train.base_table,
+        "rows": {"real_train": int(len(x_train)), "holdout": int(len(x_hold)), "twin": int(len(twin_view))},
+        "modelled_columns": modelled, "excluded_columns": excluded,
+        "derived_columns": {c: o[1] for c, o in view_train.origin.items() if o[0] == "<derived>"},
+    }
+    base["fidelity"] = fid
+    base["utility"] = util or {"note": "no target given; utility not measured"}
+    base["privacy"] = {"exact_copies": {twin_name: copies}, "dcr": dcr}
+    base["leak_scan"] = leak
+    golden = _golden_scores(analysis, golden_dir)
+    if golden:
+        base["detection_vs_golden"] = golden
+
+    b = rpt.ReportBuilder(base)
+    b.add("holdout_split", "PASS", True,
+          f"{split['holdout_fraction']:.0%} of {split['unit_table']} held out before fitting; the synthesizer never saw "
+          f"{sum(split['holdout_rows'].values())} holdout rows", value=split["holdout_rows"])
+    _leak_check(b, leak)
+    b.add("exact_copies", "PASS" if copies == 0 else "FAIL", True,
+          f"{copies} twin row(s) identical to a real-train row over the modelled columns", value=copies, threshold=0)
+    b.add("dcr", "PASS" if dcr["passed"] else "FAIL", True,
+          f"median DCR twin→train {dcr['median_dcr_twin_to_train']} vs holdout→train {dcr['median_dcr_holdout_to_train']}; "
+          f"{dcr['share_twin_closer_to_train_than_holdout']:.0%} of twin rows closer to train than to holdout (ideal ≈ 50%)",
+          value=dcr["median_dcr_twin_to_train"], threshold=dcr["median_dcr_holdout_to_train"])
+    max_drop = policy.thresholds["max_utility_drop"]
+    if util and util["max_auc_drop"] is not None:
+        per_model = ", ".join(f"{n}: {m['real']['auc']}→{m['twin']['auc']}" for n, m in util["models"].items())
+        b.add("utility_tstr", "PASS" if util["max_auc_drop"] <= max_drop else "FAIL", True,
+              f"target {util['target']} ({util['definition']}); AUC real→twin {per_model}; "
+              f"worst drop {util['max_auc_drop']} (max {max_drop})", value=util["max_auc_drop"], threshold=max_drop)
+    else:
+        b.add("utility_tstr", "NOT_RUN", False, "no target column chosen" if not util else "could not train on one of the datasets")
+    b.add("fidelity", "INFO", False,
+          f"SDMetrics quality {fid['sdmetrics_quality_score']}; mean per-column distance {fid['mean_column_distance']}; "
+          f"numeric correlation diff {fid['numeric_correlation_mean_abs_diff']}", value=fid["sdmetrics_quality_score"])
+    strat = getattr(model, "details", {}).get("stratified_by")
+    b.add("synthesizer", "INFO", False, f"{model.name} ({model.license})"
+          + (f"; stratified by {strat}" if strat else "") + f"; seed {model.seed_note}")
+    _review_check(b, dets)
+    report = b.build()
+    return RunResult(run_id, "synthetic", report, twin, twin_withheld=leak["hard_fail"], decisions=decisions,
+                     extras={"originals": {twin_name: view_train.df.reset_index(drop=True)},
+                             "real_train_view": x_train, "holdout_view": x_hold})
 
 
 # ---------------------------------------------------------------- outputs
@@ -275,7 +375,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--policy", type=Path, default=DEFAULT_POLICY)
     ap.add_argument("--overrides", type=Path, help='JSON: {"table.column": {"tag": ..., "kind": ..., "action": {...}}}')
     ap.add_argument("--apply-fix", default=None, help='k-anonymity fix to apply: a suggested fix name, or "auto"')
-    ap.add_argument("--target", default=None, help="synthetic mode: target column for the utility test")
+    ap.add_argument("--target", default=None, help='synthetic mode: utility target, e.g. "is_large_claim=amount>p90"')
+    ap.add_argument("--synthesizer", default="stratified_copula",
+                    choices=["stratified_copula", "gaussian_copula", "ctgan"], help="synthetic mode: model")
     ap.add_argument("--golden", type=Path, default=None, help="demo answer key folder (default: <csv>\\_golden if present)")
     args = ap.parse_args(argv)
 
@@ -293,7 +395,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.mode == "masked":
         result = run_masked(analysis, policy, load_key(), overrides, args.apply_fix, golden)
     else:
-        result = run_synthetic(analysis, policy, overrides, target=args.target, golden_dir=golden)
+        result = run_synthetic(analysis, policy, overrides, target=args.target, golden_dir=golden,
+                               method=args.synthesizer)
 
     write_outputs(result, args.out)
     rep = result.report

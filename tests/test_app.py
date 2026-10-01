@@ -51,3 +51,15 @@ def test_missing_key_shows_message_not_traceback(app, monkeypatch):
     assert not app.exception
     assert app.session_state["result"] is None
     assert any("NAZEER_KEY" in e.value for e in app.error)
+
+
+def test_synthetic_flow(app):
+    app.button(key="demo").click().run()
+    app.radio(key="mode").set_value("synthetic").run()
+    assert app.text_input(key="target").value == "is_large_claim=amount>p90"
+    app.button(key="run").click().run()
+    assert not app.exception
+    res = app.session_state["result"]
+    assert res is not None and res.mode == "synthetic"
+    assert res.report["utility"]["max_auc_drop"] is not None
+    assert any(m.label == "AUC trained on twin" for m in app.metric)

@@ -206,15 +206,58 @@ def section_run() -> None:
     mode = st.radio("Mode", ["masked", "synthetic"], horizontal=True, key="mode",
                     format_func=lambda m: {"masked": "Masked twin (5a) — same rows, pseudonymized, for testing",
                                            "synthetic": "Synthetic twin (5b) — new rows, for analytics/AI"}[m])
+    target, method = None, "stratified_copula"
+    if mode == "synthetic":
+        has_amount = any("amount" in df.columns for df in an.tables.values())
+        c1, c2 = st.columns([2, 1])
+        target = c1.text_input("Utility test target (binary column, or `label=column>pNN`)",
+                               value="is_large_claim=amount>p90" if has_amount else "", key="target") or None
+        method = c2.selectbox("Synthesizer", ["stratified_copula", "gaussian_copula"], key="method",
+                              help="stratified_copula: one Gaussian copula per value of the column that drives the "
+                                   "numeric columns most (chosen automatically)")
+        st.caption("20% of the data is held out before training and is used only to test utility and privacy.")
     if st.button("Run Nazeer", type="primary", key="run"):
-        with st.spinner("Transforming, scanning for leaks, measuring…"):
+        with st.spinner("Transforming, scanning for leaks, measuring… (synthetic mode takes about a minute)"):
             policy = load_policy(pipeline.DEFAULT_POLICY)
             if mode == "masked":
                 st.session_state["result"] = _guarded(
                     lambda: pipeline.run_masked(an, policy, load_key(), golden_dir=st.session_state["golden_dir"]))
             else:
                 st.session_state["result"] = _guarded(
-                    lambda: pipeline.run_synthetic(an, policy, golden_dir=st.session_state["golden_dir"]))
+                    lambda: pipeline.run_synthetic(an, policy, target=target, method=method,
+                                                   golden_dir=st.session_state["golden_dir"]))
+
+
+def _metric_panels(rep: dict) -> None:
+    if rep["mode"] == "synthetic":
+        st.subheader("Utility · fidelity · privacy")
+        u, d, f = rep.get("utility", {}), rep["privacy"]["dcr"], rep.get("fidelity", {})
+        c = st.columns(4)
+        if u.get("models"):
+            best = max(u["models"].values(), key=lambda m: m["real"]["auc"] or 0)
+            c[0].metric("AUC trained on real", f"{best['real']['auc']:.3f}")
+            c[1].metric("AUC trained on twin", f"{best['twin']['auc']:.3f}", delta=f"{-best['auc_drop']:+.3f}")
+        c[2].metric("DCR twin→train (median)", f"{d['median_dcr_twin_to_train']:.4f}",
+                    help=f"holdout→train: {d['median_dcr_holdout_to_train']:.4f}; twin must not be closer")
+        c[3].metric("SDMetrics quality", f"{f.get('sdmetrics_quality_score') or 0:.1%}")
+        if u.get("models"):
+            st.dataframe(pd.DataFrame([{"model": n, "AUC real": m["real"]["auc"], "AUC twin": m["twin"]["auc"],
+                                        "drop": m["auc_drop"], "F1 real": m["real"]["f1"], "F1 twin": m["twin"]["f1"]}
+                                       for n, m in u["models"].items()]), hide_index=True, width="content")
+        cols = f.get("columns", {})
+        if cols:
+            st.dataframe(pd.DataFrame([{"column": k, "metric": v["metric"], "distance (0 = identical)": v["value"]}
+                                       for k, v in cols.items()]), hide_index=True, width="content")
+    else:
+        leak = rep["leak_scan"]
+        c = st.columns(4)
+        c[0].metric("Identifier leaks in twin", sum(leak["leaked_by_kind"].values()))
+        c[1].metric("Cells scanned", f"{leak['cells_scanned']:,}")
+        c[2].metric("Spans replaced in text", f"{sum(rep['free_text'].get('spans_replaced_by_type', {}).values()):,}")
+        k = next(iter(rep.get("k_anonymity", {}).values()), None)
+        if k:
+            c[3].metric("k-anonymity", k["k_after"], delta=None if k["k_after"] == k["k_before"] else
+                        f"{k['k_after'] - k['k_before']:+d} after fix")
 
 
 def section_results() -> None:
@@ -238,11 +281,15 @@ def section_results() -> None:
         table = st.selectbox("Table", list(res.twin), key="cmp_table")
         n = st.slider("Rows", 5, 50, 10, key="cmp_rows")
         left, right = st.columns(2)
-        left.markdown("**Original** (stays here)")
-        left.dataframe(st.session_state["analysis"].tables[table].head(n), hide_index=True, width="stretch")
+        originals = res.extras.get("originals", {})
+        original = originals.get(table, st.session_state["analysis"].tables.get(table))
+        left.markdown("**Original** (stays here)" if table not in originals else
+                      "**Original training rows** (joined view; stays here)")
+        left.dataframe(original.head(n), hide_index=True, width="stretch")
         right.markdown("**Twin**")
         right.dataframe(res.twin[table].head(n), hide_index=True, width="stretch")
 
+    _metric_panels(rep)
     st.download_button("Download twin + report (zip)" if not res.twin_withheld else "Download report (zip)",
                        data=twin_zip(res), file_name=f"nazeer-{res.run_id}.zip", mime="application/zip", key="dl")
     with st.expander("Full report (JSON)"):

@@ -13,8 +13,8 @@ This file is updated after every milestone so a new session can resume from it a
 | M3 Profile + detection + baseline | done | c20dbeb |
 | M4 Policy + transform | done | 29a4efa |
 | M5 Evaluation + report + k-anon backend | done | 174da99 |
-| M6a Minimal Streamlit flow | done | (this commit) |
-| M7 Synthetic 5b + fidelity + TSTR + DCR | not started | — |
+| M6a Minimal Streamlit flow | done | 8a2edc4 |
+| M7 Synthetic 5b + fidelity + TSTR + DCR | done (code + tests); committed under "WIP: pause", no separate M7 commit | WIP: pause |
 | M6b UI polish + overrides + k-anon apply | not started | — |
 | M8 Stretch (NER, HMA, PDF, Postgres) | not started | — |
 
@@ -112,6 +112,30 @@ torch 2.2) are incompatible, so always use the venv.
     another folder; the tests use this.
 23. **M6a: the key is only read from `NAZEER_KEY`; the UI has no key input field.** If the
     variable is missing, the UI shows the PowerShell command to set it.
+24. **M7: single-table synthesis runs on a flat "analytics view".** The view is the largest
+    child table joined with its parents, plus a generic derived column `prior_<child>` (earlier
+    rows of the same parent, ordered by the first date column). The synthetic twin is one
+    table, `claims_synthetic`. A true multi-table twin is M8 (HMA).
+25. **M7: the default synthesizer is a stratified Gaussian copula, not a plain one.**
+    - Plain `GaussianCopulaSynthesizer` gave a **TSTR AUC drop of 0.344**. CTGAN (150 epochs,
+      262 s) gave **0.411**. Both FAIL the 0.05 limit, because neither captures "amount
+      depends on which claim type".
+    - `SdvStratifiedCopula` fits one SDV Gaussian copula per value of the categorical column
+      with the highest mean η² against the numeric columns. This is chosen automatically, and
+      on the demo it picked `claim_type` (η² = 0.849 with amount).
+    - Strata under 50 rows are merged, and it falls back to a single copula when no column has
+      η² ≥ 0.1.
+    - The threshold was **not** changed. `--synthesizer gaussian_copula` still runs the plain
+      model for comparison.
+26. **M7: the `Synthesizer` protocol takes our own `SynthSchema`**, not the plan's
+    `(prof, exclude)`. The caller applies exclusions first, so an adapter never sees
+    identifiers, and a non-SDV adapter needs no Nazeer profiling types. `sample(scale, seed)`
+    keeps the seed argument, but SDV adapters ignore it (see deviation 1).
+27. **M7: high-cardinality text columns** (unique ratio > 0.5, not identifiers) are not
+    modelled, because sampling them would copy real values. They are left empty in the twin
+    and listed in the report.
+28. **M7: DCR "rows at distance zero" uses a 1e-6 tolerance.** sklearn's Euclidean distance
+    returns about 1e-8 for identical rows. A test (memorizing synthesizer) found this.
 
 ## Milestone log
 
@@ -233,10 +257,73 @@ Tests: 162 passed. They cover:
   localhost only.
 - Tests: 164 passed.
 
+### M7: Synthetic twin 5b + fidelity + TSTR + DCR (done, committed as "WIP: pause")
+Command:
+`python -m nazeer.pipeline --csv data\demo --mode synthetic --target "is_large_claim=amount>p90" --out out\synthetic`
+
+Results on the full demo (seed 0):
+- **holdout_split: PASS.** 20% of customers (600 customers, 2,060 holdout rows) were split
+  off before fitting. Train has 5,700 view rows; the twin has 5,700 rows.
+- **leak_scan: PASS.** 0 original identifiers in 57,000 twin cells.
+- **exact_copies: PASS.** 0.
+- **dcr: PASS, with a thin margin.**
+  - median DCR twin→train 0.13368 ≥ holdout→train 0.13097;
+  - 52% of twin rows are closer to train than to holdout (ideal 50%).
+- **utility_tstr: PASS.** Worst AUC drop 0.0023 (limit 0.05):
+  - LR 0.9842 → 0.9838;
+  - RF 0.9841 → 0.9818.
+- **Fidelity (info):** SDMetrics quality 0.9446, mean per-column distance 0.0547, numeric
+  correlation diff 0.033.
+- Run time is about 22 s warm: analyze 1.4, fit+sample 9.3, TSTR 3.4, leak 5.7. A cold
+  start adds imports.
+
+What was built:
+- `nazeer/synth.py`: protocol, `SynthSchema`, the SDV single, stratified and HMA adapters,
+  `split_holdout`, `build_view`, `view_plan`, `fill_synthetic`.
+- `nazeer/text_templates.py`: the synthetic note templates.
+- `evaluate.py`: `fidelity`, `sdmetrics_quality`, `parse_target`, `utility_tstr`, `dcr`.
+- `pipeline.run_synthetic` and the CLI flags `--target` and `--synthesizer`.
+- The UI: target input, synthesizer select, metric panels, and original vs twin.
+
+Tests: 176 passed (`tests/test_synth.py` adds 11, `test_app.py` adds the synthetic UI flow).
+They include:
+- the split being disjoint by customer;
+- the stratified copula picking claim_type, and falling back without a driver;
+- fresh, valid identifiers never equal to originals;
+- no real note or sentence reused;
+- names following the synthetic gender;
+- **a memorizing "synthesizer" failing DCR and exact copies**;
+- TSTR on a real copy giving no drop.
+
+## Paused here (user request, 2026-10-01)
+- **Current milestone:** M7 is finished. The code is written, the full suite passes
+  (176 passed), and real numbers are recorded above. It was committed with the message
+  "WIP: pause" instead of "M7: …" because the user asked to stop.
+- **Done:** M0, M1, M2, M3, M4, M5, M6a, M7.
+- **Half-done:** nothing. No file is mid-edit.
+- **Not started:**
+  - M6b: UI polish, overrides UX, k-anon Apply button with before/after k.
+  - M8: CamelBERT NER with gazetteer fallback, HMA multi-table, PDF report, PostgreSQL input.
+  - Final deliverables: bilingual README, demo runs in `out\`, `docs\DEMO_SCRIPT.md`, and the
+    final PROGRESS section.
+- **Next step when resuming:** M6b.
+  1. Add an overrides editor on the detection table: change tag/kind/action per column,
+     recorded as `human_reviewed` in the report.
+  2. After a masked run with k < k_min, list `report["k_anonymity"][t]["suggestions"]` with
+     before/after k and rows affected, and add an "Apply" button that re-runs
+     `pipeline.run_masked(..., apply_fix=<name>)`.
+  3. Extend `tests/test_app.py` for both, then commit as "M6b: …".
+- **How to resume:**
+  `cd $HOME\Desktop\nazeer; .\.venv\Scripts\Activate.ps1; python -m pytest`
+  (expect 176 passed). Demo data: `python -m data_gen.make_demo_data --seed 42 --n 3000`
+  (`data\` and `out\` are gitignored).
+- Earlier note: the M5 log originally said "168 passed". That was a typo; the real number was
+  162 and has been corrected.
+
 ## Known issues
 
 (none yet)
 
 ## Next step
 
-M7: synthetic twin 5b (Synthesizer protocol + SDV GaussianCopula), fidelity, TSTR utility, DCR.
+M6b: UI polish, overrides UX, k-anonymity Apply UI (see "Paused here" above for the exact plan).

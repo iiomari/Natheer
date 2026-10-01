@@ -197,3 +197,212 @@ def exact_copies(real: pd.DataFrame, twin: pd.DataFrame, columns: list[str] | No
         return 0
     real_rows = set(real[cols].astype(str).itertuples(index=False, name=None))
     return int(sum(r in real_rows for r in twin[cols].astype(str).itertuples(index=False, name=None)))
+
+
+# ---------------------------------------------------------------- fidelity (5b)
+
+def fidelity(real: pd.DataFrame, twin: pd.DataFrame, kinds: dict[str, str]) -> dict:
+    """Per-column distribution distance and correlation difference, real-train vs twin."""
+    import numpy as np
+    from scipy.stats import ks_2samp
+
+    def ks(a: pd.Series, b: pd.Series) -> float | None:
+        return round(float(ks_2samp(a, b).statistic), 4) if len(a) and len(b) else None
+
+    columns = {}
+    for col, kind in kinds.items():
+        if kind == "numerical":
+            a = pd.to_numeric(real[col], errors="coerce").dropna()
+            b = pd.to_numeric(twin[col], errors="coerce").dropna()
+            columns[col] = {"metric": "KS statistic", "value": ks(a, b)}
+        elif kind == "datetime":
+            a = pd.to_datetime(real[col], errors="coerce").dropna().astype("int64")
+            b = pd.to_datetime(twin[col], errors="coerce").dropna().astype("int64")
+            columns[col] = {"metric": "KS statistic", "value": ks(a, b)}
+        else:
+            p = real[col].astype(str).value_counts(normalize=True)
+            q = twin[col].astype(str).value_counts(normalize=True)
+            tvd = 0.5 * float(p.subtract(q, fill_value=0).abs().sum())
+            columns[col] = {"metric": "total variation distance", "value": round(tvd, 4)}
+    num = [c for c, k in kinds.items() if k == "numerical"]
+    corr_diff = None
+    if len(num) >= 2:
+        cr = real[num].apply(pd.to_numeric, errors="coerce").corr().to_numpy()
+        ct = twin[num].apply(pd.to_numeric, errors="coerce").corr().to_numpy()
+        iu = np.triu_indices(len(num), 1)
+        corr_diff = round(float(np.nanmean(np.abs(cr[iu] - ct[iu]))), 4)
+    values = [v["value"] for v in columns.values() if v["value"] is not None]
+    return {"columns": columns, "mean_column_distance": round(float(np.mean(values)), 4) if values else None,
+            "numeric_correlation_mean_abs_diff": corr_diff}
+
+
+def sdmetrics_quality(real: pd.DataFrame, twin: pd.DataFrame, kinds: dict[str, str]) -> float | None:
+    """SDV/SDMetrics overall quality score (0..1), or None if it cannot run."""
+    import logging
+
+    try:
+        from sdv.evaluation import evaluate_quality
+
+        from nazeer.synth import SynthSchema, _sdv_metadata
+
+        meta = _sdv_metadata(SynthSchema(tables={"view": kinds}))
+        report = evaluate_quality(real[list(kinds)], twin[list(kinds)], meta, verbose=False)
+        return round(float(report.get_score()), 4)
+    except Exception:  # noqa: BLE001 - optional cross-check
+        logging.getLogger(__name__).warning("SDMetrics quality report unavailable", exc_info=True)
+        return None
+
+
+# ---------------------------------------------------------------- utility: TSTR (5b)
+
+def parse_target(spec: str) -> tuple[str, str, float | None]:
+    """'is_large_claim=amount>p90' -> ('is_large_claim', 'amount', 90.0); 'flag' -> ('flag', 'flag', None)."""
+    import re
+
+    if "=" in spec:
+        label, expr = spec.split("=", 1)
+    else:
+        label, expr = spec, spec
+    m = re.fullmatch(r"\s*(\w+)\s*>\s*p(\d{1,2})\s*", expr)
+    if m:
+        return label.strip(), m.group(1), float(m.group(2))
+    return label.strip(), expr.strip(), None
+
+
+def utility_tstr(train: pd.DataFrame, twin: pd.DataFrame, holdout: pd.DataFrame, kinds: dict[str, str],
+                 target: str, seed: int = 0) -> dict:
+    """Train-on-synthetic, test-on-real: the same models are trained on real-train and on
+    the twin, and both are tested on the real holdout. Reports AUC/F1 and the AUC drop."""
+    from sklearn.compose import ColumnTransformer
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import f1_score, roc_auc_score
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+    label, source, pct = parse_target(target)
+    if source not in train.columns:
+        raise ValueError(f"target column {source!r} is not in the modelled data")
+    if pct is not None:
+        threshold = float(pd.to_numeric(train[source], errors="coerce").quantile(pct / 100))
+        definition = f"{source} > P{pct:g} of real-train ({threshold:,.2f})"
+
+        def to_y(df: pd.DataFrame) -> pd.Series:
+            return (pd.to_numeric(df[source], errors="coerce") > threshold).astype(int)
+    else:
+        classes = sorted(train[source].astype(str).unique())
+        if len(classes) != 2:
+            raise ValueError("target must be binary, or an expression like 'label=column>p90'")
+        positive = classes[1]
+        definition = f"{source} == {positive}"
+
+        def to_y(df: pd.DataFrame) -> pd.Series:
+            return (df[source].astype(str) == positive).astype(int)
+
+    features = [c for c, k in kinds.items() if c != source and k in ("numerical", "categorical")]
+    num = [c for c in features if kinds[c] == "numerical"]
+    cat = [c for c in features if kinds[c] == "categorical"]
+
+    def prep(df: pd.DataFrame) -> pd.DataFrame:
+        x = df[features].copy()
+        for c in num:
+            x[c] = pd.to_numeric(x[c], errors="coerce").fillna(0.0)
+        for c in cat:
+            x[c] = x[c].astype(str)
+        return x
+
+    def encoder() -> ColumnTransformer:
+        return ColumnTransformer([("num", StandardScaler(), num), ("cat", OneHotEncoder(handle_unknown="ignore"), cat)])
+
+    def models() -> dict:
+        return {
+            "logistic_regression": make_pipeline(encoder(), LogisticRegression(max_iter=2000)),
+            "random_forest": make_pipeline(encoder(), RandomForestClassifier(
+                n_estimators=200, min_samples_leaf=5, random_state=seed, n_jobs=-1)),
+        }
+
+    x_hold, y_hold = prep(holdout), to_y(holdout)
+    result = {
+        "target": label, "definition": definition, "features": features,
+        "positive_rate": {"real_train": round(float(to_y(train).mean()), 4),
+                          "twin": round(float(to_y(twin).mean()), 4),
+                          "holdout": round(float(y_hold.mean()), 4)},
+        "models": {},
+    }
+    for source_name, df in (("real", train), ("twin", twin)):
+        y = to_y(df)
+        for name, model in models().items():
+            entry = result["models"].setdefault(name, {})
+            if y.nunique() < 2:
+                entry[source_name] = {"auc": None, "f1": None, "note": "only one class in training labels"}
+                continue
+            model.fit(prep(df), y)
+            proba = model.predict_proba(x_hold)[:, 1]
+            entry[source_name] = {"auc": round(float(roc_auc_score(y_hold, proba)), 4),
+                                  "f1": round(float(f1_score(y_hold, (proba >= 0.5).astype(int), zero_division=0)), 4)}
+    for entry in result["models"].values():
+        r, t = entry.get("real", {}).get("auc"), entry.get("twin", {}).get("auc")
+        entry["auc_drop"] = round(r - t, 4) if r is not None and t is not None else None
+    drops = [e["auc_drop"] for e in result["models"].values() if e["auc_drop"] is not None]
+    result["max_auc_drop"] = max(drops) if drops else None
+    return result
+
+
+# ---------------------------------------------------------------- privacy: DCR (5b)
+
+def dcr(train: pd.DataFrame, twin: pd.DataFrame, holdout: pd.DataFrame, kinds: dict[str, str], seed: int = 0) -> dict:
+    """Distance to closest record in real-train, for twin rows vs holdout rows.
+
+    Agreed rule: PASS if median DCR(twin -> train) >= median DCR(holdout -> train).
+    Also reported: the share of twin rows closer to train than to holdout, with train
+    subsampled to the holdout size so that about 50% is the ideal.
+    """
+    import numpy as np
+    from sklearn.neighbors import NearestNeighbors
+    from sklearn.preprocessing import OneHotEncoder
+
+    cols = list(kinds)
+    cat = [c for c in cols if kinds[c] == "categorical"]
+    cont = [c for c in cols if kinds[c] in ("numerical", "datetime")]
+
+    def as_float(series: pd.Series, kind: str) -> pd.Series:
+        if kind == "datetime":
+            return pd.to_datetime(series, errors="coerce").astype("int64").astype(float) / 8.64e13  # days
+        return pd.to_numeric(series, errors="coerce").astype(float)
+
+    ranges = {}
+    for c in cont:
+        r = as_float(train[c], kinds[c])
+        lo, hi = float(r.min()), float(r.max())
+        ranges[c] = (lo, hi - lo if hi > lo else 1.0)
+    enc = OneHotEncoder(handle_unknown="ignore", sparse_output=False).fit(train[cat].astype(str)) if cat else None
+
+    def encode(df: pd.DataFrame) -> np.ndarray:
+        parts = []
+        for c in cont:
+            lo, span = ranges[c]
+            parts.append(((as_float(df[c], kinds[c]).fillna(lo) - lo) / span).to_numpy()[:, None])
+        if enc is not None:
+            parts.append(enc.transform(df[cat].astype(str)))
+        return np.hstack(parts) if parts else np.zeros((len(df), 0))
+
+    x_train, x_twin, x_hold = encode(train), encode(twin), encode(holdout)
+    nn_train = NearestNeighbors(n_neighbors=1).fit(x_train)
+    d_twin = nn_train.kneighbors(x_twin)[0][:, 0]
+    d_hold = nn_train.kneighbors(x_hold)[0][:, 0]
+
+    rng = np.random.default_rng(seed)
+    sub = x_train[rng.choice(len(x_train), size=min(len(x_hold), len(x_train)), replace=False)]
+    d_sub = NearestNeighbors(n_neighbors=1).fit(sub).kneighbors(x_twin)[0][:, 0]
+    d_h = NearestNeighbors(n_neighbors=1).fit(x_hold).kneighbors(x_twin)[0][:, 0]
+    med_twin, med_hold = float(np.median(d_twin)), float(np.median(d_hold))
+    return {
+        "median_dcr_twin_to_train": round(med_twin, 5),
+        "median_dcr_holdout_to_train": round(med_hold, 5),
+        "passed": bool(med_twin >= med_hold),
+        "share_twin_closer_to_train_than_holdout": round(float(np.mean(d_sub < d_h)), 4),
+        "share_ideal": 0.5,
+        # sklearn computes |x|^2+|y|^2-2xy, so identical rows can come out as ~1e-8, not 0
+        "twin_rows_at_distance_zero": int(np.sum(d_twin < 1e-6)),
+        "columns": cols,
+    }
