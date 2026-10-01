@@ -10,8 +10,8 @@ This file is updated after every milestone so a new session can resume from it a
 | M0 Setup + dependency verification | done | f7abbd5 |
 | M1 saudi_ids + normalization | done | f338cbe |
 | M2 Demo data + golden labels | done | 810dc40 |
-| M3 Profile + detection + baseline | done | (this commit) |
-| M4 Policy + transform | not started | — |
+| M3 Profile + detection + baseline | done | c20dbeb |
+| M4 Policy + transform | done | (this commit) |
 | M5 Evaluation + report + k-anon backend | not started | — |
 | M6a Minimal Streamlit flow | not started | — |
 | M7 Synthetic 5b + fidelity + TSTR + DCR | not started | — |
@@ -80,6 +80,16 @@ torch 2.2) are incompatible, so always use the venv.
 12. **M3: `evaluate.score_detection` was built in M3**, because the M3 test needs it.
     Matching rule: a golden span counts as found when a predicted span of the same type
     overlaps it. Exact-offset matches are counted separately.
+13. **M4: name pseudonyms are many-to-one by design.** First and family names are mapped per
+    token from small gazetteers (146/130/120 names), so uniqueness cannot be enforced. The
+    only rule is that a token never maps to itself, which guarantees no row keeps its own
+    full name (the agreed name leak rule). IDs, mobiles, IBANs and emails are injective, and
+    their fakes never equal **any** original value of their kind.
+14. **M4: the HMAC message is `f"{kind}:{canonical}"`** as specified, and `f"{kind}:{canonical}:{n}"`
+    for the n-th rehash. Canonical forms: digits-only ID, 9-digit national mobile number,
+    upper-case IBAN, lower-case email, `normalize_name` per name token.
+15. **M4: `drop` was added as a policy action** (unused by default), for columns a reviewer
+    wants removed entirely.
 
 ## Milestone log
 
@@ -128,10 +138,35 @@ torch 2.2) are incompatible, so always use the venv.
   a role cue at the end of one sentence carried over to the next sentence ("…المستفيد. وعد…").
 - Tests: 112 passed.
 
+### M4: Policy + transform
+- `config/policy.yaml` is the approved example policy. Resolution order: override → identifier
+  kind → primary/foreign key → column-name rule → free_text → default. Rules naming absent
+  columns (`birth_date`, `nationality`) are reported as inactive.
+- `Pseudonymizer` implements the keyed HMAC, the forbidden-original and collision rehash,
+  sorted `prepare()`, per-token names and `render_like`.
+- Tests (33 in `test_transform.py`) cover:
+  - determinism ×100 and across 2 subprocesses with different `PYTHONHASHSEED`;
+  - a different key giving a different fake;
+  - fakes that validate and differ from the original;
+  - the citizen/resident digit being kept;
+  - name gender and family slot kept, and a first name alone matching the full-name token;
+  - all mobile spellings sharing one fake;
+  - format preservation (Arabic-Indic/Persian/ASCII, spaces/hyphens, `+966`/`00966`, IBAN groups and case);
+  - end-to-start span replacement;
+  - collision rehash and the forbidden-original rule;
+  - order-independent `prepare`;
+  - age and month generalization;
+  - referential integrity on demo data (FK ⊆ PK, same join size and per-type counts);
+  - keys remapped;
+  - direct-ID columns fully replaced;
+  - the claimant's ID in notes mapping to the same fake as in the customers column;
+  - policy override precedence.
+- Tests: 145 passed.
+
 ## Known issues
 
 (none yet)
 
 ## Next step
 
-M4: policy engine + keyed HMAC pseudonymization + format-preserving text replacement.
+M5: leak scan, exact copies, DCR, k-anonymity + suggestions, JSON report, pipeline CLI.

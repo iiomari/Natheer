@@ -1,0 +1,26 @@
+# Nazeer policy. Resolution order per column:
+#   1. human override from the UI (recorded in the report)
+#   2. DIRECT_ID columns -> the rule for their identifier kind (SAUDI_ID, MOBILE, ...)
+#   3. primary keys and the foreign keys pointing at them -> primary_key
+#   4. a rule named after the column (lower-case), e.g. age
+#   5. FREE_TEXT columns -> free_text
+#   6. default
+# Rules naming a column that does not exist are inactive (counted, not an error).
+policy:
+  SAUDI_ID:    {action: pseudonymize, keep_first_digit: true}   # 1 = citizen, 2 = resident
+  MOBILE:      {action: pseudonymize}
+  IBAN:        {action: pseudonymize}
+  EMAIL:       {action: pseudonymize}
+  PERSON_NAME: {action: pseudonymize}
+  age:         {action: generalize, bins: 10}        # 10-year-wide bins
+  birth_date:  {action: generalize, to: month}       # inactive example (no such column in the demo)
+  nationality: {action: keep}                        # inactive example (no such column in the demo)
+  city:        {action: keep}
+  gender:      {action: keep}
+  free_text:   {action: replace_spans}
+  primary_key: {action: remap}
+  default:     {action: keep}
+thresholds:
+  k_anonymity_min: 5
+  max_utility_drop: 0.05      # absolute AUC drop (real-trained vs twin-trained, tested on holdout)
+  min_span_confidence: 0.5    # free-text spans at or above this are replaced
