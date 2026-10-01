@@ -33,6 +33,7 @@ from nazeer.config import KeyConfigError, load_key  # noqa: E402
 from nazeer.policy import load_policy  # noqa: E402
 from nazeer.safe_log import configure_logging  # noqa: E402
 from nazeer.tableio import load_csv_folder, read_csv  # noqa: E402
+from nazeer.ui_logic import ACTIONS, KINDS, TAGS, detection_frame, overrides_from_edits, suggestion_frame  # noqa: E402
 
 log = logging.getLogger("nazeer.app")
 ROOT = _HERE.parent
@@ -50,13 +51,15 @@ def _init() -> None:
     if "logging" not in st.session_state:
         configure_logging()
         st.session_state["logging"] = True
-    for k in ("tables", "source", "golden_dir", "analysis", "result", "error"):
+    for k in ("tables", "source", "golden_dir", "analysis", "result", "error", "applied_fix"):
         st.session_state.setdefault(k, None)
+    st.session_state.setdefault("overrides", {})
 
 
 def _reset_after_load() -> None:
-    for k in ("analysis", "result", "error"):
+    for k in ("analysis", "result", "error", "applied_fix"):
         st.session_state[k] = None
+    st.session_state["overrides"] = {}
 
 
 def _guarded(fn, *args, **kwargs):
@@ -155,6 +158,7 @@ def section_detection() -> None:
     df = pd.DataFrame(rows)
     st.dataframe(df.style.apply(lambda r: [f"background-color:{TAG_COLORS[r['tag']]}"] * len(r), axis=1),
                  hide_index=True, width="stretch")
+    _review_editor(an)
 
     if an.spans or an.baseline_spans:
         st.subheader("Identifiers hidden in Arabic free text")
@@ -198,6 +202,60 @@ def _note_viewer(an: pipeline.Analysis) -> None:
                    unsafe_allow_html=True)
 
 
+def _review_editor(an: pipeline.Analysis) -> None:
+    pending = sum(d.needs_review for d in an.detections)
+    label = "Review and override detections" + (f" — {pending} column(s) need review" if pending else "")
+    with st.expander(label, expanded=bool(pending)):
+        st.caption("Change a column's tag, identifier type or action, or tick *reviewed* to confirm it. "
+                   "Every change is recorded in the report as human-reviewed. The leak scan still checks "
+                   "every identifier Nazeer detected, whatever you change here.")
+        base = detection_frame(an, st.session_state["overrides"])
+        edited = st.data_editor(
+            base, key="overrides_editor", hide_index=True, width="stretch",
+            disabled=["table", "column", "type", "confidence", "needs review", "why"],
+            column_config={
+                "tag": st.column_config.SelectboxColumn("tag", options=TAGS, required=True),
+                "identifier": st.column_config.SelectboxColumn("identifier", options=KINDS),
+                "action": st.column_config.SelectboxColumn("action", options=ACTIONS, required=True,
+                                                           help="policy = use config/policy.yaml"),
+                "reviewed": st.column_config.CheckboxColumn("reviewed"),
+            })
+        overrides, problems = overrides_from_edits(an, edited)
+        st.session_state["overrides"] = overrides
+        for msg in problems:
+            st.warning(msg)
+        if overrides:
+            st.info(f"{len(overrides)} human override(s) will be applied and recorded: " + ", ".join(overrides))
+
+
+def _kanon_panel(rep: dict) -> None:
+    for table, k in rep.get("k_anonymity", {}).items():
+        st.subheader(f"k-anonymity · {table}")
+        st.caption(f"Quasi-identifiers: {', '.join(k['quasi_columns'])}. Minimum k: {k['k_min']}.")
+        c = st.columns(3)
+        c[0].metric("k before fix", k["k_before"])
+        c[1].metric("k now", k["k_after"], delta=None if k["k_after"] == k["k_before"] else f"{k['k_after'] - k['k_before']:+d}")
+        c[2].metric("Rows in classes below k (before)", k["rows_in_small_classes_before"])
+        if k.get("applied_fix"):
+            f = k["applied_fix"]
+            st.success(f"Applied fix **{f['name']}**: {f['description']} — k {f['k_before']} → {f['k_after']}, "
+                       f"{f['rows_affected']} row(s) affected. The original FAIL stays in the report.")
+        elif k["suggestions"]:
+            st.warning(f"k = {k['k_before']} is below {k['k_min']}. Choose a fix (nothing is applied automatically):")
+            st.dataframe(suggestion_frame(k), hide_index=True, width="stretch")
+            names = [f["name"] for f in k["suggestions"]]
+            pick = st.selectbox("Fix to apply", names, key="fix_pick")
+            if st.button("Apply fix and re-run", key="apply_fix"):
+                an = st.session_state["analysis"]
+                with st.spinner("Re-running with the chosen fix…"):
+                    st.session_state["result"] = _guarded(
+                        lambda: pipeline.run_masked(an, load_policy(pipeline.DEFAULT_POLICY), load_key(),
+                                                    st.session_state["overrides"], apply_fix=pick,
+                                                    golden_dir=st.session_state["golden_dir"]))
+                    st.session_state["applied_fix"] = pick
+                st.rerun()
+
+
 def section_run() -> None:
     an = st.session_state["analysis"]
     if an is None:
@@ -221,11 +279,13 @@ def section_run() -> None:
             policy = load_policy(pipeline.DEFAULT_POLICY)
             if mode == "masked":
                 st.session_state["result"] = _guarded(
-                    lambda: pipeline.run_masked(an, policy, load_key(), golden_dir=st.session_state["golden_dir"]))
+                    lambda: pipeline.run_masked(an, policy, load_key(), st.session_state["overrides"],
+                                                golden_dir=st.session_state["golden_dir"]))
+                st.session_state["applied_fix"] = None
             else:
                 st.session_state["result"] = _guarded(
-                    lambda: pipeline.run_synthetic(an, policy, target=target, method=method,
-                                                   golden_dir=st.session_state["golden_dir"]))
+                    lambda: pipeline.run_synthetic(an, policy, st.session_state["overrides"], target=target,
+                                                   method=method, golden_dir=st.session_state["golden_dir"]))
 
 
 def _metric_panels(rep: dict) -> None:
@@ -290,6 +350,8 @@ def section_results() -> None:
         right.dataframe(res.twin[table].head(n), hide_index=True, width="stretch")
 
     _metric_panels(rep)
+    if rep["mode"] == "masked":
+        _kanon_panel(rep)
     st.download_button("Download twin + report (zip)" if not res.twin_withheld else "Download report (zip)",
                        data=twin_zip(res), file_name=f"nazeer-{res.run_id}.zip", mime="application/zip", key="dl")
     with st.expander("Full report (JSON)"):

@@ -193,6 +193,17 @@ def _leak_check(builder: rpt.ReportBuilder, leak: dict) -> None:
     builder.add("leak_scan", leak["verdict"], True, detail, value=leak["leaked_by_kind"])
 
 
+def spans_for(analysis: Analysis, dets: list[ColumnDetection]) -> tuple[list[Span], list[Span]]:
+    """(spans to replace, all known spans) after overrides: columns a reviewer newly tagged
+    FREE_TEXT are scanned now; spans in columns no longer tagged FREE_TEXT are not replaced."""
+    cols = set(detect.free_text_columns(dets))
+    scanned = set(detect.free_text_columns(analysis.detections))
+    missing = sorted(c for c in cols if c not in scanned)
+    extra = detect.detect_free_text(analysis.tables, missing) if missing else []
+    all_spans = analysis.spans + extra
+    return [sp for sp in all_spans if (sp.table, sp.column) in cols], all_spans
+
+
 # ---------------------------------------------------------------- masked mode (5a)
 
 def run_masked(analysis: Analysis, policy: Policy, key: bytes, overrides: dict | None = None,
@@ -201,12 +212,15 @@ def run_masked(analysis: Analysis, policy: Policy, key: bytes, overrides: dict |
     overrides = overrides or {}
     dets = apply_overrides(analysis.detections, overrides)
     decisions = resolve(policy, analysis.profile, analysis.detections, overrides)
+    spans, all_spans = spans_for(analysis, dets)
     pseudo = transform.Pseudonymizer(key, keep_first_digit=policy.rules.get("SAUDI_ID", {}).get("keep_first_digit", True))
-    twin, tstats = transform.apply(analysis.tables, analysis.profile, decisions, analysis.spans, pseudo,
+    twin, tstats = transform.apply(analysis.tables, analysis.profile, decisions, spans, pseudo,
                                    policy.thresholds["min_span_confidence"])
 
     kan = kanon_step(twin, dets, int(policy.thresholds["k_anonymity_min"]), apply_fix)
-    originals = evaluate.original_identifier_values(analysis.tables, dets, analysis.spans)
+    # The leak scan looks for EVERY identifier ever detected, including in columns a reviewer
+    # un-tagged: an override can never hide an identifier from the scan.
+    originals = evaluate.original_identifier_values(analysis.tables, dets, all_spans)
     name_cols = [(d.table, d.column) for d in dets if d.tag == "DIRECT_ID" and d.kind == "PERSON_NAME"]
     leak = evaluate.leak_scan(originals, twin, "masked", analysis.tables, name_cols)
     copies = {t: evaluate.exact_copies(analysis.tables[t], twin[t]) for t in twin}

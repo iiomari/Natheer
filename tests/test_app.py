@@ -63,3 +63,24 @@ def test_synthetic_flow(app):
     assert res is not None and res.mode == "synthetic"
     assert res.report["utility"]["max_auc_drop"] is not None
     assert any(m.label == "AUC trained on twin" for m in app.metric)
+
+
+def test_override_and_kanon_apply_in_ui(app, monkeypatch):
+    monkeypatch.setenv("NAZEER_KEY", KEY)
+    app.button(key="demo").click().run()
+    app.session_state["overrides"] = {"customers.national_id": {"tag": "DIRECT_ID", "kind": "SAUDI_ID"}}
+    app.button(key="run").click().run()
+    assert not app.exception
+    rep = app.session_state["result"].report
+    col = next(c for c in rep["columns"] if c["column"] == "national_id")
+    assert col["human_reviewed"]
+    k = rep["k_anonymity"]["customers"]
+    if k["passed_before"]:
+        pytest.skip("demo sample already k-anonymous; nothing to apply")
+    pick = k["suggestions"][0]["name"]
+    app.selectbox(key="fix_pick").set_value(pick).run()
+    app.button(key="apply_fix").click().run()
+    assert not app.exception
+    k2 = app.session_state["result"].report["k_anonymity"]["customers"]
+    assert k2["applied_fix"]["name"] == pick
+    assert k2["k_before"] == k["k_before"] and k2["k_after"] >= k["k_after"]

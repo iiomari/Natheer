@@ -15,8 +15,8 @@ This file is updated after every milestone so a new session can resume from it a
 | M5 Evaluation + report + k-anon backend | done | 174da99 |
 | M6a Minimal Streamlit flow | done | 8a2edc4 |
 | M7 Synthetic 5b + fidelity + TSTR + DCR | done (code + tests); committed under "WIP: pause", no separate M7 commit | WIP: pause |
-| R1 DCR robustness (5 seeds, per stratum, min stratum fallback) | done | (this commit) |
-| M6b UI polish + overrides + k-anon apply | not started | — |
+| R1 DCR robustness (5 seeds, per stratum, min stratum fallback) | done | 2126e4c |
+| M6b UI polish + overrides + k-anon apply | done | (this commit) |
 | MySQL input + output (replaces PostgreSQL) | not started | — |
 | Independent evaluation harness (human-written notes) | not started | — |
 | "Why it works" tab | not started | — |
@@ -189,6 +189,14 @@ torch 2.2) are incompatible, so always use the venv.
 37. **R1: Hypothesis timing health checks are off for the offset-map property test.** Under
     machine load, input generation took 1.6 s and tripped `too_slow`. The property assertions
     are unchanged.
+38. **M6b: override logic lives in `nazeer/ui_logic.py`** (pure functions) so it can be unit-tested
+    without Streamlit. The UI offers tag, identifier type, action (`policy` / `keep` /
+    `pseudonymize` / `drop`) and a "reviewed" tick. `generalize` is not offered in the editor
+    because it needs parameters; it stays a policy-file action.
+39. **M6b: overrides cannot hide identifiers from the leak scan.** The leak scan searches for
+    every identifier detected at analysis time, including in columns a reviewer un-tagged.
+    Un-tagging the notes column therefore makes the run FAIL and withholds the twin (tested).
+    Columns newly tagged FREE_TEXT by a reviewer are scanned at run time.
 
 ## Milestone log
 
@@ -381,6 +389,23 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
 - Tests: 178 passed. They add a pooled-fallback test (sizes per stratum preserved) and a
   per-stratum DCR + robustness test.
 
+### M6b: UI polish + overrides + k-anonymity Apply
+- Under the detection table there is a "Review and override detections" expander
+  (`st.data_editor`). It opens automatically when columns need review. Overrides are shown
+  live, invalid combinations (DIRECT_ID with no type) are rejected with a message, and every
+  override is recorded as `human_reviewed` in the report.
+- After a masked run, a k-anonymity panel shows k before, k now, and the rows in small
+  classes. When k < k_min it lists the suggested fixes (what each does, k before → after,
+  rows affected, whether it reaches k_min), with a "Fix to apply" select and an
+  "Apply fix and re-run" button. Nothing is applied automatically. After applying, the panel
+  shows the fix, and the report keeps the original FAIL.
+- Tests: 185 passed.
+  - `test_ui_logic.py` (6): edits → overrides round trip; DIRECT_ID without a type rejected;
+    overrides recorded; un-tagging notes → leak FAIL and twin withheld; a newly tagged
+    free-text column gets scanned and replaced.
+  - `test_app.py` (+1): an override is recorded in the UI run, and the Apply button re-runs
+    with the chosen fix (k_before kept, applied_fix recorded).
+
 ## Paused here (user request, 2026-10-01)
 - **Current milestone:** M7 is finished. The code is written, the full suite passes
   (176 passed), and real numbers are recorded above. It was committed with the message
@@ -412,4 +437,4 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
 
 ## Next step
 
-M6b: overrides editor + k-anonymity Apply with before/after k.
+MySQL input and output (SQLAlchemy + PyMySQL, utf8mb4, separate target DB).
