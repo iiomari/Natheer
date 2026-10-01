@@ -104,12 +104,14 @@ def infer_foreign_keys(tables: dict[str, pd.DataFrame], pks: dict[str, str | Non
     return fks
 
 
-def profile_dataset(tables: dict[str, pd.DataFrame], db_fks: list[ForeignKey] | None = None) -> DatasetProfile:
-    """Profile every table. `db_fks` (e.g. from a database catalog) override inference."""
+def profile_dataset(tables: dict[str, pd.DataFrame], db_fks: list[ForeignKey] | None = None,
+                    db_pks: dict[str, list[str]] | None = None) -> DatasetProfile:
+    """Profile every table. Keys declared in a database catalog (`db_pks`, `db_fks`) override inference."""
     profiles: dict[str, TableProfile] = {}
     pks: dict[str, str | None] = {}
     for name, df in tables.items():
-        pk = _choose_primary_key(df, name)
+        declared = (db_pks or {}).get(name) or []
+        pk = declared[0] if len(declared) == 1 else _choose_primary_key(df, name)
         pks[name] = pk
         cols = {}
         for col in df.columns:

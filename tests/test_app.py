@@ -84,3 +84,24 @@ def test_override_and_kanon_apply_in_ui(app, monkeypatch):
     k2 = app.session_state["result"].report["k_anonymity"]["customers"]
     assert k2["applied_fix"]["name"] == pick
     assert k2["k_before"] == k["k_before"] and k2["k_after"] >= k["k_after"]
+
+
+def test_mysql_connect_without_credentials_shows_message(app, monkeypatch):
+    monkeypatch.setenv("NAZEER_MYSQL_PASSWORD", "CHANGE_ME")
+    app.button(key="mysql_connect").click().run()
+    assert not app.exception
+    assert app.session_state["tables"] is None
+    assert any("waiting for credentials" in e.value for e in app.error)
+
+
+def test_write_to_source_database_is_refused_in_ui(app, monkeypatch):
+    monkeypatch.setenv("NAZEER_KEY", KEY)
+    monkeypatch.setenv("NAZEER_MYSQL_PASSWORD", "dummy")
+    app.button(key="demo").click().run()
+    app.session_state["mysql_db"] = "nazeer_prod_demo"  # pretend the source is MySQL
+    app.checkbox(key="write_db").check().run()
+    app.text_input(key="target_db").set_value("NAZEER_PROD_DEMO").run()
+    app.button(key="run").click().run()
+    assert not app.exception
+    assert any("SOURCE database" in e.value for e in app.error)
+    assert app.session_state["mysql_written"] is None

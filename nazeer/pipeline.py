@@ -63,9 +63,10 @@ def new_run_id() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + secrets.token_hex(3)
 
 
-def analyze(tables: dict[str, pd.DataFrame], source: str = "<upload>", ner=None) -> Analysis:
+def analyze(tables: dict[str, pd.DataFrame], source: str = "<upload>", ner=None,
+            db_fks=None, db_pks=None) -> Analysis:
     t0 = time.perf_counter()
-    prof = profile_dataset(tables)
+    prof = profile_dataset(tables, db_fks, db_pks)
     dets = detect.detect_columns(tables, prof)
     cols = detect.free_text_columns(dets)
     spans = detect.detect_free_text(tables, cols, ner)
@@ -437,11 +438,52 @@ def write_outputs(result: RunResult, out_dir: Path) -> list[Path]:
     return files
 
 
+def write_twin_to_mysql(result: RunResult, analysis: Analysis, settings, target_db: str,
+                        source_db: str | None = None, schema=None) -> dict:
+    """Write the twin to a separate MySQL database, read it back, and leak-scan what landed there.
+    A withheld twin (failed leak scan) is never written. Updates the report in place."""
+    from nazeer import mysqlio
+
+    mysqlio.check_target(source_db, target_db)
+    entry = {"target_database": target_db, "written": False}
+    if result.twin_withheld:
+        entry["note"] = "twin withheld because the leak scan failed; nothing was written"
+    else:
+        entry.update(mysqlio.write_twin(
+            settings, result.twin, target_db, source_db, schema,
+            primary_keys={t: p.primary_key for t, p in analysis.profile.tables.items()},
+            foreign_keys=analysis.profile.foreign_keys))
+        entry["written"] = True
+        landed, _ = mysqlio.load_mysql(settings, target_db)
+        landed = {t: df for t, df in landed.items() if t in result.twin}
+        dets = apply_overrides(analysis.detections, {})
+        originals = evaluate.original_identifier_values(analysis.tables, dets, analysis.spans)
+        leak = evaluate.leak_scan(originals, landed, result.mode)
+        entry["leak_scan_of_target"] = {k: leak[k] for k in ("verdict", "cells_scanned", "leaked_by_kind")}
+        rows_ok = all(len(landed[t]) == len(result.twin[t]) for t in result.twin)
+        entry["row_counts_match"] = rows_ok
+        check = {"name": "leak_scan_target_database", "status": leak["verdict"] if rows_ok else "FAIL",
+                 "blocking": True, "value": leak["leaked_by_kind"], "threshold": None,
+                 "detail": f"twin read back from MySQL database {target_db}: "
+                           f"{sum(leak['leaked_by_kind'].values())} identifier(s) found in {leak['cells_scanned']} cells; "
+                           f"row counts {'match' if rows_ok else 'DO NOT match'}"}
+        result.report["checks"].append(check)
+        if check["status"] == "FAIL":
+            result.report["verdict"] = "FAIL"
+            result.report["failed_checks"].append(check["name"])
+    result.report["mysql_output"] = entry
+    rpt.validate(result.report)
+    return entry
+
+
 # ---------------------------------------------------------------- CLI
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m nazeer.pipeline", description="Nazeer: Saudi-aware masked/synthetic twin")
-    ap.add_argument("--csv", type=Path, required=True, help="folder of CSV files (one table per file)")
+    src = ap.add_mutually_exclusive_group(required=True)
+    src.add_argument("--csv", type=Path, help="folder of CSV files (one table per file)")
+    src.add_argument("--mysql-db", help="MySQL source database (read-only; credentials from NAZEER_MYSQL_* / .env)")
+    ap.add_argument("--mysql-target", help="also write the twin to this SEPARATE MySQL database (e.g. nazeer_dev)")
     ap.add_argument("--mode", choices=["masked", "synthetic"], default="masked")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--policy", type=Path, default=DEFAULT_POLICY)
@@ -458,12 +500,24 @@ def main(argv: list[str] | None = None) -> int:
     configure_logging(log_file=args.out / "nazeer.log")
     install_excepthook()
 
-    tables = load_csv_folder(args.csv)
-    log.info("loaded %d tables from folder %s", len(tables), args.csv.name)
-    analysis = analyze(tables, source=f"csv folder: {args.csv.name}")
+    settings = schema = None
+    if args.mysql_db or args.mysql_target:
+        from nazeer import mysqlio
+
+        settings = mysqlio.load_settings()
+        if args.mysql_target:
+            mysqlio.check_target(args.mysql_db, args.mysql_target)  # refuse before doing any work
+    if args.mysql_db:
+        tables, schema = mysqlio.load_mysql(settings, args.mysql_db)
+        analysis = analyze(tables, source=f"mysql database: {args.mysql_db}", db_fks=schema.foreign_keys,
+                           db_pks=schema.primary_keys)
+    else:
+        tables = load_csv_folder(args.csv)
+        log.info("loaded %d tables from folder %s", len(tables), args.csv.name)
+        analysis = analyze(tables, source=f"csv folder: {args.csv.name}")
     policy = load_policy(args.policy)
     overrides = json.loads(args.overrides.read_text(encoding="utf-8")) if args.overrides else {}
-    golden = args.golden or (args.csv / "_golden")
+    golden = args.golden or (args.csv / "_golden" if args.csv else None)
 
     if args.mode == "masked":
         result = run_masked(analysis, policy, load_key(), overrides, args.apply_fix, golden)
@@ -471,6 +525,8 @@ def main(argv: list[str] | None = None) -> int:
         result = run_synthetic(analysis, policy, overrides, target=args.target, golden_dir=golden,
                                method=args.synthesizer, robustness_seeds=args.dcr_seeds)
 
+    if args.mysql_target:
+        write_twin_to_mysql(result, analysis, settings, args.mysql_target, args.mysql_db, schema)
     write_outputs(result, args.out)
     rep = result.report
     print(f"run {rep['run_id']} mode={rep['mode']} verdict={rep['verdict']}")

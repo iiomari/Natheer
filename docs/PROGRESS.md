@@ -16,8 +16,8 @@ This file is updated after every milestone so a new session can resume from it a
 | M6a Minimal Streamlit flow | done | 8a2edc4 |
 | M7 Synthetic 5b + fidelity + TSTR + DCR | done (code + tests); committed under "WIP: pause", no separate M7 commit | WIP: pause |
 | R1 DCR robustness (5 seeds, per stratum, min stratum fallback) | done | 2126e4c |
-| M6b UI polish + overrides + k-anon apply | done | (this commit) |
-| MySQL input + output (replaces PostgreSQL) | not started | — |
+| M6b UI polish + overrides + k-anon apply | done | bf9106d |
+| MySQL input + output (replaces PostgreSQL) | code + unit tests done; **live MySQL steps waiting for credentials** | (this commit) |
 | Independent evaluation harness (human-written notes) | not started | — |
 | "Why it works" tab | not started | — |
 | Arabic NER (CamelBERT + gazetteer fallback) | not started | — |
@@ -197,6 +197,27 @@ torch 2.2) are incompatible, so always use the venv.
     every identifier detected at analysis time, including in columns a reviewer un-tagged.
     Un-tagging the notes column therefore makes the run FAIL and withholds the twin (tested).
     Columns newly tagged FREE_TEXT by a reviewer are scanned at run time.
+40. **MySQL: `cryptography==50.0.2` added.** The local server is MySQL 9.1.0, which removed
+    `mysql_native_password`. PyMySQL needs `cryptography` for `caching_sha2_password` over
+    plain TCP. `requirements-postgres.txt` was deleted; SQLAlchemy, PyMySQL, python-dotenv
+    and cryptography are now pinned in `requirements.txt`.
+41. **MySQL: Nazeer's own sessions use `sql_mode=STRICT_ALL_TABLES,NO_ENGINE_SUBSTITUTION`.**
+    The local server's `my.ini` sets `sql_mode=""` (non-strict), which silently truncates or
+    coerces bad values. The server setting is **not** changed. Strictness is per session, so a
+    mismatch fails loudly. The user was told.
+42. **MySQL: the source is opened as `SET SESSION TRANSACTION READ ONLY`**, so the server
+    itself rejects writes, on top of issuing SELECT only.
+43. **MySQL: target column types keep the source type only when every twin value fits it**
+    (generalized ages like "30-39" no longer fit INT and become VARCHAR). Tables are recreated
+    in the target on every run (`DROP TABLE IF EXISTS` inside the target database only).
+44. **MySQL: an empty password is accepted**, because WAMP's default root account has none.
+    Only the `CHANGE_ME` placeholder means "waiting for credentials".
+45. **MySQL: what lands in the target is verified.** After writing, the twin is read back from
+    the target database and leak-scanned again. A blocking check,
+    `leak_scan_target_database`, also compares row counts. A withheld twin is never written.
+46. **MySQL in the UI: credentials are never entered on the page.** Only the database names
+    are typed in the UI. `MySQLError` messages are shown verbatim, because they contain no
+    credentials or values by construction.
 
 ## Milestone log
 
@@ -406,6 +427,35 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
   - `test_app.py` (+1): an override is recorded in the UI run, and the Apply button re-runs
     with the chosen fix (k_before kept, applied_fix recorded).
 
+### MySQL input + output: code and unit tests done, live steps waiting for credentials
+- New: `nazeer/mysqlio.py`, `data_gen/load_mysql.py`, `.env.example` (committed), `.env`
+  (placeholders, gitignored; verified not staged).
+- CLI: `--mysql-db <source>` (instead of `--csv`) and `--mysql-target <target>`. A target equal
+  to the source is refused before any work.
+- UI: a "Connect to MySQL" box next to CSV upload, plus a "Write twin to database" checkbox and
+  target name.
+- **Status: waiting for credentials.** `.env` still has `NAZEER_MYSQL_PASSWORD=CHANGE_ME`, and
+  the local MySQL service `wampmysqld64` (MySQL 9.1.0, WAMP, `D:\Server\bin\mysql\mysql9.1.0`)
+  is **stopped** (manual start). I did not start it.
+- **To finish the MySQL part (user):**
+  1. Start the service: `Start-Service wampmysqld64` (or start WAMP).
+  2. In `.env`, set `NAZEER_MYSQL_PASSWORD` to the root password. For WAMP's default root
+     with no password, use `NAZEER_MYSQL_PASSWORD=` with an empty value.
+  3. Load the demo: `python -m data_gen.load_mysql` (creates `nazeer_prod_demo`).
+  4. Run the tests: `python -m pytest tests\test_mysql.py -rs`. The 4 integration tests should
+     run instead of skipping.
+  5. Demo: `python -m nazeer.pipeline --mysql-db nazeer_prod_demo --mysql-target nazeer_dev --mode masked --apply-fix auto --out out\mysql_masked`
+- **Not yet verified against a live server:** the SQL for reading information_schema,
+  creating the target tables with PK/FK, and inserting. The 4 integration tests cover this,
+  but they are currently skipped.
+- Tests: 210 passed, 4 skipped (reason: waiting for credentials).
+  - Unit tests: placeholder → waiting; `.env` read, with real environment variables winning;
+    empty password allowed; credentials never in repr; source, system and invalid targets
+    refused (also in the CLI before any work, and in `write_twin` before connecting); type
+    mapping; value conversion; parent-first table order.
+  - UI tests: a missing password shows "waiting for credentials"; writing to the source
+    database is refused with a visible message.
+
 ## Paused here (user request, 2026-10-01)
 - **Current milestone:** M7 is finished. The code is written, the full suite passes
   (176 passed), and real numbers are recorded above. It was committed with the message
@@ -437,4 +487,4 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
 
 ## Next step
 
-MySQL input and output (SQLAlchemy + PyMySQL, utf8mb4, separate target DB).
+Independent evaluation harness (`python -m nazeer.eval_human`, template CSV, Arabic writing guide).

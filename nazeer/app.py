@@ -30,6 +30,7 @@ import streamlit as st  # noqa: E402
 
 from nazeer import pipeline  # noqa: E402
 from nazeer.config import KeyConfigError, load_key  # noqa: E402
+from nazeer.mysqlio import MySQLError  # noqa: E402
 from nazeer.policy import load_policy  # noqa: E402
 from nazeer.safe_log import configure_logging  # noqa: E402
 from nazeer.tableio import load_csv_folder, read_csv  # noqa: E402
@@ -51,13 +52,14 @@ def _init() -> None:
     if "logging" not in st.session_state:
         configure_logging()
         st.session_state["logging"] = True
-    for k in ("tables", "source", "golden_dir", "analysis", "result", "error", "applied_fix"):
+    for k in ("tables", "source", "golden_dir", "analysis", "result", "error", "applied_fix",
+              "mysql_db", "mysql_schema", "mysql_written"):
         st.session_state.setdefault(k, None)
     st.session_state.setdefault("overrides", {})
 
 
 def _reset_after_load() -> None:
-    for k in ("analysis", "result", "error", "applied_fix"):
+    for k in ("analysis", "result", "error", "applied_fix", "mysql_written"):
         st.session_state[k] = None
     st.session_state["overrides"] = {}
 
@@ -67,7 +69,7 @@ def _guarded(fn, *args, **kwargs):
     st.session_state["error"] = None
     try:
         return fn(*args, **kwargs)
-    except KeyConfigError as e:
+    except (KeyConfigError, MySQLError) as e:  # messages are credential- and value-free by construction
         st.session_state["error"] = str(e)
     except Exception as e:  # noqa: BLE001 - UI boundary
         log.error("UI step %s failed", getattr(fn, "__name__", "step"), exc_info=True)
@@ -86,7 +88,18 @@ def load_demo() -> None:
 
 def load_uploads(files) -> None:
     tables = {Path(f.name).stem: read_csv(f) for f in files}
-    st.session_state.update(tables=tables, source=f"{len(tables)} uploaded CSV file(s)", golden_dir=None)
+    st.session_state.update(tables=tables, source=f"{len(tables)} uploaded CSV file(s)", golden_dir=None,
+                            mysql_db=None, mysql_schema=None)
+    _reset_after_load()
+
+
+def load_mysql_source(database: str) -> None:
+    from nazeer import mysqlio
+
+    settings = mysqlio.load_settings()
+    tables, schema = mysqlio.load_mysql(settings, database)
+    st.session_state.update(tables=tables, source=f"MySQL database {database} (read-only)", golden_dir=None,
+                            mysql_db=database, mysql_schema=schema)
     _reset_after_load()
 
 
@@ -123,10 +136,17 @@ def twin_zip(result: pipeline.RunResult) -> bytes:
 
 def section_input() -> None:
     st.header("1 · Load data")
-    c1, c2 = st.columns([1, 2])
+    c1, c2, c3 = st.columns([1, 2, 2])
     with c1:
         if st.button("Use demo dataset", type="primary", key="demo"):
             _guarded(load_demo)
+    with c3:
+        with st.container(border=True):
+            st.markdown("**Connect to MySQL** (read-only)")
+            db = st.text_input("Source database", value="nazeer_prod_demo", key="mysql_source")
+            st.caption("Credentials come from NAZEER_MYSQL_* or .env, never from this page.")
+            if st.button("Connect", key="mysql_connect"):
+                _guarded(load_mysql_source, db)
     with c2:
         files = st.file_uploader("…or upload CSV files (one table per file)", type="csv",
                                  accept_multiple_files=True, key="upload")
@@ -142,8 +162,10 @@ def section_detection() -> None:
         return
     if st.session_state["analysis"] is None:
         with st.spinner("Profiling and detecting personal data…"):
-            st.session_state["analysis"] = _guarded(pipeline.analyze, st.session_state["tables"],
-                                                    st.session_state["source"])
+            schema = st.session_state["mysql_schema"]
+            st.session_state["analysis"] = _guarded(
+                pipeline.analyze, st.session_state["tables"], st.session_state["source"],
+                db_fks=schema.foreign_keys if schema else None, db_pks=schema.primary_keys if schema else None)
     an: pipeline.Analysis | None = st.session_state["analysis"]
     if an is None:
         return
@@ -256,6 +278,16 @@ def _kanon_panel(rep: dict) -> None:
                 st.rerun()
 
 
+def _write_to_mysql(target_db: str) -> None:
+    from nazeer import mysqlio
+
+    mysqlio.check_target(st.session_state["mysql_db"], target_db)
+    settings = mysqlio.load_settings()
+    entry = pipeline.write_twin_to_mysql(st.session_state["result"], st.session_state["analysis"], settings,
+                                         target_db, st.session_state["mysql_db"], st.session_state["mysql_schema"])
+    st.session_state["mysql_written"] = entry
+
+
 def section_run() -> None:
     an = st.session_state["analysis"]
     if an is None:
@@ -274,6 +306,10 @@ def section_run() -> None:
                               help="stratified_copula: one Gaussian copula per value of the column that drives the "
                                    "numeric columns most (chosen automatically)")
         st.caption("20% of the data is held out before training and is used only to test utility and privacy.")
+    c1, c2 = st.columns([1, 2])
+    write_db = c1.checkbox("Write twin to database", key="write_db",
+                           help="Also write the twin to a SEPARATE MySQL database (never the source).")
+    target_db = c2.text_input("Target database", value="nazeer_dev", key="target_db", disabled=not write_db)
     if st.button("Run Nazeer", type="primary", key="run"):
         with st.spinner("Transforming, scanning for leaks, measuring… (synthetic mode takes about a minute)"):
             policy = load_policy(pipeline.DEFAULT_POLICY)
@@ -286,6 +322,8 @@ def section_run() -> None:
                 st.session_state["result"] = _guarded(
                     lambda: pipeline.run_synthetic(an, policy, st.session_state["overrides"], target=target,
                                                    method=method, golden_dir=st.session_state["golden_dir"]))
+            if write_db and st.session_state["result"] is not None:
+                _guarded(_write_to_mysql, target_db)
 
 
 def _metric_panels(rep: dict) -> None:
@@ -349,6 +387,15 @@ def section_results() -> None:
         right.markdown("**Twin**")
         right.dataframe(res.twin[table].head(n), hide_index=True, width="stretch")
 
+    written = rep.get("mysql_output")
+    if written:
+        if written.get("written"):
+            leak = written["leak_scan_of_target"]
+            (st.success if leak["verdict"] == "PASS" and written["row_counts_match"] else st.error)(
+                f"Twin written to MySQL database **{written['target_database']}** — read back and leak-scanned: "
+                f"{leak['verdict']} ({sum(leak['leaked_by_kind'].values())} identifiers in {leak['cells_scanned']:,} cells).")
+        else:
+            st.warning(written.get("note", "twin not written"))
     _metric_panels(rep)
     if rep["mode"] == "masked":
         _kanon_panel(rep)
