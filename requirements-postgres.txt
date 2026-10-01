@@ -1,0 +1,4 @@
+# Stretch milestone M8 only (PostgreSQL input). Pin exact versions when M8 starts.
+-r requirements.txt
+SQLAlchemy==2.0.52
+psycopg[binary]>=3.2,<4

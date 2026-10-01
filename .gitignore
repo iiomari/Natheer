@@ -1,0 +1,15 @@
+# Environments and secrets
+.venv/
+.env
+*.key
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+
+# Generated artifacts (demo data is reproducible from data_gen/ with a fixed seed)
+data/demo/
+out/
+*.log

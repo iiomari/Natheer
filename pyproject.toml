@@ -1,0 +1,10 @@
+[project]
+name = "nazeer"
+version = "0.1.0"
+description = "Saudi-aware synthetic and masked data engine"
+requires-python = ">=3.11,<3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"

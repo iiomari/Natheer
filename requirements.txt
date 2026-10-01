@@ -1,0 +1,22 @@
+# Direct dependencies, pinned. Full resolved set: requirements-lock.txt
+# Verified on Python 3.11.9 / Windows 11, 2026-09-30.
+
+# Synthetic data (BUSL-1.1: no "Synthetic Data Service" use; see docs/api_notes.md)
+sdv==1.38.5
+# Evaluation (MIT)
+sdmetrics==0.32.0
+# SDV and SDMetrics require pandas < 3
+pandas==2.3.3
+numpy==2.4.6
+scipy==1.17.1
+scikit-learn==1.8.0
+# Arabic NER (stretch). transformers 5.x requires torch >= 2.5
+transformers==5.17.0
+torch==2.14.0
+huggingface-hub==1.33.0
+streamlit==1.63.0
+PyYAML==6.0.3
+
+# Tests
+pytest==9.1.1
+hypothesis==6.168.3
