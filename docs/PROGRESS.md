@@ -19,8 +19,8 @@ This file is updated after every milestone so a new session can resume from it a
 | M6b UI polish + overrides + k-anon apply | done | bf9106d |
 | MySQL input + output (replaces PostgreSQL) | code + unit tests done; **live MySQL steps waiting for credentials** | 9b23043 |
 | Independent evaluation harness (human-written notes) | done; **waiting for teammates' notes** | e430dc0 |
-| "Why it works" tab | done | (this commit) |
-| Arabic NER (CamelBERT + gazetteer fallback) | not started | — |
+| "Why it works" tab | done | b27683d |
+| Arabic NER (CamelBERT + gazetteer fallback) | done (full-demo measurement running) | (this commit) |
 | Final deliverables (README ar/en, demo runs, internal demo script) | not started | — |
 | HMA multi-table synthesis | **out of scope for the hackathon** | — |
 | PDF report | **out of scope for the hackathon** | — |
@@ -235,6 +235,21 @@ torch 2.2) are incompatible, so always use the venv.
     any judge-facing file (README, app, ui_logic, report, pipeline, notes guide, template) or
     any generated `out/**/report.json` mentions criteria, judging, weights or a rubric
     (English and Arabic).
+52. **NER: the default name detector stays the gazetteer.** CamelBERT is offered as
+    "union" (CamelBERT + gazetteer).
+    - Measured on CPU: about 215–300 ms per note, so the union would need about 26 minutes for
+      the 7,160 demo notes.
+    - The union is the default only in the human-notes harness (`auto`), which has few notes.
+    - Pipeline `--ner`: gazetteer | union | camel | auto. The UI offers "Fast" (gazetteer) and
+      "Best recall" (union).
+    - The model loads strictly from the local cache, pinned to revision `54e2905e…`. A
+      900-second time budget per batch run falls back to the gazetteer and records this in
+      `name_detector.stats`.
+53. **NER: name spans that overlap a digit/IBAN/email span are dropped**, so a model can never
+    label part of a number as a name.
+54. **NER caveat: the demo is biased toward the gazetteer.** The demo generator draws names from
+    the same lists the gazetteer uses, so the gazetteer's recall on the demo is optimistic.
+    The hand-written notes are the fair comparison.
 
 ## Milestone log
 
@@ -507,6 +522,33 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
   performance. It never mentions criteria or weights.
 - Tests: 224 passed, 4 skipped (MySQL credentials).
 
+### Arabic NER: CamelBERT + gazetteer fallback
+- `nazeer/camel_ner.py` provides `CamelNER` (local-only, batched, with a time budget and model-error
+  fallback) and `UnionNER`. `ner.get_name_detector()` selects the mode. Detection batches name
+  spans per column (`find_many`).
+- Model: `CAMeL-Lab/bert-base-arabic-camelbert-msa-ner` (Apache-2.0), revision
+  `54e2905e7c756883b00877cd48ed710a304af0d1`, downloaded once by `scripts\download_models.py`.
+- **Names only, first 400 demo notes (385 planted names):**
+
+  | detector | recall | precision | exact spans | name-like words flagged | speed |
+  |---|---|---|---|---|---|
+  | gazetteer | 0.971 | 1.000 | 374/385 | 0/65 | about 0.5 ms/note |
+  | CamelBERT | 0.940 | 1.000 | 253/385 | 0/65 | about 300 ms/note |
+  | CamelBERT + gazetteer | **0.990** | 1.000 | 380/385 | 0/65 | about 215 ms/note |
+
+  Cold model load took 84 s the first time. The full-demo measurement (7,160 notes) is
+  running and will be recorded in the final section.
+- Template notes (5 rows) with the union: Nazeer recall 1.0 and precision 1.0; baseline 0.111 and
+  0.333.
+- Tests: 232 passed, 4 skipped (MySQL credentials).
+  - `test_ner.py` (8): PERS-only spans with a score threshold; model error → gazetteer; time
+    budget → gazetteer for the remaining texts; union merge; batched detection; and the
+    **real offline model** matching or beating the gazetteer on a fresh demo sample.
+  - `test_internal_only.py` now also covers the new README.
+- README rewritten in Arabic and English: problem, what it does, users, components,
+  PowerShell install/run, MySQL flow, UI steps, metric meanings, known limitations. There is
+  no commercial section and no criteria.
+
 ## Paused here (user request, 2026-10-01)
 - **Current milestone:** M7 is finished. The code is written, the full suite passes
   (176 passed), and real numbers are recorded above. It was committed with the message
@@ -538,4 +580,4 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
 
 ## Next step
 
-Arabic NER for names: CamelBERT with gazetteer fallback, measured on golden labels and the human notes.
+Final deliverables: demo runs in out\ + METRICS_SUMMARY.md, docs\internal\DEMO_SCRIPT.md, final PROGRESS section.

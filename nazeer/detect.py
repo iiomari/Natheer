@@ -117,9 +117,10 @@ def _reason(tag: Tag, dtype: str) -> str:
 # ---------------------------------------------------------------- free text
 
 
-def find_spans(text: str, ner: NameDetector | None = None,
-               names: bool = True) -> list[tuple[int, int, s.Kind, float, str]]:
-    """All identifier spans in one text: (start, end, kind, confidence, source), original offsets."""
+def find_spans(text: str, ner: NameDetector | None = None, names: bool = True,
+               name_spans: list[tuple[int, int, float]] | None = None) -> list[tuple[int, int, s.Kind, float, str]]:
+    """All identifier spans in one text: (start, end, kind, confidence, source), original offsets.
+    `name_spans` lets a batched name detector pass its precomputed result for this text."""
     norm, offsets = s.normalize(text)
     found: list[tuple[int, int, s.Kind, float, str]] = []
     taken = [False] * len(norm)
@@ -144,8 +145,11 @@ def find_spans(text: str, ner: NameDetector | None = None,
             conf = 0.6 if (kind == "SAUDI_ID" and _INVOICE_CONTEXT.search(context)) else 0.95
             claim(a, b, kind, conf)
     if names:
-        for a, b, conf in (ner or GazetteerNER()).find(text):
-            found.append((a, b, "PERSON_NAME", conf, getattr(ner, "name", "gazetteer")))
+        detected = name_spans if name_spans is not None else (ner or GazetteerNER()).find(text)
+        source = getattr(ner, "name", "gazetteer") if ner is not None else "gazetteer"
+        for a, b, conf in detected:
+            if not any(taken[i] for i in range(len(norm)) if a <= offsets[i] < b):
+                found.append((a, b, "PERSON_NAME", conf, source))
     return sorted(found)
 
 
@@ -179,10 +183,13 @@ def detect_free_text(tables: dict[str, pd.DataFrame], columns: list[tuple[str, s
     ner = ner or GazetteerNER()
     spans: list[Span] = []
     for tname, col in columns:
-        for row, text in enumerate(tables[tname][col].tolist()):
-            if not isinstance(text, str) or not text:
-                continue
-            spans += [Span(tname, row, col, a, b, kind, conf, src) for a, b, kind, conf, src in find_spans(text, ner)]
+        texts = tables[tname][col].tolist()
+        valid = [(row, t) for row, t in enumerate(texts) if isinstance(t, str) and t]
+        batched = ner.find_many([t for _, t in valid]) if hasattr(ner, "find_many") else None
+        for i, (row, text) in enumerate(valid):
+            names = batched[i] if batched is not None else None
+            spans += [Span(tname, row, col, a, b, kind, conf, src)
+                      for a, b, kind, conf, src in find_spans(text, ner, name_spans=names)]
     log.info("free-text detection: %d spans %s", len(spans), dict(Counter(sp.type for sp in spans)))
     return spans
 

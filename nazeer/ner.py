@@ -101,16 +101,26 @@ def _cue_gap_ok(text: str, a: int, b: int, cue: str) -> bool:
     return gap.isspace()
 
 
-def get_name_detector(mode: str = "auto") -> NameDetector:
-    """"gazetteer", "camel" (raises NERUnavailable if the local model is missing), or "auto"
-    (CamelBERT when available locally, otherwise the gazetteer fallback)."""
+NER_MODES = ("gazetteer", "union", "camel", "auto")
+
+
+def get_name_detector(mode: str = "gazetteer") -> NameDetector:
+    """Name detector by mode:
+    gazetteer  fast first-name list + family-name extension (default for whole datasets)
+    union      CamelBERT + gazetteer (best recall; ~0.2 s per note on CPU)
+    camel      CamelBERT only
+    auto       union when the model is installed locally, otherwise gazetteer
+    "union"/"camel" raise NERUnavailable if the local model is missing."""
     if mode == "gazetteer":
         return GazetteerNER()
+    if mode not in NER_MODES:
+        raise ValueError(f"unknown name detector {mode!r}; choose from {NER_MODES}")
     try:
-        from nazeer.camel_ner import CamelNER  # noqa: PLC0415 - optional heavy dependency
+        from nazeer.camel_ner import CamelNER, UnionNER  # noqa: PLC0415 - optional heavy dependency
 
-        return CamelNER.load()
+        camel = CamelNER.load()
     except Exception as e:  # noqa: BLE001
-        if mode == "camel":
-            raise NERUnavailable(f"CamelBERT NER unavailable ({type(e).__name__})") from None
+        if mode in ("camel", "union"):
+            raise NERUnavailable(f"CamelBERT NER unavailable ({type(e).__name__}); run scripts\\download_models.py") from None
         return GazetteerNER()
+    return camel if mode == "camel" else UnionNER(camel)

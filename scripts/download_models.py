@@ -18,7 +18,7 @@ from huggingface_hub import snapshot_download  # noqa: E402
 
 # Apache-2.0; trained on ANERcorp (MSA). Labels include B-PERS / I-PERS.
 MODELS = {
-    "CAMeL-Lab/bert-base-arabic-camelbert-msa-ner": "main",
+    "CAMeL-Lab/bert-base-arabic-camelbert-msa-ner": "54e2905e7c756883b00877cd48ed710a304af0d1",
 }
 
 

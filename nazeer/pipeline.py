@@ -46,6 +46,7 @@ class Analysis:
     baseline_spans: list[Span]
     source: str
     seconds: float
+    name_detector: dict = field(default_factory=lambda: {"name": "gazetteer"})
 
 
 @dataclass
@@ -71,7 +72,8 @@ def analyze(tables: dict[str, pd.DataFrame], source: str = "<upload>", ner=None,
     cols = detect.free_text_columns(dets)
     spans = detect.detect_free_text(tables, cols, ner)
     base = detect.baseline_free_text(tables, cols)
-    return Analysis(tables, prof, dets, spans, base, source, round(time.perf_counter() - t0, 2))
+    ner_info = {"name": getattr(ner, "name", "gazetteer"), "stats": getattr(ner, "stats", None)}
+    return Analysis(tables, prof, dets, spans, base, source, round(time.perf_counter() - t0, 2), ner_info)
 
 
 # ---------------------------------------------------------------- shared report parts
@@ -114,6 +116,7 @@ def _base_report(analysis: Analysis, run_id: str, mode: str, policy: Policy, dec
             "columns": [f"{t}.{c}" for t, c in detect.free_text_columns(dets)],
             "spans_by_type": dict(Counter(sp.type for sp in analysis.spans)),
             "baseline_spans_by_type": dict(Counter(sp.type for sp in analysis.baseline_spans)),
+            "name_detector": analysis.name_detector,
         },
         "outputs": {"twin_written": False, "files": [], "note": "filled in when outputs are written"},
     }
@@ -491,6 +494,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--apply-fix", default=None, help='k-anonymity fix to apply: a suggested fix name, or "auto"')
     ap.add_argument("--target", default=None, help='synthetic mode: utility target, e.g. "is_large_claim=amount>p90"')
     ap.add_argument("--dcr-seeds", type=int, default=5, help="synthetic mode: DCR robustness repeats (0 = off)")
+    ap.add_argument("--ner", choices=["gazetteer", "union", "camel", "auto"], default="gazetteer",
+                    help="name detector for free text (union = CamelBERT + gazetteer, ~0.2 s per note on CPU)")
     ap.add_argument("--synthesizer", default="stratified_copula",
                     choices=["stratified_copula", "gaussian_copula", "ctgan"], help="synthetic mode: model")
     ap.add_argument("--golden", type=Path, default=None, help="demo answer key folder (default: <csv>\\_golden if present)")
@@ -500,6 +505,9 @@ def main(argv: list[str] | None = None) -> int:
     configure_logging(log_file=args.out / "nazeer.log")
     install_excepthook()
 
+    from nazeer.ner import get_name_detector
+
+    ner = get_name_detector(args.ner)
     settings = schema = None
     if args.mysql_db or args.mysql_target:
         from nazeer import mysqlio
@@ -509,12 +517,12 @@ def main(argv: list[str] | None = None) -> int:
             mysqlio.check_target(args.mysql_db, args.mysql_target)  # refuse before doing any work
     if args.mysql_db:
         tables, schema = mysqlio.load_mysql(settings, args.mysql_db)
-        analysis = analyze(tables, source=f"mysql database: {args.mysql_db}", db_fks=schema.foreign_keys,
+        analysis = analyze(tables, source=f"mysql database: {args.mysql_db}", ner=ner, db_fks=schema.foreign_keys,
                            db_pks=schema.primary_keys)
     else:
         tables = load_csv_folder(args.csv)
         log.info("loaded %d tables from folder %s", len(tables), args.csv.name)
-        analysis = analyze(tables, source=f"csv folder: {args.csv.name}")
+        analysis = analyze(tables, source=f"csv folder: {args.csv.name}", ner=ner)
     policy = load_policy(args.policy)
     overrides = json.loads(args.overrides.read_text(encoding="utf-8")) if args.overrides else {}
     golden = args.golden or (args.csv / "_golden" if args.csv else None)

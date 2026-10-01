@@ -169,8 +169,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m nazeer.eval_human", description=__doc__.splitlines()[0])
     ap.add_argument("--notes", type=Path, default=Path("data") / "human_notes.csv")
     ap.add_argument("--json", type=Path, default=Path("out") / "human_eval.json")
-    ap.add_argument("--ner", choices=["gazetteer", "camel", "auto"], default="auto",
-                    help="name detector (auto: CamelBERT if installed locally, else gazetteer)")
+    ap.add_argument("--ner", choices=["gazetteer", "union", "camel", "auto"], default="auto",
+                    help="name detector (auto: CamelBERT + gazetteer if the model is installed locally, else gazetteer)")
     ap.add_argument("--make-ids", type=int, metavar="N", help="print N rows of valid fake identifiers and exit")
     args = ap.parse_args(argv)
     if args.make_ids:
@@ -185,6 +185,7 @@ def main(argv: list[str] | None = None) -> int:
     ner = get_name_detector(args.ner)
     result = evaluate_notes(read_csv(args.notes), ner)
     result["name_detector"] = ner.name
+    result["name_detector_stats"] = getattr(ner, "stats", None)
     _print(result)
     args.json.parent.mkdir(parents=True, exist_ok=True)
     args.json.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")

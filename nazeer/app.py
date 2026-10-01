@@ -57,6 +57,7 @@ def _init() -> None:
               "mysql_db", "mysql_schema", "mysql_written"):
         st.session_state.setdefault(k, None)
     st.session_state.setdefault("overrides", {})
+    st.session_state.setdefault("ner_mode", "gazetteer")
 
 
 def _reset_after_load() -> None:
@@ -76,6 +77,19 @@ def _guarded(fn, *args, **kwargs):
         log.error("UI step %s failed", getattr(fn, "__name__", "step"), exc_info=True)
         st.session_state["error"] = f"{type(e).__name__}: the step failed. Details are in the server log (values suppressed)."
     return None
+
+
+@st.cache_resource(show_spinner="Loading the Arabic NER model (first time only)…")
+def _camel_union():
+    from nazeer.ner import get_name_detector
+
+    return get_name_detector("union")
+
+
+def _name_detector():
+    if st.session_state.get("ner_mode") == "union":
+        return _camel_union()
+    return None  # gazetteer default
 
 
 def load_demo() -> None:
@@ -153,6 +167,9 @@ def section_input() -> None:
                                  accept_multiple_files=True, key="upload")
         if files and st.button("Load uploaded files", key="load_uploads"):
             _guarded(load_uploads, files)
+    st.radio("Name detection in free text", ["gazetteer", "union"], key="ner_mode", horizontal=True,
+             format_func=lambda m: {"gazetteer": "Fast (Arabic name lists)",
+                                    "union": "Best recall (CamelBERT + name lists; ~0.2 s per note on CPU)"}[m])
     if st.session_state["tables"] is not None:
         st.caption(f"Loaded: {st.session_state['source']} — " + ", ".join(
             f"{n} ({len(df):,} rows × {df.shape[1]} cols)" for n, df in st.session_state["tables"].items()))
@@ -165,8 +182,9 @@ def section_detection() -> None:
         with st.spinner("Profiling and detecting personal data…"):
             schema = st.session_state["mysql_schema"]
             st.session_state["analysis"] = _guarded(
-                pipeline.analyze, st.session_state["tables"], st.session_state["source"],
-                db_fks=schema.foreign_keys if schema else None, db_pks=schema.primary_keys if schema else None)
+                lambda: pipeline.analyze(
+                    st.session_state["tables"], st.session_state["source"], ner=_name_detector(),
+                    db_fks=schema.foreign_keys if schema else None, db_pks=schema.primary_keys if schema else None))
     an: pipeline.Analysis | None = st.session_state["analysis"]
     if an is None:
         return
