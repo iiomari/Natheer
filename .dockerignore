@@ -1,0 +1,13 @@
+.venv
+.git
+data
+out
+storage
+web/node_modules
+web/.next
+**/__pycache__
+*.db
+.env
+docs
+tests
+tests_api

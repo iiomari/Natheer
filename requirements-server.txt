@@ -1,0 +1,15 @@
+# Lean dependency set for the hosted backend (API + worker). CamelBERT (torch, transformers)
+# is optional and OFF in production: the gazetteer is the default name detector.
+-r requirements-api.txt
+sdv==1.38.5
+sdmetrics==0.32.0
+pandas==2.3.3
+numpy==2.4.6
+scipy==1.17.1
+scikit-learn==1.8.0
+PyYAML==6.0.3
+jsonschema==4.26.0
+SQLAlchemy==2.0.52
+PyMySQL==1.2.3
+cryptography==50.0.2
+python-dotenv==1.2.4

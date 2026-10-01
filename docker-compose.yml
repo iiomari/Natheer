@@ -1,0 +1,49 @@
+# Local development stack only (not production). The web service is added in P2.
+#   docker compose up --build
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: devroot
+      MYSQL_DATABASE: nazeer_app
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    ports: ["3307:3306"]
+    volumes: [mysql-data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pdevroot"]
+      interval: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports: ["8025:8025", "1025:1025"]
+
+  api:
+    build: { context: ., dockerfile: Dockerfile.api }
+    environment: &api-env
+      DATABASE_URL: mysql+pymysql://root:devroot@mysql:3306/nazeer_app?charset=utf8mb4
+      NAZEER_MASTER_KEY: ${NAZEER_MASTER_KEY:?set NAZEER_MASTER_KEY in your shell or .env}
+      APP_BASE_URL: http://localhost:3000
+      ALLOWED_ORIGINS: http://localhost:3000
+      COOKIE_SECURE: "0"
+      TRUST_PROXY: "1"
+      MAIL_BACKEND: smtp
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+    ports: ["8000:8000"]
+    volumes: [storage:/app/storage]
+    depends_on:
+      mysql: { condition: service_healthy }
+
+  worker:
+    build: { context: ., dockerfile: Dockerfile.api }
+    command: ["python", "-m", "nazeer_api.worker"]
+    environment: *api-env
+    volumes: [storage:/app/storage]
+    depends_on:
+      mysql: { condition: service_healthy }
+      api: { condition: service_started }
+
+volumes:
+  mysql-data:
+  storage:

@@ -22,7 +22,10 @@ This file is updated after every milestone so a new session can resume from it a
 | "Why it works" tab | done | b27683d |
 | Arabic NER (CamelBERT + gazetteer fallback) | done | 04a84ae |
 | Final deliverables (README ar/en, demo runs, internal demo script) | done | e76aef2 |
-| UI redesign for clarity (presentation only) | done | (this commit) |
+| UI redesign for clarity (presentation only) | done; superseded by the web product | c24ad10 |
+| **Web product** P1 Backend foundation (auth, orgs, roles, tenancy, migrations, job worker) | done | (this commit) |
+| P2 Vertical slice (upload → detect → masked twin → report → share → recipient) | next | — |
+| P3 Design system + all pages · P4 Cleaning · P5 Returns + re-linking · P6 Team/audit/settings/email · P7 Public site + demo seed · P8 Hardening + E2E · P9 Deployment · P10 Final docs | not started | — |
 | HMA multi-table synthesis | **out of scope for the hackathon** | — |
 | PDF report | **out of scope for the hackathon** | — |
 
@@ -278,6 +281,111 @@ torch 2.2) are incompatible, so always use the venv.
 61. **Step 3's sentence "نفس الأعداد والمجاميع والروابط — بدون عميل حقيقي."** is the requested wording. It is
     shown only when the live row-count, total and orphan-link checks all hold. The PDPL caveat (a masked
     twin is still likely personal data) is unchanged in the report's limitations.
+
+### Web product (user, 2026-10-01): hosted multi-tenant website around the unchanged engine
+62. **Re-identification decision replaced.** The plan said "no persisted pseudonym mapping tables or any
+    re-identification feature". It is replaced by **admin-only, key-based, in-memory re-linking with no stored
+    mapping table**. The reason is that organizations need recipients' results (for example predictions)
+    joined back to their real records.
+    - Each organization has its own 32-byte secret key, which is the engine's HMAC pseudonymization key.
+    - At re-link time (P5) the admin re-uploads the originals, or just their key columns. The pseudonyms are
+      recomputed in memory, mapped back, and the uploaded originals are deleted.
+    - Nothing that links a fake to a real value is ever stored.
+    - Rotating the key (P6) makes earlier twins impossible to re-link, and the UI warns about this.
+63. **Shared data needs a verified email.**
+    - Unverified users may log in, but `deps.verified_user` refuses (403 `email_not_verified`) every route that
+      shows, downloads or returns a shared twin (P2 and P5 use it).
+    - Two things also verify the address, because each proves control of the mailbox: accepting an emailed
+      invitation, and completing a password reset.
+    - An existing account must be signed in **as the invited address** to accept an invitation.
+64. **Same-origin API.** The browser talks only to the web origin. Next.js rewrites proxy `/api/*` to FastAPI
+    (P2). Session cookies are therefore first-party and **host-only** (`__Host-nz_session`, Secure, HttpOnly,
+    SameSite=Lax, no Domain) on the custom domain, on Vercel preview URLs (`*.vercel.app` is a public suffix,
+    so cross-subdomain cookies would fail there) and locally. CORS stays strict as a second layer (credentials
+    only for `ALLOWED_ORIGINS`), and unsafe requests carrying a foreign `Origin` are refused.
+65. **Known risk: master key.** Organization keys are AES-256-GCM encrypted in the database under
+    `NAZEER_MASTER_KEY`, which lives in the backend environment.
+    - The ciphertext is bound to its organization ID and key version.
+    - A full compromise of the backend (database plus environment) could still decrypt the keys and
+      re-identify masked twins.
+    - This is acceptable for the hosted demo. It is why the intended real-world deployment is on-premise,
+      inside the organization (the README says so).
+66. **CSRF uses a double-submit cookie.** The readable `__Host-nz_csrf` cookie must equal the `X-CSRF-Token`
+    header on every POST, PUT, PATCH and DELETE, including login and signup. The cookie is rotated on login.
+    `GET /api/auth/csrf` issues it.
+67. **The rate limiter is in-process**, a sliding window per IP and per hashed email on the auth routes. That
+    is correct for one API instance. If the API is scaled out, it must move to the database.
+68. **API tests run on SQLite**, a fresh file per test, for speed and isolation. The production schema is
+    MySQL through the same Alembic migrations. A MySQL run of `alembic upgrade head` is still pending,
+    because the WAMP service is stopped and `.env` still has the placeholder password.
+69. **Docker is not installed on this machine.** `docker-compose.yml` (api, worker, mysql, mailpit; web is
+    added in P2), `Dockerfile.api` and `.dockerignore` are written but **not yet run**. The hosted image
+    uses `requirements-server.txt`, which has no torch or transformers; CamelBERT stays off in production.
+70. **Test addresses use `example.com` subdomains.** `email-validator` rejects the reserved `.test` TLD, and
+    the validator was not loosened for tests.
+71. **IDs are random 32-hex strings, and other organizations' resources answer 404** (not 403), so an
+    outsider cannot confirm that an organization or row exists.
+
+### P1: Web product, backend foundation
+**Built (`nazeer_api/`):**
+- `config.py`: settings from the environment or `.env`. It fails fast without `DATABASE_URL` or
+  `NAZEER_MASTER_KEY`.
+- `db.py`: SQLite and MySQL engines; MySQL sessions are strict and use UTC.
+- `models.py`: users, organizations, memberships, sessions, email tokens, invitations, jobs, audit_events.
+- `migrations/`: Alembic, with the initial revision `0001`.
+- `security.py`:
+  - Argon2id passwords, with a dummy hash for unknown emails so timing doesn't reveal accounts;
+  - tokens stored only as SHA-256;
+  - AES-256-GCM org keys;
+  - the CSRF check and the rate limiter;
+  - secure headers (CSP `default-src 'none'`, `X-Frame-Options: DENY`, `no-store`, HSTS).
+- `mail.py`: SMTP or in-memory sending, with Arabic templates that contain links only.
+- `audit.py`: value-free meta; anything that looks like an email, a long number or an IBAN is redacted.
+- `jobs.py` + `worker.py`: claims with `FOR UPDATE SKIP LOCKED`, heartbeats, stale-job requeue (then fail
+  after 3 attempts), a handler registry, and error codes stored as the exception type only.
+- `deps.py`: sessions with 7-day idle and 30-day absolute expiry; `member` / `admin` / `data_manager` /
+  `verified_user`; `scoped()`.
+- Routers:
+  - `auth`: csrf, signup as organization or individual, login, logout, me, verify, resend, forgot, reset;
+  - `invitations`: preview, accept;
+  - `orgs`: profile, members, role and data-manager changes with a last-admin guard, invitations, jobs,
+    ping job, audit log.
+- Error responses carry codes only. Validation errors list field names, never the submitted values.
+
+**Also:**
+- `requirements-api.txt` and `requirements-server.txt`, with the lock file refreshed.
+- `.env.example`, `Dockerfile.api`, `docker-compose.yml` (unverified, deviation 69).
+- `tests_api/` added to `testpaths`.
+
+**Tests:**
+- `tests_api`: **34 passed**.
+  - Auth: cookies are `__Host-`, Secure and HttpOnly; no account enumeration; CSRF missing or forged;
+    foreign Origin; idle and absolute session expiry; login rate limit; single-use verify link; reset flow
+    (every session ends, the token is single use) and reset expiry; the unverified-user gate; session
+    tokens stored hashed; secure headers; no values echoed in 422 responses.
+  - Orgs: **tenant isolation on every org route**, including other organizations' IDs placed under one's own
+    org URL; anonymous gets 401; member-role limits; invitation flows (an existing user must be signed in
+    as the invited address; the link is single use; re-invite and revoke); invitation verifies the email;
+    data manager; last-admin guard; a removed member loses access; audit without values.
+  - Platform: org key encrypted and bound to its org and version; wrong master key fails; config fails
+    fast; the ping job runs through the worker; a failed job stores the error type, not the message; claims
+    are exclusive; stale-job recovery; **migrations match the models** (upgrade and downgrade); no tokens,
+    passwords, master key or emails in the logs.
+- Full suite: see the commit message, run after these docs.
+
+**Smoke-tested by hand:**
+1. `alembic upgrade head` on a fresh SQLite file;
+2. `uvicorn nazeer_api.main:app`;
+3. signup as «الواحة للتأمين» → ping job queued;
+4. `python -m nazeer_api.worker --once` → succeeded.
+
+**Next step: P2, the vertical slice.**
+- Next.js app in `web/` with the `/api/*` rewrite.
+- Datasets upload (CSV and Excel) into temporary storage.
+- Detection and masked twin as worker jobs, with the originals deleted when the job ends.
+- Encrypted twin storage and the report.
+- Share to members and external emails, gated by the PASS verdict.
+- Recipient's "البيانات المستلمة", with downloads through signed expiring URLs.
 
 ## Milestone log
 
@@ -737,4 +845,6 @@ MySQL integration tests, waiting for credentials.
 
 ## Next step
 
-Remaining actions are the user's: MySQL credentials + service, hand-written notes, criteria weights (see Final status).
+Web product **P2: vertical slice** (see the P1 log for its scope).
+Still waiting on you: MySQL service and password in `.env` (engine live tests and a MySQL run of the API
+migrations); Docker Desktop, so `docker compose up` can be verified; hand-written notes.

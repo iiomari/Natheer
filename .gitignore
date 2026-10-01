@@ -16,3 +16,10 @@ out/
 
 # Hand-written evaluation notes (may accidentally contain real identifiers)
 data/human_notes.csv
+
+# Web API: local databases, stored files, frontend builds
+*.db
+*.sqlite
+storage/
+web/node_modules/
+web/.next/

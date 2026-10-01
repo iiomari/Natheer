@@ -5,6 +5,7 @@ description = "Saudi-aware synthetic and masked data engine"
 requires-python = ">=3.11,<3.12"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "tests_api"]
 pythonpath = ["."]
 addopts = "-q"
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient` is deprecated"]

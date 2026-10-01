@@ -1,0 +1,12 @@
+# Web API + worker (on top of requirements.txt for local development).
+# Hosted backend image: requirements-server.txt (lean: no torch / transformers).
+fastapi==0.142.2
+starlette==1.7.0
+uvicorn==0.54.0
+pydantic==2.13.5
+alembic==1.20.0
+argon2-cffi==25.1.0
+python-multipart==0.0.32
+openpyxl==3.1.5
+email-validator==2.3.0
+httpx==0.28.1

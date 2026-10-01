@@ -110,6 +110,15 @@ python -m nazeer.pipeline --mysql-db nazeer_prod_demo --mysql-target nazeer_dev 
 
 هذه أرقام على بيانات مولَّدة، ولا تتنبأ بالأداء على بيانات حقيقية.
 
+### المنصّة على الويب (قيد البناء)
+يُبنى حول المحرّك موقعٌ متعدد المنشآت: منشآت ترفع بياناتها وتولّد النظير وتشاركه مع موظفيها أو جهات
+خارجية، ويعيد المستلمون نتائجهم ليربطها مدير المنشأة بسجلاته الحقيقية. **النشر المقصود في الواقع داخل
+المنشأة نفسها (on-premise)**؛ النسخة المستضافة للعرض فقط.
+
+**خطر معروف:** مفاتيح المنشآت مشفّرة في قاعدة البيانات بمفتاح رئيسي محفوظ في بيئة الخادم، فلو اختُرق
+الخادم بالكامل أمكن فك المفاتيح وإعادة التعرّف على النظائر المقنّعة. هذا مقبول لنسخة العرض، وهو سبب أن
+النشر الحقيقي داخل المنشأة.
+
 ### القيود المعروفة (بصراحة)
 - الاكتشاف ليس كاملًا أبدًا. ما يفوت المكتشِف في النص الحر لا يُستبدل ولا يستطيع فحص التسرّب العثور
   عليه.
@@ -238,6 +247,26 @@ From `out\METRICS_SUMMARY.md`: 3,000 customers, 7,160 claims, and 15,989 identif
 | DCR | passes on the main run; **1 of 5** in the robustness check (see limitations) |
 
 These numbers come from generated data and do not predict performance on real production text.
+
+### Web platform (in progress)
+A multi-tenant website is being built around the engine. Organizations upload data, generate a twin and
+share it with employees or third parties; recipients return their results and an organization admin
+re-links them to the real records. **The intended real-world deployment is on-premise, inside the
+organization**; the hosted version is for demonstration.
+
+**Known risk:** organization keys are encrypted in the database under a master key held in the backend
+environment, so a full backend compromise could decrypt the keys and re-identify masked twins. This is
+acceptable for the hosted demo, and it is why the real deployment is on-premise.
+
+Run the API locally (PowerShell; SQLite is enough for a first try):
+```powershell
+pip install -r requirements-api.txt
+$env:DATABASE_URL = "sqlite:///nazeer_app.db"
+$env:NAZEER_MASTER_KEY = python -c "import os,base64;print(base64.urlsafe_b64encode(os.urandom(32)).decode())"
+$env:COOKIE_SECURE = "0"; $env:MAIL_BACKEND = "memory"
+alembic -c nazeer_api\alembic.ini upgrade head
+uvicorn nazeer_api.main:app --port 8000      # in a second window: python -m nazeer_api.worker
+```
 
 ### Known limitations (stated plainly)
 - Detection is never complete. What the detector misses in free text is not replaced, and the leak

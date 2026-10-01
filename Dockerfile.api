@@ -1,0 +1,16 @@
+# Backend image (API and worker share it). Lean: no torch / transformers.
+FROM python:3.11-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 \
+    HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HUB_DISABLE_TELEMETRY=1
+WORKDIR /app
+COPY requirements-api.txt requirements-server.txt ./
+RUN pip install -r requirements-server.txt
+COPY nazeer ./nazeer
+COPY nazeer_api ./nazeer_api
+COPY config ./config
+COPY data_gen ./data_gen
+RUN useradd --create-home --uid 10001 nazeer && mkdir -p /app/storage && chown nazeer /app/storage
+USER nazeer
+EXPOSE 8000
+# The API runs migrations on start; the worker service overrides the command.
+CMD ["sh", "-c", "alembic -c nazeer_api/alembic.ini upgrade head && uvicorn nazeer_api.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]
