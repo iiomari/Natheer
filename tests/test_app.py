@@ -105,3 +105,15 @@ def test_write_to_source_database_is_refused_in_ui(app, monkeypatch):
     assert not app.exception
     assert any("SOURCE database" in e.value for e in app.error)
     assert app.session_state["mysql_written"] is None
+
+
+def test_why_it_works_tab_shows_live_metrics(app, monkeypatch):
+    monkeypatch.setenv("NAZEER_KEY", KEY)
+    app.button(key="demo").click().run()
+    app.button(key="run").click().run()
+    assert not app.exception
+    assert [t.label for t in app.tabs] == ["Nazeer", "Why it works"]
+    table = app.tabs[1].table[0].value
+    assert len(table) == 5
+    metrics = " ".join(table.iloc[:, 2].astype(str))
+    assert "verdict" in metrics and "recall Nazeer" in metrics and "pass the official validators" in metrics

@@ -18,8 +18,8 @@ This file is updated after every milestone so a new session can resume from it a
 | R1 DCR robustness (5 seeds, per stratum, min stratum fallback) | done | 2126e4c |
 | M6b UI polish + overrides + k-anon apply | done | bf9106d |
 | MySQL input + output (replaces PostgreSQL) | code + unit tests done; **live MySQL steps waiting for credentials** | 9b23043 |
-| Independent evaluation harness (human-written notes) | done; **waiting for teammates' notes** | (this commit) |
-| "Why it works" tab | not started | — |
+| Independent evaluation harness (human-written notes) | done; **waiting for teammates' notes** | e430dc0 |
+| "Why it works" tab | done | (this commit) |
 | Arabic NER (CamelBERT + gazetteer fallback) | not started | — |
 | Final deliverables (README ar/en, demo runs, internal demo script) | not started | — |
 | HMA multi-table synthesis | **out of scope for the hackathon** | — |
@@ -228,6 +228,13 @@ torch 2.2) are incompatible, so always use the venv.
     and the row is skipped. It never crashes the run.
 49. **`ner.get_name_detector("auto" | "gazetteer" | "camel")`** was added ahead of the NER step.
     For now "auto" falls back to the gazetteer, because CamelBERT is not installed yet.
+50. **"Why it works": the "runs locally" row reports checkable configuration facts**
+    (Hugging Face offline mode and telemetry, Streamlit usage statistics, server bind
+    address) instead of an unverifiable "no network calls" claim.
+51. **The "internal only" rule is enforced by a test.** `tests/test_internal_only.py` fails if
+    any judge-facing file (README, app, ui_logic, report, pipeline, notes guide, template) or
+    any generated `out/**/report.json` mentions criteria, judging, weights or a rubric
+    (English and Arabic).
 
 ## Milestone log
 
@@ -486,6 +493,20 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
   checksum-valid invoice number surfacing as an honest "extra" (false positive), valid
   `--make-ids`, and a helpful message when the file is missing.
 
+### "Why it works" tab
+- The app now has two tabs, "Nazeer" (the flow) and "Why it works". The second shows 5 rows of
+  root cause → Nazeer component → live metric from the current session:
+  1. **TSTR AUC drop**, after a synthetic run with a target.
+  2. **% of fake identifiers passing the official validators** and the **orphan-FK count** in
+     the twin.
+  3. **Recall, Nazeer vs baseline**: against the answer key for the demo, raw counts otherwise.
+  4. **Supported Saudi types**, plus the local-only configuration facts.
+  5. **Current verdict and leak count.**
+
+  It also states that detection numbers on generated data do not predict real-data
+  performance. It never mentions criteria or weights.
+- Tests: 224 passed, 4 skipped (MySQL credentials).
+
 ## Paused here (user request, 2026-10-01)
 - **Current milestone:** M7 is finished. The code is written, the full suite passes
   (176 passed), and real numbers are recorded above. It was committed with the message
@@ -517,4 +538,4 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
 
 ## Next step
 
-"Why it works" tab (root cause → component → live metric; no criteria or weights).
+Arabic NER for names: CamelBERT with gazetteer fallback, measured on golden labels and the human notes.

@@ -34,7 +34,8 @@ from nazeer.mysqlio import MySQLError  # noqa: E402
 from nazeer.policy import load_policy  # noqa: E402
 from nazeer.safe_log import configure_logging  # noqa: E402
 from nazeer.tableio import load_csv_folder, read_csv  # noqa: E402
-from nazeer.ui_logic import ACTIONS, KINDS, TAGS, detection_frame, overrides_from_edits, suggestion_frame  # noqa: E402
+from nazeer.ui_logic import (ACTIONS, KINDS, TAGS, detection_frame, overrides_from_edits,  # noqa: E402
+                             suggestion_frame, why_it_works)
 
 log = logging.getLogger("nazeer.app")
 ROOT = _HERE.parent
@@ -408,17 +409,36 @@ def section_results() -> None:
             st.markdown(f"- {line}")
 
 
+def section_why() -> None:
+    an: pipeline.Analysis | None = st.session_state["analysis"]
+    st.subheader("Why it works: from root cause to measured result")
+    if an is None:
+        st.info("Load data in the Nazeer tab first; every number below is computed live from your data and your run.")
+        return
+    golden = st.session_state["golden_dir"]
+    scores = pipeline._golden_scores(an, golden) if golden is not None else None
+    table = why_it_works(an, st.session_state["result"], scores)
+    st.table(table)
+    st.caption("Each metric comes from the data loaded in this session and the most recent run. "
+               "Detection numbers on generated demo data show that the planted formats are covered; "
+               "they do not predict performance on real production text.")
+
+
 def main() -> None:
     st.set_page_config(page_title="Nazeer · نظير", page_icon="🛡️", layout="wide")
     _init()
     st.title("Nazeer · نَظير")
     st.caption("Saudi-aware masked & synthetic data — runs locally; data never leaves this machine.")
-    section_input()
-    section_detection()
-    section_run()
-    if st.session_state["error"]:
-        st.error(st.session_state["error"])
-    section_results()
+    tab_run, tab_why = st.tabs(["Nazeer", "Why it works"])
+    with tab_run:
+        section_input()
+        section_detection()
+        section_run()
+        if st.session_state["error"]:
+            st.error(st.session_state["error"])
+        section_results()
+    with tab_why:
+        section_why()
 
 
 main()
