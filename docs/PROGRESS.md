@@ -9,8 +9,8 @@ This file is updated after every milestone so a new session can resume from it a
 |---|---|---|
 | M0 Setup + dependency verification | done | f7abbd5 |
 | M1 saudi_ids + normalization | done | f338cbe |
-| M2 Demo data + golden labels | done | (this commit) |
-| M3 Profile + detection + baseline | not started | — |
+| M2 Demo data + golden labels | done | 810dc40 |
+| M3 Profile + detection + baseline | done | (this commit) |
 | M4 Policy + transform | not started | — |
 | M5 Evaluation + report + k-anon backend | not started | — |
 | M6a Minimal Streamlit flow | not started | — |
@@ -59,6 +59,27 @@ torch 2.2) are incompatible, so always use the venv.
    `hard_negatives.csv` (look-alike IDs, other numbers, name-like words such as "أمل")
    for false-positive counting, and `golden_columns.csv` (expected column tags) for the
    column-level detector test.
+7. **M3: `types.py` → `models.py` and `io.py` → `tableio.py`.** `streamlit run nazeerpp.py`
+   puts `nazeer\` on `sys.path`, where these names would shadow the stdlib `types` and `io`
+   modules. This is the same reason `profile.py` became `profiling.py`.
+8. **M3: digit candidates are cut at original group boundaries** (gaps in the offset map)
+   instead of only using the spec regex `(?<!\d)[12]\d{9}(?!\d)`. This finds an ID glued to a
+   neighbouring number by a space ("12 1110704341"), which the plain regex misses after
+   normalization merges them. The validator still gates every candidate.
+9. **M3: name rules beyond the plain gazetteer.**
+   - About 35 first names that are also everyday words (أمل, وعد, ندى, سالم, عادل, …) count
+     only with a following family name or a person cue (title, role or kinship word) in the
+     same sentence.
+   - Raw function words that normalize into names (على→علي) are stopwords.
+   - A clitic prefix (و/ب/ل/ف) is stripped when the remainder is a name.
+10. **M3: the "needs review" band (0.4–0.7) is tagged DIRECT_ID with `needs_review=True`.**
+    Unreviewed borderline columns are therefore pseudonymized (the safe default) until a
+    human clears them.
+11. **M3: QUASI_ID and SENSITIVE tags come from column-name hints only** (age/city/gender/…
+    and amount/diagnosis/claim_type/…). The spec gives no value-based rule for these.
+12. **M3: `evaluate.score_detection` was built in M3**, because the M3 test needs it.
+    Matching rule: a golden span counts as found when a predicted span of the same type
+    overlaps it. Exact-offset matches are counted separately.
 
 ## Milestone log
 
@@ -79,10 +100,38 @@ torch 2.2) are incompatible, so always use the venv.
   fails both the ID and mobile validators.
 - Tests: 93 passed (6 new demo-data tests).
 
+### M3: Profile + detection + baseline
+- Profiling on the demo finds PKs `customers.customer_id` and `claims.claim_id`, and the FK
+  `claims.customer_id → customers.customer_id` (containment 1.0). Types: notes=free_text,
+  claim_date=date, amount/age=numeric, gender/city=categorical.
+- Column tags match `golden_columns.csv` for all 13 columns. Identifier columns are tagged
+  DIRECT_ID with no review flag.
+- Free-text detection on the full demo (seed 42, 3,000 customers, 7,160 notes, 15,989 planted
+  identifiers). Command: `python scripts\score_detection.py`
+
+  | type | gold | Nazeer recall | Nazeer precision | baseline recall | baseline precision |
+  |---|---|---|---|---|---|
+  | SAUDI_ID | 3,044 | 1.000 | 1.000 | 0.265 | 0.533 |
+  | MOBILE | 3,945 | 1.000 | 1.000 | 0.141 | 1.000 |
+  | IBAN | 1,523 | 1.000 | 1.000 | 0.431 | 1.000 |
+  | EMAIL | 965 | 1.000 | 1.000 | 1.000 | 1.000 |
+  | PERSON_NAME | 6,512 | 0.981 | 1.000 | 0.000 | – |
+  | **overall** | 15,989 | **0.992** | **1.000** | **0.187** | **0.809** |
+
+  Hard negatives hit: Nazeer 0 / 6,756, baseline 707 / 6,756 (mostly look-alike invoice numbers).
+- **Honesty caveat:** our own generator produced these notes, and it uses the same formats the
+  detector knows. Recall of 1.000 on structured IDs shows that every planted format is covered.
+  It does not predict recall on real production text, which will contain formats we did not
+  plant. Name recall (0.981) misses ambiguous names written without a cue (for example
+  "طلب أمل تحديث…"). This is a deliberate precision/recall trade-off.
+- Two real bugs were found by tests and fixed generally: "على" was read as the name "علي", and
+  a role cue at the end of one sentence carried over to the next sentence ("…المستفيد. وعد…").
+- Tests: 112 passed.
+
 ## Known issues
 
 (none yet)
 
 ## Next step
 
-M3: profiling + column/free-text detection + baseline, scored against golden labels.
+M4: policy engine + keyed HMAC pseudonymization + format-preserving text replacement.
