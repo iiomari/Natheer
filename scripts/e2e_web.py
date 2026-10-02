@@ -26,7 +26,9 @@ def main() -> None:
     ap.add_argument("--url", default="http://localhost:3000")
     ap.add_argument("--data", type=Path, default=Path("data/demo"))
     ap.add_argument("--out", type=Path, default=Path("docs/ui/web"))
+    ap.add_argument("--tag", default="", help="suffix for test e-mails (e.g. a run id against a shared server)")
     args = ap.parse_args()
+    tag = f"+{args.tag}" if args.tag else ""
     args.out.mkdir(parents=True, exist_ok=True)
     host = urlparse(args.url).hostname
     external: list[str] = []
@@ -50,7 +52,7 @@ def main() -> None:
         page.goto(f"{args.url}/signup")
         page.get_by_label("الاسم الكامل").fill("مدير العرض")
         page.get_by_label("اسم المنشأة").fill("الواحة للتأمين")
-        page.get_by_label("البريد الإلكتروني", exact=True).fill("admin@alwaha.example.com")
+        page.get_by_label("البريد الإلكتروني", exact=True).fill(f"admin{tag}@alwaha.example.com")
         page.get_by_label("كلمة المرور", exact=True).fill(PASSWORD)
         page.locator("input[name=terms]").check()
         page.get_by_role("button", name="إنشاء الحساب").click()
@@ -61,7 +63,7 @@ def main() -> None:
         # invite an employee: the link is shown, not emailed
         page.goto(f"{org_base}/team")
         page.get_by_role("button", name="دعوة عضو").first.click()
-        page.get_by_role("dialog").get_by_label("البريد الإلكتروني", exact=True).fill("employee@alwaha.example.com")
+        page.get_by_role("dialog").get_by_label("البريد الإلكتروني", exact=True).fill(f"employee{tag}@alwaha.example.com")
         page.get_by_role("button", name="إنشاء رابط الدعوة").click()
         link_box = page.get_by_role("dialog").get_by_label("رابط الدعوة")
         expect(link_box).to_be_visible()
@@ -150,7 +152,7 @@ def main() -> None:
         shot(ext, "p2-12-share-link.png", full=False)
         ext.get_by_role("link", name="إنشاء حساب فرد").click()
         ext.get_by_label("الاسم الكامل").fill("محلل خارجي")
-        ext.get_by_label("البريد الإلكتروني", exact=True).fill("analyst@example.com")
+        ext.get_by_label("البريد الإلكتروني", exact=True).fill(f"analyst{tag}@example.com")
         ext.get_by_label("كلمة المرور", exact=True).fill(PASSWORD)
         ext.locator("input[name=terms]").check()
         ext.get_by_role("button", name="إنشاء الحساب").click()

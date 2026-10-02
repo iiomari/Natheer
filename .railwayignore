@@ -1,0 +1,14 @@
+# Only the backend image is built on Railway. Patterns are anchored to the repository root
+# (an unanchored "data/" would also drop nazeer/data/, the Arabic name lists).
+/.venv/
+/web/
+/docs/
+/data/
+/out/
+/tests/
+/tests_api/
+/storage/
+*.db
+.env
+.railway-master-key.txt
+**/__pycache__/

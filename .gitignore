@@ -26,3 +26,6 @@ web/.next/
 
 # Internal team documents: never in the repository
 docs/internal/
+
+# deployment secrets kept locally (never committed)
+.railway-master-key.txt

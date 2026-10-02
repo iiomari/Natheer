@@ -64,10 +64,11 @@ def _process(ctx: JobContext) -> dict:
     ctx.progress("reading_files", 10)
     try:
         return process_upload(ctx.db, ctx.settings, ds)
-    except ProcessingError as e:
+    except Exception as e:  # noqa: BLE001 - any failure must reach the user, not leave "processing"
         ctx.db.rollback()
         ds = ctx.db.get(Dataset, ctx.job.payload["dataset_id"])
-        ds.status, ds.error_code = "failed", e.code[:64]
+        code = e.code if isinstance(e, ProcessingError) else "processing_failed"
+        ds.status, ds.error_code = "failed", code[:64]
         ctx.db.commit()
         raise
 

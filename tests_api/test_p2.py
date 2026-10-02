@@ -296,3 +296,16 @@ def test_recipient_cannot_reach_org_routes(app, org_admin, demo_files):
     assert rec.get(f"/api/orgs/{org}/twins/{share['twin_id']}").status_code == 404
     anon = new_client(app)
     assert anon.get("/api/received").status_code == 401
+
+
+def test_unexpected_processing_error_marks_the_dataset_failed(app, org_admin, monkeypatch):
+    admin, org = org_admin
+    import nazeer_api.processing as proc
+
+    def boom(*a, **k):
+        raise FileNotFoundError("names list missing")
+    monkeypatch.setattr(proc, "process_upload", boom)
+    ds_id = upload(admin, org, [("t.csv", b"a,b\n1,2\n3,4\n")])
+    work(app)
+    ds = admin.get(f"/api/orgs/{org}/datasets/{ds_id}").json()
+    assert ds["status"] == "failed" and ds["error_code"] == "processing_failed"

@@ -42,3 +42,6 @@ next-env.d.ts
 
 # env templates are documentation, not secrets
 !.env.example
+
+.vercel
+.env*
