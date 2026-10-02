@@ -18,7 +18,7 @@ from nazeer_api.db import utcnow
 from nazeer_api.models import Base, Job, Organization
 from nazeer_api.security import KeyDecryptionError, decrypt_org_key, encrypt_org_key
 from nazeer_api.worker import HANDLERS, handler, run_one
-from tests_api.conftest import MASTER_KEY, PASSWORD, link_token, new_client, signup
+from tests_api.conftest import MASTER_KEY, PASSWORD, new_client, signup, token_of
 
 
 # ---------------------------------------------------------------- org keys
@@ -139,22 +139,21 @@ def test_migrations_match_models(tmp_path):
 
 # ---------------------------------------------------------------- logging hygiene
 
-def test_no_secret_token_or_password_in_logs(app, mailer):
+def test_no_secret_token_or_password_in_logs(app):
     buf = io.StringIO()
     configure_logging(level=logging.DEBUG, stream=buf)
     try:
         c, me = signup(app, "logs@a.example.com")
         org = me["memberships"][0]["org_id"]
-        c.post(f"/api/orgs/{org}/invitations", json={"email": "new@a.example.com"})
+        links = [c.post(f"/api/orgs/{org}/invitations", json={"email": "new@a.example.com"}).json()["link_path"]]
         anon = new_client(app)
         anon.post("/api/auth/login", json={"email": "logs@a.example.com", "password": "wrong-password!"})
-        anon.post("/api/auth/forgot-password", json={"email": "logs@a.example.com"})
         c.post(f"/api/orgs/{org}/jobs/ping")
         run_one(app.state.sessionmaker, app.state.settings, "w1")
     finally:
         configure_logging()
     out = buf.getvalue()
-    secrets_seen = [link_token(m) for m in mailer.outbox] + [PASSWORD, c.cookies.get("__Host-nz_session"),
+    secrets_seen = [token_of(x) for x in links] + [PASSWORD, c.cookies.get("__Host-nz_session"),
                                                              MASTER_KEY.hex()]
     assert out and not [s for s in secrets_seen if s and s in out]
     assert "logs@a.example.com" not in out and "new@a.example.com" not in out

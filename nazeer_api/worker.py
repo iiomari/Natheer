@@ -55,10 +55,54 @@ def _ping(ctx: JobContext) -> dict:
     return {"pong": True}
 
 
+@handler("process")
+def _process(ctx: JobContext) -> dict:
+    from nazeer_api.models import Dataset
+    from nazeer_api.processing import ProcessingError, process_upload
+
+    ds = ctx.db.get(Dataset, ctx.job.payload["dataset_id"])
+    ctx.progress("reading_files", 10)
+    try:
+        return process_upload(ctx.db, ctx.settings, ds)
+    except ProcessingError as e:
+        ctx.db.rollback()
+        ds = ctx.db.get(Dataset, ctx.job.payload["dataset_id"])
+        ds.status, ds.error_code = "failed", e.code[:64]
+        ctx.db.commit()
+        raise
+
+
+@handler("generate")
+def _generate(ctx: JobContext) -> dict:
+    from nazeer_api.models import Dataset
+    from nazeer_api.processing import generate_twin
+
+    ds = ctx.db.get(Dataset, ctx.job.payload["dataset_id"])
+    ctx.progress("generating", 20)
+    twin = generate_twin(ctx.db, ctx.settings, ds, ctx.job.payload, ctx.job.created_by)
+    return {"twin_id": twin.id, "verdict": twin.verdict}
+
+
+_last_sweep = 0.0
+
+
+def maybe_sweep(db: DbSession, settings: Settings, every_s: float = 60.0) -> None:
+    global _last_sweep
+    if time.monotonic() - _last_sweep < every_s:
+        return
+    _last_sweep = time.monotonic()
+    from nazeer_api.processing import sweep
+
+    counts = sweep(db, settings)
+    if any(counts.values()):
+        log.info("sweep: %s", counts)
+
+
 def run_one(sessionmaker, settings: Settings, worker_id: str) -> bool:
-    """Recover stale jobs, then claim and run at most one. Returns True if a job was run."""
+    """Sweep, recover stale jobs, then claim and run at most one. Returns True if a job was run."""
     db: DbSession = sessionmaker()
     try:
+        maybe_sweep(db, settings)
         jobs.recover_stale(db, settings.job_stale_seconds, settings.job_max_attempts)
         job = jobs.claim_next(db, worker_id, list(HANDLERS))
         if job is None:
@@ -69,7 +113,7 @@ def run_one(sessionmaker, settings: Settings, worker_id: str) -> bool:
         except Exception as exc:  # noqa: BLE001 - worker boundary
             db.rollback()
             log.error("job %s kind=%s failed", job.id, job.kind, exc_info=True)
-            jobs.fail(db, db.get(Job, job.id), type(exc).__name__)
+            jobs.fail(db, db.get(Job, job.id), getattr(exc, "code", None) or type(exc).__name__)
         else:
             jobs.finish(db, job, result)
             log.info("job %s kind=%s succeeded", job.id, job.kind)
@@ -80,7 +124,7 @@ def run_one(sessionmaker, settings: Settings, worker_id: str) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m nazeer_api.worker")
-    ap.add_argument("--poll", type=float, default=1.0, help="seconds between polls when idle")
+    ap.add_argument("--poll", type=float, default=2.0, help="seconds between polls when idle")
     ap.add_argument("--once", action="store_true", help="run at most one job and exit")
     args = ap.parse_args(argv)
     configure_logging()

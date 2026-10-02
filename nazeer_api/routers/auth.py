@@ -1,4 +1,7 @@
-"""Sign up (organization or individual), login, logout, me, email verification, password reset."""
+"""Sign up (organization or individual), login, logout, me, password reset.
+
+No email is sent anywhere. A password is reset through a single-use link that an organization
+admin creates and passes on (routers/orgs.py); the link token is stored only as its SHA-256."""
 from __future__ import annotations
 
 import re
@@ -12,7 +15,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as DbSession
 
-from nazeer_api import audit, mail
+from nazeer_api import audit
 from nazeer_api.config import Settings
 from nazeer_api.db import utcnow
 from nazeer_api.deps import api_error, check_csrf, client_ip, current_user, get_db, get_settings_dep
@@ -21,8 +24,7 @@ from nazeer_api.security import (PASSWORD_MAX, PASSWORD_MIN, encrypt_org_key, ha
                                  new_org_key, new_token, token_hash, verify_password)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
-VERIFY_TTL = timedelta(hours=48)
-RESET_TTL = timedelta(hours=1)
+RESET_TTL = timedelta(hours=24)
 
 
 # ---------------------------------------------------------------- helpers
@@ -117,10 +119,6 @@ class TokenIn(BaseModel):
     token: str = Field(min_length=10, max_length=200)
 
 
-class EmailIn(BaseModel):
-    email: str = Field(max_length=254)
-
-
 class ResetIn(TokenIn):
     password: str = Field(max_length=PASSWORD_MAX)
 
@@ -157,10 +155,8 @@ def signup(body: SignupIn, request: Request, response: Response, db: DbSession =
         db.add(Membership(org_id=org.id, user_id=user.id, role="admin"))
         db.flush()
         audit.record(db, "org.created", org_id=org.id, actor_user_id=user.id, target_type="org", target_id=org.id)
-    token = issue_email_token(db, user, "verify", VERIFY_TTL)
     start_session(db, response, settings, user)
     db.commit()
-    request.app.state.mailer.send(mail.verify_email(settings.app_base_url, user.email, token))
     db.refresh(user)
     return me_payload(user)
 
@@ -198,45 +194,6 @@ def me(user: User = Depends(current_user)) -> dict:
     return me_payload(user)
 
 
-@router.post("/verify-email", dependencies=[Depends(check_csrf)])
-def verify_email(body: TokenIn, db: DbSession = Depends(get_db)) -> dict:
-    row = consume_email_token(db, body.token, "verify")
-    user = db.get(User, row.user_id)
-    if user.email_verified_at is None:
-        user.email_verified_at = utcnow()
-    audit.record(db, "auth.email_verified", actor_user_id=user.id, target_type="user", target_id=user.id)
-    db.commit()
-    return {"ok": True}
-
-
-@router.post("/resend-verification", dependencies=[Depends(check_csrf)])
-def resend_verification(request: Request, user: User = Depends(current_user), db: DbSession = Depends(get_db),
-                        settings: Settings = Depends(get_settings_dep)) -> dict:
-    limit(request, f"resend:{user.id}", 3, 3600)
-    if user.email_verified:
-        return {"ok": True}
-    token = issue_email_token(db, user, "verify", VERIFY_TTL)
-    db.commit()
-    request.app.state.mailer.send(mail.verify_email(settings.app_base_url, user.email, token))
-    return {"ok": True}
-
-
-@router.post("/forgot-password", status_code=202, dependencies=[Depends(check_csrf)])
-def forgot_password(body: EmailIn, request: Request, db: DbSession = Depends(get_db),
-                    settings: Settings = Depends(get_settings_dep)) -> dict:
-    """Always 202: the answer never reveals whether an account exists."""
-    email = body.email.strip().lower()
-    limit(request, f"forgot:ip:{client_ip(request)}", 10, 3600)
-    if request.app.state.limiter.hit(f"forgot:email:{token_hash(email)}", 3, 3600) is not None:
-        return {"ok": True}
-    user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
-    if user is not None and user.is_active:
-        token = issue_email_token(db, user, "reset", RESET_TTL)
-        db.commit()
-        request.app.state.mailer.send(mail.reset_password(settings.app_base_url, user.email, token))
-    return {"ok": True}
-
-
 @router.post("/reset-password", dependencies=[Depends(check_csrf)])
 def reset_password(body: ResetIn, response: Response, db: DbSession = Depends(get_db),
                    settings: Settings = Depends(get_settings_dep)) -> dict:
@@ -244,9 +201,6 @@ def reset_password(body: ResetIn, response: Response, db: DbSession = Depends(ge
     row = consume_email_token(db, body.token, "reset")
     user = db.get(User, row.user_id)
     user.password_hash = hash_password(body.password)
-    # The reset link proves control of the mailbox.
-    if user.email_verified_at is None:
-        user.email_verified_at = utcnow()
     db.execute(delete(Session).where(Session.user_id == user.id))  # sign out everywhere
     audit.record(db, "auth.password_reset", actor_user_id=user.id, target_type="user", target_id=user.id)
     db.commit()

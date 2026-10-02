@@ -6,7 +6,7 @@ import os
 
 from alembic import context
 
-from nazeer_api.config import ROOT
+from nazeer_api.config import ROOT, normalize_database_url
 from nazeer_api.db import make_engine
 from nazeer_api.models import Base
 
@@ -21,7 +21,7 @@ def _url() -> str:
     if x.get("url"):
         return x["url"]
     load_dotenv(ROOT / ".env", override=False)
-    url = os.environ.get("DATABASE_URL", "")
+    url = normalize_database_url(os.environ.get("DATABASE_URL", ""))
     if not url:
         raise SystemExit("DATABASE_URL is not set")
     return url

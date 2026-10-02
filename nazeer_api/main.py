@@ -20,14 +20,13 @@ from nazeer.safe_log import configure_logging
 from nazeer_api import __version__
 from nazeer_api.config import Settings, get_settings
 from nazeer_api.db import make_engine, make_sessionmaker
-from nazeer_api.mail import Mailer, make_mailer
-from nazeer_api.routers import auth, invitations, orgs
+from nazeer_api.routers import auth, datasets, invitations, orgs, shares
 from nazeer_api.security import API_HEADERS, HSTS, CSRF_HEADER, RateLimiter
 
 log = logging.getLogger("nazeer_api")
 
 
-def create_app(settings: Settings | None = None, mailer: Mailer | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging()
     enforce_offline()
@@ -36,7 +35,6 @@ def create_app(settings: Settings | None = None, mailer: Mailer | None = None) -
     app.state.settings = settings
     app.state.engine = engine
     app.state.sessionmaker = make_sessionmaker(engine)
-    app.state.mailer = mailer or make_mailer(settings)
     app.state.limiter = RateLimiter()
 
     app.add_middleware(
@@ -77,6 +75,9 @@ def create_app(settings: Settings | None = None, mailer: Mailer | None = None) -
     app.include_router(auth.router)
     app.include_router(invitations.router)
     app.include_router(orgs.router)
+    app.include_router(datasets.router)
+    app.include_router(shares.org_router)
+    app.include_router(shares.router)
     return app
 
 

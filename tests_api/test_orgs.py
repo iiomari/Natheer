@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import select
 
 from nazeer_api.models import AuditEvent
-from tests_api.conftest import PASSWORD, invite_and_join, link_token, new_client, signup
+from tests_api.conftest import PASSWORD, invite, invite_and_join, new_client, signup, token_of
 
 
 @pytest.fixture
@@ -73,11 +73,10 @@ def test_member_role_limits(app, two_orgs):
         assert r.status_code == 403 and r.json()["code"] == "admin_only", (method, url)
 
 
-def test_invitation_flow_existing_user_must_be_signed_in_as_that_email(app, two_orgs, mailer):
+def test_invitation_flow_existing_user_must_be_signed_in_as_that_email(app, two_orgs):
     (a, org_a), _ = two_orgs
     person, _ = signup(app, "freelancer@example.com", org=None)
-    a.post(f"/api/orgs/{org_a}/invitations", json={"email": "freelancer@example.com"})
-    token = link_token(mailer.outbox[-1])
+    token = invite(a, org_a, "freelancer@example.com")
     anon = new_client(app)
     assert anon.post("/api/invitations/preview", json={"token": token}).json()["has_account"] is True
     assert anon.post("/api/invitations/accept", json={"token": token}).json()["code"] == "login_required"
@@ -89,23 +88,21 @@ def test_invitation_flow_existing_user_must_be_signed_in_as_that_email(app, two_
     assert person.post("/api/invitations/accept", json={"token": token}).status_code == 400  # single use
 
 
-def test_invitation_verifies_an_unverified_account_of_that_email(app, two_orgs, mailer):
+def test_accepting_the_invite_link_verifies_the_account(app, two_orgs):
     (a, org_a), _ = two_orgs
-    person, me = signup(app, "late@example.com", org=None, verify=False)
+    person, me = signup(app, "late@example.com", org=None)
     assert not me["email_verified"]
-    a.post(f"/api/orgs/{org_a}/invitations", json={"email": "late@example.com"})
-    me = person.post("/api/invitations/accept", json={"token": link_token(mailer.outbox[-1])}).json()
+    me = person.post("/api/invitations/accept", json={"token": invite(a, org_a, "late@example.com")}).json()
     assert me["email_verified"]
 
 
-def test_reinvite_revokes_old_link_and_revoked_link_fails(app, two_orgs, mailer):
+def test_reinvite_revokes_old_link_and_revoked_link_fails(app, two_orgs):
     (a, org_a), _ = two_orgs
-    a.post(f"/api/orgs/{org_a}/invitations", json={"email": "twice@example.com"})
-    first = link_token(mailer.outbox[-1])
+    first = invite(a, org_a, "twice@example.com")
     inv2 = a.post(f"/api/orgs/{org_a}/invitations", json={"email": "twice@example.com"}).json()
     anon = new_client(app)
     assert anon.post("/api/invitations/preview", json={"token": first}).status_code == 400
-    second = link_token(mailer.outbox[-1])
+    second = token_of(inv2["link_path"])
     assert a.delete(f"/api/orgs/{org_a}/invitations/{inv2['id']}").status_code == 200
     assert anon.post("/api/invitations/accept", json={"token": second, "full_name": "x y",
                                                       "password": PASSWORD}).status_code == 400

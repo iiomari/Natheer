@@ -1,19 +1,16 @@
 from datetime import timedelta
 
-from fastapi import Depends
 from sqlalchemy import select, update
 
 from nazeer_api.db import utcnow
-from nazeer_api.deps import verified_user
-from nazeer_api.models import Session
-from tests_api.conftest import PASSWORD, link_token, new_client, signup
+from nazeer_api.models import EmailToken, Session
+from tests_api.conftest import PASSWORD, invite, invite_and_join, new_client, signup, token_of
 
 
-def test_signup_organization_creates_admin_and_session(app, mailer):
-    c, me = signup(app, "admin@alwaha.example.com", verify=False)
-    assert me["email"] == "admin@alwaha.example.com" and not me["email_verified"]
+def test_signup_organization_creates_admin_and_session(app):
+    c, me = signup(app, "admin@alwaha.example.com")
+    assert me["email"] == "admin@alwaha.example.com"
     assert len(me["memberships"]) == 1 and me["memberships"][0]["role"] == "admin"
-    assert mailer.outbox[-1].kind == "verify_email" and "token=" in mailer.outbox[-1].text
     cookies = {ck.name: ck for ck in c.cookies.jar}
     sess = cookies["__Host-nz_session"]
     assert sess.secure and sess.path == "/" and not sess.domain_specified
@@ -23,7 +20,7 @@ def test_signup_organization_creates_admin_and_session(app, mailer):
 
 def test_signup_individual_has_no_org(app):
     _, me = signup(app, "person@example.com", org=None)
-    assert me["memberships"] == [] and me["email_verified"]
+    assert me["memberships"] == []
 
 
 def test_duplicate_email_and_weak_password_rejected(app, client):
@@ -86,53 +83,65 @@ def test_login_rate_limited(app):
     assert codes[:8] == [401] * 8 and codes[8:] == [429, 429]
 
 
-def test_verify_email_token_is_single_use(app, mailer):
-    c, _ = signup(app, "v@example.com", org=None, verify=False)
-    token = link_token(mailer.outbox[-1])
-    assert c.post("/api/auth/verify-email", json={"token": token}).status_code == 200
-    assert c.get("/api/auth/me").json()["email_verified"]
-    r = c.post("/api/auth/verify-email", json={"token": token})
-    assert r.status_code == 400 and r.json()["code"] == "invalid_or_expired_token"
+def _member_reset_path(admin, org_id: str, email: str) -> str:
+    row = next(m for m in admin.get(f"/api/orgs/{org_id}/members").json() if m["email"] == email)
+    r = admin.post(f"/api/orgs/{org_id}/members/{row['id']}/reset-link")
+    assert r.status_code == 201, r.text
+    return r.json()["link_path"]
 
 
-def test_password_reset_flow(app, mailer):
-    old, _ = signup(app, "r@example.com", org=None)
+def test_admin_reset_link_flow(app):
+    admin, me = signup(app, "boss@example.com")
+    org = me["memberships"][0]["org_id"]
+    emp, _ = invite_and_join(app, admin, org, "forgetful@example.com")
+    token = token_of(_member_reset_path(admin, org, "forgetful@example.com"))
     c = new_client(app)
-    assert c.post("/api/auth/forgot-password", json={"email": "r@example.com"}).status_code == 202
-    assert c.post("/api/auth/forgot-password", json={"email": "ghost@example.com"}).status_code == 202
-    resets = [m for m in mailer.outbox if m.kind == "reset_password"]
-    assert [m.to for m in resets] == ["r@example.com"]
-    token = link_token(resets[0])
     assert c.post("/api/auth/reset-password", json={"token": token, "password": "a-brand-new-password"}).status_code == 200
-    assert old.get("/api/auth/me").status_code == 401  # every session ended
-    assert c.post("/api/auth/reset-password", json={"token": token, "password": "another-password-1"}).status_code == 400
-    assert c.post("/api/auth/login", json={"email": "r@example.com", "password": "a-brand-new-password"}).status_code == 200
+    assert emp.get("/api/auth/me").status_code == 401  # every session ended
+    again = c.post("/api/auth/reset-password", json={"token": token, "password": "another-password-1"})
+    assert again.status_code == 400  # single use
+    assert c.post("/api/auth/login", json={"email": "forgetful@example.com",
+                                           "password": "a-brand-new-password"}).status_code == 200
+    with app.state.sessionmaker() as db:
+        assert token not in [t.token_hash for t in db.execute(select(EmailToken)).scalars()]  # only the hash
 
 
-def test_reset_token_expires(app, mailer):
-    signup(app, "e@example.com", org=None)
-    c = new_client(app)
-    c.post("/api/auth/forgot-password", json={"email": "e@example.com"})
-    from nazeer_api.models import EmailToken
+def test_reset_link_expires(app):
+    admin, me = signup(app, "boss2@example.com")
+    org = me["memberships"][0]["org_id"]
+    invite_and_join(app, admin, org, "late@example.com")
+    token = token_of(_member_reset_path(admin, org, "late@example.com"))
     with app.state.sessionmaker() as db:
         db.execute(update(EmailToken).where(EmailToken.purpose == "reset").values(expires_at=utcnow()))
         db.commit()
-    token = link_token(mailer.outbox[-1])
+    c = new_client(app)
     assert c.post("/api/auth/reset-password", json={"token": token, "password": "a-brand-new-password"}).status_code == 400
 
 
-def test_unverified_user_blocked_from_verified_only_routes(app):
-    """Shared data (P2) uses verified_user: an unverified account registered with someone's address
-    gets 403 email_not_verified."""
-    @app.get("/api/_test/shared")
-    def shared(user=Depends(verified_user)):
-        return {"ok": True}
+def test_reset_link_refused_for_accounts_in_another_org(app):
+    """Org A's admin must not be able to take over an account that also belongs to org B."""
+    a, me_a = signup(app, "a-admin@example.com", org="منشأة أ")
+    b, me_b = signup(app, "b-admin@example.com", org="منشأة ب")
+    org_a, org_b = me_a["memberships"][0]["org_id"], me_b["memberships"][0]["org_id"]
+    shared, _ = invite_and_join(app, b, org_b, "both@example.com")
+    token = invite(a, org_a, "both@example.com")
+    assert shared.post("/api/invitations/accept", json={"token": token}).status_code == 200
+    row = next(m for m in a.get(f"/api/orgs/{org_a}/members").json() if m["email"] == "both@example.com")
+    r = a.post(f"/api/orgs/{org_a}/members/{row['id']}/reset-link")
+    assert r.status_code == 409 and r.json()["code"] == "member_of_other_org"
 
-    unverified, _ = signup(app, "squatter@example.com", org=None, verify=False)
-    r = unverified.get("/api/_test/shared")
-    assert r.status_code == 403 and r.json()["code"] == "email_not_verified"
-    verified, _ = signup(app, "owner@example.com", org=None)
-    assert verified.get("/api/_test/shared").status_code == 200
+
+def test_reset_link_is_admin_only(app):
+    admin, me = signup(app, "boss3@example.com")
+    org = me["memberships"][0]["org_id"]
+    emp, _ = invite_and_join(app, admin, org, "plain@example.com")
+    row = next(m for m in admin.get(f"/api/orgs/{org}/members").json() if m["email"] == "boss3@example.com")
+    assert emp.post(f"/api/orgs/{org}/members/{row['id']}/reset-link").json()["code"] == "admin_only"
+
+
+def test_forgot_password_and_verification_endpoints_are_gone(client):
+    assert client.post("/api/auth/forgot-password", json={"email": "x@example.com"}).status_code in (404, 405)
+    assert client.post("/api/auth/verify-email", json={"token": "x" * 20}).status_code in (404, 405)
 
 
 def test_session_token_stored_hashed(app):

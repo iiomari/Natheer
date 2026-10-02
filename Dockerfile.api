@@ -1,10 +1,9 @@
-# Backend image: API + worker (python -m nazeer_api.serve). Lean: no transformers.
-# torch is still pulled in by SDV (via CTGAN); install the CPU-only wheel first, otherwise pip
-# on Linux downloads several GB of CUDA libraries.
+# One image for the backend services; NAZEER_ROLE (api | worker | all) picks the process.
+# torch is pulled in by SDV (via CTGAN); the CPU-only wheel goes first, otherwise pip on Linux
+# downloads several GB of CUDA libraries. transformers (CamelBERT) is not installed: OFF in production.
 FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 \
-    HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HUB_DISABLE_TELEMETRY=1 \
-    NAZEER_STORAGE_DIR=/data/storage
+    HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HUB_DISABLE_TELEMETRY=1
 WORKDIR /app
 RUN pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.0
 COPY requirements-api.txt requirements-server.txt ./
@@ -13,7 +12,7 @@ COPY nazeer ./nazeer
 COPY nazeer_api ./nazeer_api
 COPY config ./config
 COPY data_gen ./data_gen
-RUN useradd --create-home --uid 10001 nazeer && mkdir -p /data/storage && chown -R nazeer /data
+RUN useradd --create-home --uid 10001 nazeer
 USER nazeer
 EXPOSE 8000
 CMD ["python", "-m", "nazeer_api.serve"]

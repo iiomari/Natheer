@@ -1,11 +1,11 @@
-"""Production entrypoint: migrations, then the API and the worker in one container.
+"""Production entrypoint, one image for every backend service:
 
-    python -m nazeer_api.serve            # PORT from the environment (Railway sets it)
+    NAZEER_ROLE=api     python -m nazeer_api.serve   # migrations, then the API on $PORT
+    NAZEER_ROLE=worker  python -m nazeer_api.serve   # the background worker
+    NAZEER_ROLE=all     python -m nazeer_api.serve   # both in one container (single-service hosts)
 
-Why one container: twins and returned files live on one persistent volume, and a volume
-attaches to a single service on the chosen host. Running the API and the worker side by side
-keeps both on that volume. If either process exits, the other is stopped and the container
-exits non-zero, so the platform restarts the whole unit.
+On Railway the API and the worker are separate services, so each gets its own memory budget
+(twin generation runs in the worker). Storage is in MySQL, so no shared volume is needed.
 """
 from __future__ import annotations
 
@@ -21,19 +21,22 @@ from nazeer.safe_log import configure_logging
 log = logging.getLogger("nazeer_api.serve")
 
 
-def main() -> int:
-    configure_logging()
-    port = os.environ.get("PORT", "8000")
-    migrate = subprocess.run([sys.executable, "-m", "alembic", "-c", "nazeer_api/alembic.ini", "upgrade", "head"])
-    if migrate.returncode != 0:
-        log.error("migrations failed (exit %d); not starting", migrate.returncode)
-        return migrate.returncode
-    procs = {
-        "api": subprocess.Popen([sys.executable, "-m", "uvicorn", "nazeer_api.main:app", "--host", "0.0.0.0",
-                                 "--port", port, "--proxy-headers", "--forwarded-allow-ips", "*",
-                                 "--no-server-header"]),
-        "worker": subprocess.Popen([sys.executable, "-m", "nazeer_api.worker"]),
-    }
+def _api_cmd() -> list[str]:
+    return [sys.executable, "-m", "uvicorn", "nazeer_api.main:app", "--host", "0.0.0.0",
+            "--port", os.environ.get("PORT", "8000"), "--proxy-headers", "--forwarded-allow-ips", "*",
+            "--no-server-header"]
+
+
+def _worker_cmd() -> list[str]:
+    return [sys.executable, "-m", "nazeer_api.worker", "--poll", os.environ.get("NAZEER_WORKER_POLL", "3")]
+
+
+def migrate() -> int:
+    return subprocess.run([sys.executable, "-m", "alembic", "-c", "nazeer_api/alembic.ini", "upgrade", "head"]).returncode
+
+
+def supervise(cmds: dict[str, list[str]]) -> int:
+    procs = {name: subprocess.Popen(cmd) for name, cmd in cmds.items()}
     stopping = False
 
     def stop(*_):  # noqa: ANN002
@@ -47,9 +50,8 @@ def main() -> int:
         for name, p in procs.items():
             rc = p.poll()
             if rc is not None:
-                log.error("%s exited with %d; stopping the container", name, rc)
-                code = rc or 1
-                stopping = True
+                log.error("%s exited with %d; stopping", name, rc)
+                code, stopping = rc or 1, True
                 break
         time.sleep(1)
     for p in procs.values():
@@ -61,6 +63,21 @@ def main() -> int:
         except subprocess.TimeoutExpired:
             p.kill()
     return code
+
+
+def main() -> int:
+    configure_logging()
+    role = os.environ.get("NAZEER_ROLE", "all").strip().lower()
+    if role in ("api", "all"):
+        rc = migrate()
+        if rc != 0:
+            log.error("migrations failed (exit %d); not starting", rc)
+            return rc
+    if role == "api":
+        return supervise({"api": _api_cmd()})
+    if role == "worker":
+        return supervise({"worker": _worker_cmd()})
+    return supervise({"api": _api_cmd(), "worker": _worker_cmd()})
 
 
 if __name__ == "__main__":

@@ -1,5 +1,8 @@
 """Organization workspace: profile, members, invitations, jobs, audit log.
 
+No email: an invitation (and an admin-issued password reset) returns a link exactly once; the admin
+passes it on however they like. Only the SHA-256 of each link token is stored.
+
 Every route is scoped to /api/orgs/{org_id} and guarded by member()/admin() from deps.py.
 """
 from __future__ import annotations
@@ -12,7 +15,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session as DbSession
 
-from nazeer_api import audit, jobs, mail
+from nazeer_api import audit, jobs
 from nazeer_api.config import Settings
 from nazeer_api.db import utcnow
 from nazeer_api.deps import admin, api_error, check_csrf, get_db, get_settings_dep, member, scoped
@@ -110,6 +113,27 @@ def update_member(org_id: str, membership_id: str, body: MemberPatch, m: Members
     return member_payload(target)
 
 
+@router.post("/members/{membership_id}/reset-link", status_code=201)
+def member_reset_link(org_id: str, membership_id: str, m: Membership = Depends(admin),
+                      db: DbSession = Depends(get_db)) -> dict:
+    """A single-use password-reset link for a member, shown once to the admin.
+
+    Only for accounts that belong to THIS organization alone: an admin must never be able to take
+    over an account that also has access to another organization's data."""
+    from nazeer_api.routers.auth import RESET_TTL, issue_email_token
+
+    target = _membership(db, org_id, membership_id)
+    others = db.execute(select(Membership.id).where(Membership.user_id == target.user_id,
+                                                    Membership.org_id != org_id)).first()
+    if others is not None:
+        raise api_error(409, "member_of_other_org")
+    token = issue_email_token(db, target.user, "reset", RESET_TTL)
+    audit.record(db, "member.reset_link_created", org_id=org_id, actor_user_id=m.user_id,
+                 target_type="membership", target_id=target.id)
+    db.commit()
+    return {"link_path": f"/reset-password?token={token}", "expires_hours": int(RESET_TTL.total_seconds() // 3600)}
+
+
 @router.delete("/members/{membership_id}")
 def remove_member(org_id: str, membership_id: str, m: Membership = Depends(admin),
                   db: DbSession = Depends(get_db)) -> dict:
@@ -154,8 +178,8 @@ def invite(org_id: str, body: InviteIn, request: Request, m: Membership = Depend
     audit.record(db, "member.invited", org_id=org_id, actor_user_id=m.user_id, target_type="invitation",
                  target_id=inv.id, role=body.role, data_manager=body.data_manager)
     db.commit()
-    request.app.state.mailer.send(mail.invitation(settings.app_base_url, email, m.org.name, token))
-    return {"id": inv.id, "email": email, "role": inv.role, "expires_at": inv.expires_at.isoformat()}
+    return {"id": inv.id, "email": email, "role": inv.role, "expires_at": inv.expires_at.isoformat(),
+            "link_path": f"/invite?token={token}"}
 
 
 @router.delete("/invitations/{invitation_id}")

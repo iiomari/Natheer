@@ -32,6 +32,17 @@ def _list(name: str, default: list[str]) -> list[str]:
     return items or default
 
 
+def normalize_database_url(url: str) -> str:
+    """Platforms hand out mysql://user:pass@host:port/db; SQLAlchemy needs the PyMySQL driver and
+    utf8mb4 (Arabic). Other URLs (sqlite, mysql+pymysql) pass through unchanged."""
+    url = url.strip()
+    if url.startswith("mysql://"):
+        url = "mysql+pymysql://" + url[len("mysql://"):]
+    if url.startswith("mysql+pymysql://") and "charset=" not in url:
+        url += ("&" if "?" in url else "?") + "charset=utf8mb4"
+    return url
+
+
 def decode_master_key(raw: str) -> bytes:
     """NAZEER_MASTER_KEY: 32 random bytes, base64 (urlsafe or standard) encoded."""
     raw = raw.strip()
@@ -59,17 +70,14 @@ class Settings:
     trust_proxy: bool = False
     session_idle_days: int = 7
     session_max_days: int = 30
-    mail_backend: str = "smtp"  # smtp | memory | console
-    smtp_host: str = "localhost"
-    smtp_port: int = 1025
-    smtp_user: str | None = None
-    smtp_password: str | None = field(default=None, repr=False)
-    smtp_from: str = "Nazeer <no-reply@localhost>"
-    smtp_starttls: bool = False
     # PEM text of the database server's CA (managed MySQL with TLS). Never logged.
     database_ca_pem: str | None = field(default=None, repr=False)
-    # Persistent storage for encrypted twins and returned files (a mounted volume in production).
-    storage_dir: str = "storage"
+    # Hosted limits (0.5 GB per service; measured, see docs/PROGRESS.md deviation 85).
+    max_rows_masked: int = 100_000
+    max_rows_synthetic: int = 15_000
+    org_quota_mb: int = 100
+    session_minutes: int = 30
+    twin_retention_days: int = 14
     job_stale_seconds: int = 300
     job_max_attempts: int = 3
 
@@ -91,7 +99,7 @@ def load_settings(env_file: Path | None = None) -> Settings:
     from dotenv import load_dotenv
 
     load_dotenv(env_file or ROOT / ".env", override=False)
-    url = os.environ.get("DATABASE_URL", "").strip()
+    url = normalize_database_url(os.environ.get("DATABASE_URL", ""))
     if not url:
         raise ConfigError("DATABASE_URL is not set")
     raw_key = os.environ.get("NAZEER_MASTER_KEY", "")
@@ -107,15 +115,12 @@ def load_settings(env_file: Path | None = None) -> Settings:
         cookie_secure=_flag("COOKIE_SECURE", True),
         cookie_domain=os.environ.get("COOKIE_DOMAIN", "").strip() or None,
         trust_proxy=_flag("TRUST_PROXY", False),
-        mail_backend=os.environ.get("MAIL_BACKEND", "smtp").strip().lower(),
-        smtp_host=os.environ.get("SMTP_HOST", "localhost"),
-        smtp_port=int(os.environ.get("SMTP_PORT", "1025")),
-        smtp_user=os.environ.get("SMTP_USER") or None,
-        smtp_password=os.environ.get("SMTP_PASSWORD") or None,
-        smtp_from=os.environ.get("SMTP_FROM", "Nazeer <no-reply@localhost>"),
-        smtp_starttls=_flag("SMTP_STARTTLS", False),
         database_ca_pem=os.environ.get("DATABASE_CA_PEM") or None,
-        storage_dir=os.environ.get("NAZEER_STORAGE_DIR", "storage"),
+        max_rows_masked=int(os.environ.get("NAZEER_MAX_ROWS_MASKED", "100000")),
+        max_rows_synthetic=int(os.environ.get("NAZEER_MAX_ROWS_SYNTHETIC", "15000")),
+        org_quota_mb=int(os.environ.get("NAZEER_ORG_QUOTA_MB", "100")),
+        session_minutes=int(os.environ.get("NAZEER_SESSION_MINUTES", "30")),
+        twin_retention_days=int(os.environ.get("NAZEER_TWIN_RETENTION_DAYS", "14")),
     )
 
 

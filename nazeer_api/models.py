@@ -148,3 +148,105 @@ class AuditEvent(Base):
     target_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     meta: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+
+
+# ---------------------------------------------------------------- P2: datasets, twins, shares
+
+from sqlalchemy.dialects.mysql import LONGBLOB  # noqa: E402
+
+BlobBytes = LargeBinary().with_variant(LONGBLOB(), "mysql")
+DATASET_STATUSES = ("processing", "ready", "failed")
+
+
+class Dataset(Base):
+    """An upload and its processing session. Originals live only in an encrypted, expiring Blob."""
+    __tablename__ = "datasets"
+    __table_args__ = (Index("ix_datasets_org_created", "org_id", "created_at"),)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="processing")
+    error_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Structure and detection summary: table/column names, types, tags, counts, span offsets. No values.
+    summary: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    session_expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    originals_deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class Blob(Base):
+    """Encrypted bytes (AES-256-GCM, per-organization storage key). kinds: upload, tables, twin."""
+    __tablename__ = "blobs"
+    __table_args__ = (Index("ix_blobs_expires", "expires_at"),)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    dataset_id: Mapped[str | None] = mapped_column(ForeignKey("datasets.id", ondelete="CASCADE"), nullable=True, index=True)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    size: Mapped[int] = mapped_column(Integer, nullable=False)
+    data: Mapped[bytes] = mapped_column(BlobBytes, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class Twin(Base):
+    __tablename__ = "twins"
+    __table_args__ = (Index("ix_twins_org_created", "org_id", "created_at"),)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    dataset_id: Mapped[str] = mapped_column(ForeignKey("datasets.id", ondelete="CASCADE"), nullable=False, index=True)
+    blob_id: Mapped[str | None] = mapped_column(ForeignKey("blobs.id", ondelete="SET NULL"), nullable=True)
+    mode: Mapped[str] = mapped_column(String(16), nullable=False)
+    verdict: Mapped[str] = mapped_column(String(8), nullable=False)
+    report: Mapped[dict] = mapped_column(JSON, nullable=False)  # the engine's report: metrics, never values
+    proof: Mapped[dict] = mapped_column(JSON, nullable=False)   # the four verdict cards
+    key_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    purged_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    dataset: Mapped[Dataset] = relationship()
+
+
+class Share(Base):
+    __tablename__ = "shares"
+    __table_args__ = (Index("ix_shares_org_created", "org_id", "created_at"),)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    twin_id: Mapped[str] = mapped_column(ForeignKey("twins.id", ondelete="CASCADE"), nullable=False, index=True)
+    formats: Mapped[list] = mapped_column(JSON, nullable=False)
+    message: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    download_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+
+    twin: Mapped[Twin] = relationship()
+    org: Mapped[Organization] = relationship()
+
+
+class ShareLink(Base):
+    """A single-use link for one external recipient; accepting it binds the share to that account."""
+    __tablename__ = "share_links"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    share_id: Mapped[str] = mapped_column(ForeignKey("shares.id", ondelete="CASCADE"), nullable=False, index=True)
+    label: Mapped[str] = mapped_column(String(160), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    accepted_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+
+
+class ShareGrant(Base):
+    """Who may see a share: members chosen by the admin, or accounts that accepted a share link."""
+    __tablename__ = "share_grants"
+    __table_args__ = (UniqueConstraint("share_id", "user_id", name="uq_grant_share_user"),)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    share_id: Mapped[str] = mapped_column(ForeignKey("shares.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    via: Mapped[str] = mapped_column(String(8), nullable=False)  # member | link
+    link_id: Mapped[str | None] = mapped_column(ForeignKey("share_links.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+
+    share: Mapped[Share] = relationship()

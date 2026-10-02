@@ -90,14 +90,6 @@ def current_user(request: Request, db: DbSession = Depends(get_db)) -> User:
     return sess.user
 
 
-def verified_user(user: User = Depends(current_user)) -> User:
-    """Shared data (received twins, downloads, returns) requires a verified email: an account that
-    merely registered with someone's address must not see what was shared to that address."""
-    if not user.email_verified:
-        raise api_error(403, "email_not_verified")
-    return user
-
-
 def require_member(org_id: str, user: User, db: DbSession, role: str | None = None) -> Membership:
     m = db.execute(select(Membership).where(Membership.org_id == org_id, Membership.user_id == user.id)
                    ).scalar_one_or_none()

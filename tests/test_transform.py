@@ -255,3 +255,18 @@ def test_unknown_action_is_rejected():
 def test_render_like_fallback_keeps_validity():
     fake = render_like("05 03 31 88 42 x", "MOBILE", "512345678")
     assert s.is_valid("MOBILE", fake)
+
+
+def test_small_sequential_keys_do_not_exhaust_the_pseudonym_space():
+    """Keys 1..9 (common in uploads) cannot all stay one digit; the remap widens instead of failing."""
+    import pandas as pd
+
+    from nazeer import pipeline
+    from nazeer.policy import load_policy
+
+    tables = {"t": pd.DataFrame({"id": [str(i) for i in range(1, 40)], "v": ["x"] * 39}, dtype=object)}
+    res = pipeline.run_masked(pipeline.analyze(tables), load_policy(pipeline.DEFAULT_POLICY), b"k" * 40)
+    new = res.twin["t"]["id"].tolist()
+    old = [str(i) for i in range(1, 40)]
+    assert len(set(new)) == 39  # still a key: unique
+    assert all(a != b for a, b in zip(old, new))  # no key keeps its own value

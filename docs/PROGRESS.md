@@ -474,6 +474,84 @@ torch 2.2) are incompatible, so always use the venv.
 **Not yet verified:** a real deployment (needs your accounts), and `docker compose` (Docker isn't
 installed).
 
+### Zero budget, no email, any data (user, 2026-10-02): supersedes 63, 64 (domain part), 69, 73
+81. **Hosting is now two free services.**
+    - **Vercel Hobby** on the free `*.vercel.app` subdomain, with no custom domain.
+    - **Railway free trial** with three services: `api`, `worker` (each its own memory budget; twin
+      generation runs in the worker) and **Railway's own MySQL**.
+    - Aiven, Resend and the custom domain are dropped.
+    - The same-origin `/api/*` rewrite keeps cookies first-party on vercel.app.
+    - The official trial figures are **1 GB RAM / 2 vCPU per service**, a 500 MB volume cap and $5 for
+      30 days ([pricing](https://railway.com/pricing)). The request assumed 0.5 GB; the design
+      targets 0.5 GB anyway.
+    - Docker is optional (Railway builds `Dockerfile.api` itself).
+    - `NAZEER_ROLE=api|worker|all` selects the process (`nazeer_api/serve.py`).
+    - `DATABASE_URL` accepts Railway's `mysql://` form; it is normalized to PyMySQL + utf8mb4.
+    - The `$5` credit is estimated to last **about 14–20 days** (`docs/DEPLOY.md`, with the commands to
+      stop the services afterwards).
+82. **No email anywhere.**
+    - SMTP, Resend and `nazeer_api/mail.py` are removed, along with the email-verification and
+      forgot-password endpoints.
+    - **Invitations** return their link once (`link_path`); the admin copies it and sends it however
+      they like. Only the token's SHA-256 is stored.
+    - **Password reset**: an admin creates a single-use, 24-hour reset link for a member. It is
+      **refused for accounts that also belong to another organization** (409 `member_of_other_org`), so
+      one org's admin can't take over an account with access to another org's data.
+    - Accepting an invite link or a share link marks the account as verified.
+83. **Shared data is visible only through a grant.**
+    - Grants come either from members the admin picked, or from an account that **accepted that share's
+      single-use link**.
+    - An account registered with the "right" email that never opened the link sees nothing (tested),
+      and a used link cannot be reused by another account (tested).
+84. **Storage is in MySQL, not on a volume.**
+    - Encrypted `blobs` rows: zlib, then AES-256-GCM with a per-organization storage key
+      (HKDF-SHA256 from the master key), bound to the blob ID.
+    - The reason: the API and the worker are separate services, and a volume attaches to only one of
+      them.
+    - Per-org quota: 100 MB.
+    - The sweep (worker, once a minute) deletes expired originals and purges twins older than 14 days
+      that no active share needs. Expired shares stop working immediately: status is computed from
+      `expires_at`.
+85. **Memory measured, hosted limits set.** See the table in `docs/DEPLOY.md`.
+    - The synthetic twin has about 350 MB of fixed cost (SDV + torch) and peaks at 430 MB for 33k rows.
+    - Masked peaks at 157 MB for 33k rows; the API is 74–124 MB.
+    - Limits: masked up to **100,000 rows**, synthetic up to **15,000 rows** (Arabic message
+      `synthetic_too_large`). Upload limits: 15 MB per file, 30 MB per upload, 10 files.
+    - CamelBERT/torch NER stays OFF in production: transformers isn't even in the server image.
+86. **"Originals deleted immediately after processing", as implemented.**
+    - The raw upload blob is deleted **as soon as it is parsed**.
+    - The parsed tables stay encrypted only for the **processing session**: 30 minutes, or until the
+      user presses «احذف الأصول الآن». This allows detection review and the admin-only before/after
+      preview, which the plan requires during that session.
+    - The sweep deletes them at expiry, and generating needs an open session (tested).
+    - The detection summary that *is* kept holds names, tags, counts and span offsets only.
+87. **Any data loads** (`nazeer/ingest.py`, used by the worker):
+    - CSV, TSV and TXT in UTF-8, UTF-8 with BOM, UTF-16 or Windows-1256, with the delimiter sniffed;
+    - xlsx/xlsm, one table per non-empty sheet;
+    - header detection (`col_N` when there is none), duplicate, blank and invisible-character headers
+      fixed, empty rows and columns dropped and reported;
+    - every value kept as text; clear error codes mapped to Arabic messages.
+    - **Relationships**: the engine's existing rule (≥ 99% containment **and** name similarity ≥ 0.5)
+      is unchanged. When names don't resemble each other, tables are processed independently (tested
+      both ways). Old `.xls` is refused with a "save as xlsx/CSV" message.
+88. **Engine robustness fix (not a logic change).** Small sequential keys (1…9, common in uploads)
+    made the key remap raise `PseudonymSpaceExhausted`, because nine one-digit keys can't all move to
+    a different one-digit value. After 50 collisions a remapped primary key now gains one digit
+    (`transform.PK_WIDEN_AFTER`). This applies to surrogate keys only; identifiers and metrics are
+    unchanged. A regression test was added.
+89. **The synthetic target is optional.** Without it, utility is reported as "not measured" and the rest
+    of the report still works. Engine errors on unusual data become `synthetic_unsupported`, and
+    masked always remains available.
+90. **Exports.**
+    - The CSV download is a zip with one CSV per table (UTF-8 with BOM, so Excel shows Arabic).
+    - The XLSX download has one sheet per table and only text cells.
+    - Any text cell starting with `= + - @`, a tab or a carriage return gets a leading apostrophe;
+      plain numbers such as `-12.5` are untouched (tested).
+91. **Downloads.** A signed URL (HMAC, valid 5 minutes) bound to the user and the share, which still
+    requires that user's session and an active grant.
+92. **The before/after preview is for admins only** (original values). Data managers can upload,
+    review, generate and share, but not view originals side by side.
+
 ## Milestone log
 
 ### M2: Demo data + golden labels

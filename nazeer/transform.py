@@ -44,14 +44,21 @@ class PseudonymSpaceExhausted(RuntimeError):
     """No free pseudonym after MAX_ATTEMPTS rehashes (message never contains the value)."""
 
 
-def _fake_key(canon: str, rng: random.Random) -> str:
-    """Same shape as the original key: digits re-drawn, other characters kept."""
+PK_WIDEN_AFTER = 50
+
+
+def _fake_key(canon: str, rng: random.Random, extra_digits: int = 0) -> str:
+    """Same shape as the original key: digits re-drawn, other characters kept.
+
+    extra_digits > 0 widens a key whose same-length space is (nearly) exhausted, e.g. keys 1..9:
+    nine one-digit keys cannot all map to a different one-digit key without collisions."""
     out = []
     for i, ch in enumerate(canon):
         if ch.isascii() and ch.isdigit():
             out.append(rng.choice("123456789" if i == 0 and ch != "0" else "0123456789"))
         else:
             out.append(ch)
+    out.extend(rng.choice("0123456789") for _ in range(extra_digits))
     return "".join(out)
 
 
@@ -84,7 +91,7 @@ class Pseudonymizer:
         msg = f"{kind}:{canon}" if counter == 0 else f"{kind}:{canon}:{counter}"
         return random.Random(hmac.new(self._key, msg.encode("utf-8"), hashlib.sha256).digest())
 
-    def _generate(self, kind: str, canon: str, rng: random.Random) -> str:
+    def _generate(self, kind: str, canon: str, rng: random.Random, counter: int = 0) -> str:
         if kind in self._generators:
             return self._generators[kind](canon, rng)
         if kind == "SAUDI_ID":
@@ -101,7 +108,7 @@ class Pseudonymizer:
         if kind == "FAMILY_NAME":
             return s.gen_family_name(rng)
         if kind.startswith("PK:"):
-            return _fake_key(canon, rng)
+            return _fake_key(canon, rng, counter // PK_WIDEN_AFTER)
         raise ValueError(f"no generator for kind {kind}")
 
     def fake(self, kind: str, canon: str) -> str:
@@ -111,7 +118,7 @@ class Pseudonymizer:
             return cached
         injective = kind not in NAME_KINDS  # name spaces are small; only "never itself" is enforced
         for counter in range(MAX_ATTEMPTS):
-            out = self._generate(kind, canon, self._rng(kind, canon, counter))
+            out = self._generate(kind, canon, self._rng(kind, canon, counter), counter)
             norm = s.normalize_name(out) if kind in NAME_KINDS else out
             clash = norm == canon or (injective and (norm in self._forbidden[kind] or norm in self._used[kind]))
             if not clash:
