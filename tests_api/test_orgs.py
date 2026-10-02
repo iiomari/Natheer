@@ -70,7 +70,8 @@ def test_member_role_limits(app, two_orgs):
         if "/jobs/" in url and method == "GET":
             continue
         r = emp.request(method, url, json=body)
-        assert r.status_code == 403 and r.json()["code"] == "admin_only", (method, url)
+        expected = "data_manager_only" if url.endswith("/members") and method == "GET" else "admin_only"
+        assert r.status_code == 403 and r.json()["code"] == expected, (method, url)
 
 
 def test_invitation_flow_existing_user_must_be_signed_in_as_that_email(app, two_orgs):

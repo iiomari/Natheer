@@ -68,6 +68,27 @@ export async function api<T = unknown>(path: string, { method = "GET", body, sig
   return (await res.json()) as T
 }
 
+/** multipart upload (same CSRF rule as api()). */
+export async function upload<T = unknown>(path: string, form: FormData): Promise<T> {
+  if (!csrfToken()) await refreshCsrf()
+  let res: Response
+  try {
+    res = await fetch(`/api${path}`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "X-CSRF-Token": csrfToken() ?? "" },
+      body: form,
+    })
+  } catch {
+    throw new ApiError(0, "network")
+  }
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}))
+    throw new ApiError(res.status, j?.code ?? (res.status === 413 ? "ingest:total_too_large" : "error"), j?.fields ?? [])
+  }
+  return (await res.json()) as T
+}
+
 /** Arabic, plain, never echoing what the user typed. */
 const MESSAGES: Record<string, string> = {
   invalid_credentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
@@ -91,6 +112,36 @@ const MESSAGES: Record<string, string> = {
   not_found: "العنصر غير موجود أو لا تملك صلاحية الوصول إليه.",
   invalid_request: "تحقّق من الحقول المطلوبة.",
   network: "تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مجدداً.",
+  member_of_other_org: "هذا الحساب عضو في منشأة أخرى أيضاً؛ لا يمكن إعادة تعيين كلمة مروره من هنا.",
+  quota_exceeded: "امتلأت مساحة التخزين المخصّصة لمنشأتك. احذف مجموعات بيانات قديمة ثم حاول مجدداً.",
+  session_expired: "انتهت جلسة المعالجة وحُذفت البيانات الأصلية. ارفع الملفات مجدداً للمتابعة.",
+  dataset_not_ready: "ما زالت البيانات قيد المعالجة. انتظر قليلاً.",
+  synthetic_too_large: "النظير الاصطناعي متاح في النسخة المستضافة حتى 15,000 صف فقط. استخدم النظير المقنّع لهذه البيانات.",
+  synthetic_unsupported: "تعذّر توليد نظير اصطناعي لهذه البيانات. النظير المقنّع متاح دائماً.",
+  too_many_rows_hosted: "البيانات أكبر من الحد المسموح في النسخة المستضافة (100,000 صف).",
+  twin_not_shareable: "لا يمكن مشاركة نظير نتيجته راسب أو حُجب أو حُذف.",
+  no_recipients: "اختر عضواً واحداً على الأقل أو أضف مستلماً خارجياً.",
+  unknown_member: "أحد الأعضاء المختارين لم يعد في المنشأة.",
+  preview_unavailable: "المعاينة متاحة للنظير المقنّع فقط وأثناء جلسة المعالجة.",
+  link_already_used: "هذا الرابط استُخدم من حساب آخر. اطلب رابطاً جديداً من المنشأة.",
+  share_expired: "انتهت صلاحية هذه المشاركة.",
+  share_revoked: "ألغت المنشأة هذه المشاركة.",
+  format_not_allowed: "هذه الصيغة غير متاحة لهذه المشاركة.",
+  download_link_expired: "انتهت صلاحية رابط التنزيل. اضغط تنزيل مجدداً.",
+  bad_download_link: "رابط التنزيل غير صالح لهذا الحساب.",
+  "ingest:no_files": "اختر ملفاً واحداً على الأقل.",
+  "ingest:too_many_files": "الحد الأقصى 10 ملفات في المرة الواحدة.",
+  "ingest:file_too_large": "حجم الملف أكبر من 15 ميجابايت.",
+  "ingest:total_too_large": "مجموع حجم الملفات أكبر من 30 ميجابايت.",
+  "ingest:empty_file": "الملف فارغ.",
+  "ingest:no_data": "لم نجد بيانات في الملف.",
+  "ingest:binary_file": "الملف ليس نصاً قابلاً للقراءة. احفظه بصيغة CSV أو xlsx.",
+  "ingest:bad_excel": "تعذّر فتح ملف Excel. تأكّد أنه بصيغة xlsx وغير تالف.",
+  "ingest:old_excel": "صيغة Excel القديمة (xls) غير مدعومة. احفظ الملف بصيغة xlsx أو CSV.",
+  "ingest:unsupported_type": "نوع الملف غير مدعوم. المدعوم: CSV وTSV وTXT وxlsx.",
+  "ingest:too_many_rows": "الجدول أكبر من 200,000 صف.",
+  "ingest:too_many_columns": "الجدول أكثر من 200 عمود.",
+  "ingest:too_many_tables": "الحد الأقصى 12 جدولاً.",
 }
 
 export function messageFor(error: unknown): string {

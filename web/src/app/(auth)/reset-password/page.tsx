@@ -37,8 +37,8 @@ function ResetForm() {
 
   if (!token) {
     return (
-      <AuthCard title="رابط غير مكتمل" description="افتح الرابط كما وصلك في البريد، أو اطلب رابطاً جديداً.">
-        <Link href="/forgot-password" className={buttonVariants({ size: "lg", className: "w-full" })}>طلب رابط جديد</Link>
+      <AuthCard title="رابط غير مكتمل" description="افتح الرابط كما وصلك من مدير منشأتك، أو اطلب منه رابطاً جديداً.">
+        <Link href="/login" className={buttonVariants({ size: "lg", variant: "outline", className: "w-full" })}>تسجيل الدخول</Link>
       </AuthCard>
     )
   }

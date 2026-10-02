@@ -18,7 +18,6 @@ import {
   Undo2,
   Users,
 } from "lucide-react"
-import { toast } from "sonner"
 
 import { Brand, Chip, Ltr, Spinner } from "@/components/nz"
 import { ThemeToggle } from "@/components/theme"
@@ -33,7 +32,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { api, messageFor } from "@/lib/api"
 import { useSession } from "@/lib/session"
 import type { MembershipRef } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -46,8 +44,8 @@ function orgNav(m: MembershipRef): { title: string; items: NavItem[] }[] {
   const work: NavItem[] = [{ href: `${base}/dashboard`, label: "لوحة المعلومات", icon: LayoutDashboard }]
   if (m.role === "admin" || m.data_manager) {
     work.push(
-      { href: `${base}/datasets`, label: "مجموعات البيانات", icon: Database, soon: true },
-      { href: `${base}/shares`, label: "المشاركات", icon: Share2, soon: true },
+      { href: `${base}/datasets`, label: "مجموعات البيانات", icon: Database },
+      { href: `${base}/shares`, label: "المشاركات", icon: Share2 },
       { href: `${base}/returns`, label: "المرتجعات", icon: Undo2, soon: true },
     )
   }
@@ -65,7 +63,7 @@ function orgNav(m: MembershipRef): { title: string; items: NavItem[] }[] {
   return groups
 }
 
-const PERSONAL: NavItem[] = [{ href: "/app/received", label: "البيانات المستلمة", icon: Inbox, soon: true }]
+const PERSONAL: NavItem[] = [{ href: "/app/received", label: "البيانات المستلمة", icon: Inbox }]
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const { me } = useSession()
@@ -174,40 +172,6 @@ function UserMenu() {
   )
 }
 
-function VerifyBanner() {
-  const { me } = useSession()
-  const [busy, setBusy] = useState(false)
-  if (!me || me.email_verified) return null
-  return (
-    <div className="border-b border-review/30 bg-review-soft">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-3 text-sm text-review">
-        <span>
-          <strong>أكّد بريدك الإلكتروني.</strong> لن تظهر لك أي بيانات مشاركة قبل التأكيد. أرسلنا رابطاً إلى{" "}
-          <Ltr>{me.email}</Ltr>.
-        </span>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true)
-            try {
-              await api("/auth/resend-verification", { method: "POST" })
-              toast.success("أُرسل رابط تأكيد جديد.")
-            } catch (e) {
-              toast.error(messageFor(e))
-            } finally {
-              setBusy(false)
-            }
-          }}
-        >
-          إعادة الإرسال
-        </Button>
-      </div>
-    </div>
-  )
-}
-
 export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const { me, loading } = useSession()
   const [open, setOpen] = useState(false)
@@ -251,7 +215,6 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             <UserMenu />
           </div>
         </header>
-        <VerifyBanner />
         <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-10">
           {loading || !me ? (
             <div className="flex items-center gap-3 py-20 text-muted-foreground">

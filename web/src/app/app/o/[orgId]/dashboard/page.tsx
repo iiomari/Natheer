@@ -8,9 +8,17 @@ import { CheckCircle2, Circle, Database, FileCheck2, Share2, Undo2 } from "lucid
 import { useCurrentMembership } from "@/components/org"
 import { Chip, Notice, PageHeader, Section, StatCard } from "@/components/nz"
 import { buttonVariants } from "@/components/ui/button"
-import { useSession } from "@/lib/session"
-import type { Member } from "@/lib/types"
-import { useApi } from "@/lib/use-api"
+import { VerdictChip } from "@/components/nz"
+import { formatDateTime, useApi } from "@/lib/use-api"
+
+type Stats = {
+  datasets: number
+  twins: number
+  active_shares: number
+  pending_returns: number
+  storage_mb: number
+  recent_twins: { id: string; dataset_name: string; mode: string; verdict: "PASS" | "FAIL"; created_at: string }[]
+}
 import { cn } from "@/lib/utils"
 
 function Step({ done, title, text, href, soon }: { done: boolean; title: string; text: string; href?: string; soon?: boolean }) {
@@ -35,14 +43,16 @@ function Step({ done, title, text, href, soon }: { done: boolean; title: string;
 }
 
 function Dashboard() {
-  const { me } = useSession()
   const { orgId, membership } = useCurrentMembership()
   const welcome = useSearchParams().get("welcome")
   const isAdmin = membership?.role === "admin"
-  const members = useApi<Member[]>(isAdmin ? `/orgs/${orgId}/members` : null)
+  const canManage = isAdmin || membership?.data_manager
+  const members = useApi<{ id: string }[]>(canManage ? `/orgs/${orgId}/members` : null)
+  const stats = useApi<Stats>(`/orgs/${orgId}/stats`)
 
   if (!membership) return null
   const teamInvited = (members.data?.length ?? 0) > 1
+  const st = stats.data
 
   return (
     <>
@@ -50,27 +60,43 @@ function Dashboard() {
       {welcome ? (
         <div className="mb-8">
           <Notice tone="twin" icon={CheckCircle2}>
-            أُنشئ حسابك. أرسلنا رابط تأكيد إلى بريدك؛ أكّده لتتمكن من استلام البيانات المشاركة معك.
+            أُنشئت مساحة منشأتك. ابدأ برفع بيانات تجريبية، أو ادعُ فريقك برابط تنسخه وترسله.
           </Notice>
         </div>
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="مجموعات البيانات" value="0" icon={Database} hint="لم تُرفع بيانات بعد" />
-        <StatCard label="النظائر" value="0" icon={FileCheck2} hint="تُولَّد بعد الرفع والمراجعة" />
-        <StatCard label="المشاركات النشطة" value="0" icon={Share2} hint="لا مشاركات بعد" />
-        <StatCard label="مرتجعات بانتظار المراجعة" value="0" icon={Undo2} hint="لا مرتجعات بعد" />
+        <StatCard label="مجموعات البيانات" value={st?.datasets ?? "—"} icon={Database} hint={st ? <>التخزين: {st.storage_mb} م.ب من 100</> : undefined} />
+        <StatCard label="النظائر" value={st?.twins ?? "—"} icon={FileCheck2} />
+        <StatCard label="المشاركات النشطة" value={st?.active_shares ?? "—"} icon={Share2} />
+        <StatCard label="مرتجعات بانتظار المراجعة" value={st?.pending_returns ?? "—"} icon={Undo2} hint="تُتاح في الإصدار القادم" />
       </div>
 
-      {isAdmin ? (
-        <Section title="البدء" description="خطوات إعداد مساحة منشأتك." className="mt-10">
+      {canManage ? (
+        <>
+        <Section title="البدء" description="خطوات العمل في مساحة منشأتك." className="mt-10">
           <ol className="divide-y divide-border rounded-xl border border-border bg-card shadow-card">
-            <Step done={Boolean(me?.email_verified)} title="تأكيد البريد الإلكتروني" text="مطلوب قبل استلام أي بيانات مشاركة." />
-            <Step done={teamInvited} title="دعوة فريقك" text="أضف الموظفين الذين سيستلمون النظائر أو يديرون البيانات." href={`/app/o/${orgId}/team`} />
-            <Step done={false} title="رفع أول مجموعة بيانات" text="ملفات CSV أو Excel أو اتصال MySQL للقراءة فقط." soon />
-            <Step done={false} title="توليد نظير ومشاركته" text="بعد مراجعة الكشف، ولّد النظير وشاركه إن كانت نتيجته ناجحة." soon />
+            {isAdmin ? <Step done={teamInvited} title="دعوة فريقك" text="أنشئ رابط دعوة وأرسله للموظف بنفسك." href={`/app/o/${orgId}/team`} /> : null}
+            <Step done={(st?.datasets ?? 0) > 0} title="رفع أول مجموعة بيانات" text="CSV أو Excel؛ يُكتشف الترميز والفواصل والعناوين تلقائياً." href={`/app/o/${orgId}/datasets`} />
+            <Step done={(st?.twins ?? 0) > 0} title="مراجعة الكشف وتوليد النظير" text="راجع ما اكتُشف ثم ولّد نظيراً مقنّعاً." href={`/app/o/${orgId}/datasets`} />
+            <Step done={(st?.active_shares ?? 0) > 0} title="مشاركة نظير ناجح" text="مع أعضاء المنشأة أو برابط لمستلم خارجي." href={`/app/o/${orgId}/datasets`} />
           </ol>
         </Section>
+        {st?.recent_twins.length ? (
+          <Section title="آخر النظائر" className="mt-10">
+            <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-card">
+              {st.recent_twins.map((t) => (
+                <li key={t.id}>
+                  <Link href={`/app/o/${orgId}/twins/${t.id}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 hover:bg-muted/50">
+                    <span className="font-semibold">{t.dataset_name}<span className="ms-3 text-sm font-normal text-muted-foreground">{formatDateTime(t.created_at)}</span></span>
+                    <VerdictChip verdict={t.verdict} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        ) : null}
+        </>
       ) : (
         <div className="mt-10">
           <Notice>

@@ -38,7 +38,7 @@ function LoginForm() {
       footer={
         <>
           ليس لديك حساب؟{" "}
-          <Link href="/signup" className="font-semibold text-primary hover:underline">
+          <Link href={`/signup${params.get("next") ? `?next=${encodeURIComponent(params.get("next") ?? "")}` : ""}`} className="font-semibold text-primary hover:underline">
             أنشئ حساباً
           </Link>
         </>
@@ -48,11 +48,9 @@ function LoginForm() {
         {error ? <InlineError>{error}</InlineError> : null}
         <EmailField name="email" required autoFocus />
         <PasswordField name="password" required autoComplete="current-password" />
-        <div className="flex justify-end">
-          <Link href="/forgot-password" className="text-sm font-semibold text-primary hover:underline">
-            نسيت كلمة المرور؟
-          </Link>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          نسيت كلمة المرور؟ اطلب من مدير منشأتك رابط إعادة تعيين.
+        </p>
         <Button type="submit" size="lg" className="w-full" disabled={busy}>
           {busy ? <Spinner className="size-4" /> : null}
           دخول

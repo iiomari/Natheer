@@ -20,7 +20,7 @@ function Invite() {
   const [preview, setPreview] = useState<Preview | null>(null)
   const [me, setMe] = useState<Me | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(token ? null : "الرابط غير مكتمل. افتحه كما وصلك في البريد.")
+  const [error, setError] = useState<string | null>(token ? null : "الرابط غير مكتمل. افتحه كما وصلك من المنشأة.")
   const [busy, setBusy] = useState(false)
   const started = useRef(false)
 

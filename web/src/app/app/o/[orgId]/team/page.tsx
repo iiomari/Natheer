@@ -4,6 +4,7 @@ import { useState } from "react"
 import { BadgeCheck, MailWarning, MoreHorizontal, UserPlus, Users } from "lucide-react"
 import { toast } from "sonner"
 
+import { CopyLink } from "@/components/data"
 import { EmailField, Field, NativeSelect } from "@/components/form"
 import { AdminOnly, LoadError, Loading, useCurrentMembership } from "@/components/org"
 import { Chip, EmptyState, InlineError, Ltr, PageHeader, Section, Spinner } from "@/components/nz"
@@ -43,6 +44,15 @@ function InviteDialog({ orgId, open, onOpenChange, onDone }: {
 }) {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [link, setLink] = useState<string | null>(null)
+
+  function close(v: boolean) {
+    onOpenChange(v)
+    if (!v) {
+      setLink(null)
+      setError(null)
+    }
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -51,12 +61,11 @@ function InviteDialog({ orgId, open, onOpenChange, onDone }: {
     setBusy(true)
     setError(null)
     try {
-      await api(`/orgs/${orgId}/invitations`, {
+      const res = await api<{ link_path: string }>(`/orgs/${orgId}/invitations`, {
         method: "POST",
         body: { email: f.get("email"), role: role === "admin" ? "admin" : "member", data_manager: role === "data_manager" },
       })
-      toast.success("أُرسلت الدعوة.")
-      onOpenChange(false)
+      setLink(res.link_path)
       onDone()
     } catch (err) {
       setError(messageFor(err))
@@ -66,12 +75,25 @@ function InviteDialog({ orgId, open, onOpenChange, onDone }: {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={close}>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-lg">دعوة عضو</DialogTitle>
-          <DialogDescription>تصل الدعوة بالبريد، وقبولها يؤكّد البريد تلقائياً. صالحة 7 أيام.</DialogDescription>
+          <DialogDescription>
+            {link
+              ? "انسخ الرابط وأرسله للعضو بالطريقة التي تناسبك. يظهر الرابط مرة واحدة، وصالح 7 أيام."
+              : "سننشئ رابط دعوة تنسخه وترسله بنفسك. فتح الرابط وإنشاء الحساب يؤكّد العضو."}
+          </DialogDescription>
         </DialogHeader>
+        {link ? (
+          <>
+            <CopyLink path={link} label="رابط الدعوة" />
+            <DialogFooter>
+              <Button onClick={() => close(false)}>تم</Button>
+            </DialogFooter>
+          </>
+        ) : (
+        <>
         <form id="invite-form" onSubmit={onSubmit} className="space-y-5" noValidate>
           {error ? <InlineError>{error}</InlineError> : null}
           <EmailField name="email" required autoFocus />
@@ -84,12 +106,14 @@ function InviteDialog({ orgId, open, onOpenChange, onDone }: {
           </Field>
         </form>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
+          <Button variant="outline" onClick={() => close(false)}>إلغاء</Button>
           <Button type="submit" form="invite-form" disabled={busy}>
             {busy ? <Spinner className="size-4" /> : null}
-            إرسال الدعوة
+            إنشاء رابط الدعوة
           </Button>
         </DialogFooter>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -130,6 +154,7 @@ export default function TeamPage() {
   const invites = useApi<Invitation[]>(isAdmin ? `/orgs/${orgId}/invitations` : null)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [removing, setRemoving] = useState<Member | null>(null)
+  const [reset, setReset] = useState<{ name: string; path: string } | null>(null)
   const [busy, setBusy] = useState(false)
 
   if (!isAdmin) return <AdminOnly />
@@ -157,6 +182,15 @@ export default function TeamPage() {
       toast.error(messageFor(e))
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function resetLink(m: Member) {
+    try {
+      const r = await api<{ link_path: string }>(`/orgs/${orgId}/members/${m.id}/reset-link`, { method: "POST" })
+      setReset({ name: m.full_name, path: r.link_path })
+    } catch (e) {
+      toast.error(messageFor(e))
     }
   }
 
@@ -196,7 +230,7 @@ export default function TeamPage() {
                   <TableHead className="h-11 px-5 text-start font-bold">الاسم</TableHead>
                   <TableHead className="h-11 px-5 text-start font-bold">البريد</TableHead>
                   <TableHead className="h-11 px-5 text-start font-bold">الدور</TableHead>
-                  <TableHead className="h-11 px-5 text-start font-bold">البريد مؤكَّد</TableHead>
+                  <TableHead className="h-11 px-5 text-start font-bold">الحساب</TableHead>
                   <TableHead className="h-11 px-5 text-start font-bold">انضم</TableHead>
                   <TableHead className="h-11 w-12 px-5"><span className="sr-only">إجراءات</span></TableHead>
                 </TableRow>
@@ -212,9 +246,9 @@ export default function TeamPage() {
                     <TableCell className="px-5 py-3.5"><RoleChip m={m} /></TableCell>
                     <TableCell className="px-5 py-3.5">
                       {m.email_verified ? (
-                        <Chip tone="twin" icon={BadgeCheck}>مؤكَّد</Chip>
+                        <Chip tone="twin" icon={BadgeCheck}>مؤكَّد بالرابط</Chip>
                       ) : (
-                        <Chip tone="review" icon={MailWarning}>غير مؤكَّد</Chip>
+                        <Chip tone="neutral" icon={MailWarning}>سجّل بنفسه</Chip>
                       )}
                     </TableCell>
                     <TableCell className="px-5 py-3.5 text-muted-foreground">{formatDay(m.joined_at)}</TableCell>
@@ -233,6 +267,9 @@ export default function TeamPage() {
                             <DropdownMenuItem onClick={() => patch(m, { data_manager: !m.data_manager })}>
                               {m.data_manager ? "سحب صلاحية مدير البيانات" : "منح صلاحية مدير البيانات"}
                             </DropdownMenuItem>
+                          ) : null}
+                          {m.user_id !== me?.id ? (
+                            <DropdownMenuItem onClick={() => resetLink(m)}>رابط إعادة تعيين كلمة المرور</DropdownMenuItem>
                           ) : null}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem variant="destructive" onClick={() => setRemoving(m)}>إزالة من المنشأة</DropdownMenuItem>
@@ -271,6 +308,20 @@ export default function TeamPage() {
       </Section>
 
       <InviteDialog orgId={orgId} open={inviteOpen} onOpenChange={setInviteOpen} onDone={() => void invites.reload()} />
+      <Dialog open={reset !== null} onOpenChange={(v) => !v && setReset(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-lg">رابط إعادة تعيين كلمة المرور</DialogTitle>
+            <DialogDescription>
+              أرسل الرابط إلى <strong>{reset?.name}</strong>. يُستخدم مرة واحدة، وصالح 24 ساعة، ويُنهي جلساته الحالية.
+            </DialogDescription>
+          </DialogHeader>
+          {reset ? <CopyLink path={reset.path} /> : null}
+          <DialogFooter>
+            <Button onClick={() => setReset(null)}>تم</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <ConfirmRemove member={removing} onCancel={() => setRemoving(null)} onConfirm={remove} busy={busy} />
     </>
   )

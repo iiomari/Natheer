@@ -68,6 +68,29 @@ def dataset_payload(db: DbSession, ds: Dataset, detail: bool = False) -> dict:
     return out
 
 
+# ---------------------------------------------------------------- dashboard
+
+@router.get("/stats")
+def stats(org_id: str, m: Membership = Depends(member), db: DbSession = Depends(get_db)) -> dict:
+    from sqlalchemy import func
+
+    from nazeer_api.storage import org_usage_bytes
+
+    now = utcnow()
+    count = lambda stmt: int(db.execute(stmt).scalar_one())  # noqa: E731
+    recent = db.execute(scoped(select(Twin), Twin, org_id).order_by(Twin.created_at.desc()).limit(5)).scalars()
+    return {
+        "datasets": count(scoped(select(func.count()).select_from(Dataset), Dataset, org_id)),
+        "twins": count(scoped(select(func.count()).select_from(Twin), Twin, org_id)),
+        "active_shares": count(scoped(select(func.count()).select_from(Share), Share, org_id)
+                               .where(Share.revoked_at.is_(None), Share.expires_at > now)),
+        "pending_returns": 0,
+        "storage_mb": round(org_usage_bytes(db, org_id) / 2**20, 1),
+        "recent_twins": [{"id": t.id, "dataset_name": t.dataset.name, "mode": t.mode, "verdict": t.verdict,
+                          "created_at": t.created_at.isoformat()} for t in recent],
+    }
+
+
 # ---------------------------------------------------------------- datasets
 
 @router.get("/datasets")

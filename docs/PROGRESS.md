@@ -25,7 +25,7 @@ This file is updated after every milestone so a new session can resume from it a
 | UI redesign for clarity (presentation only) | done; superseded by the web product | c24ad10 |
 | **Web product** P1 Backend foundation (auth, orgs, roles, tenancy, migrations, job worker) | done | (this commit) |
 | **Site + infrastructure first** (user, 2026-10-01): Next.js app (design system, public site, auth, workspace shell, team/audit/settings), deployment setup (Railway + Aiven + Vercel + Resend), CI | done | (this commit) |
-| P2 Vertical slice (upload → detect → masked twin → report → share → recipient) | next | — |
+| P2 Vertical slice (upload → detect → masked twin → report → share → recipient) + any-data ingestion + no-email links | done | (this commit) |
 | P3 Design system + all pages · P4 Cleaning · P5 Returns + re-linking · P6 Team/audit/settings/email · P7 Public site + demo seed · P8 Hardening + E2E · P9 Deployment · P10 Final docs | not started | — |
 | HMA multi-table synthesis | **out of scope for the hackathon** | — |
 | PDF report | **out of scope for the hackathon** | — |
@@ -552,6 +552,52 @@ installed).
 92. **The before/after preview is for admins only** (original values). Data managers can upload,
     review, generate and share, but not view originals side by side.
 
+### P2: Vertical slice (zero budget, no email, any data)
+**API:**
+- datasets: upload, then the worker handles ingest and detection; note viewer; generate; end session;
+  delete;
+- twins: report, report.json, admin-only preview;
+- shares: create (FAIL refused), list, revoke;
+- share links: preview, accept;
+- received: list and detail;
+- signed downloads (CSV zip and XLSX, formula-safe);
+- stats; retention sweep.
+
+**Web:**
+- datasets list with an upload dialog (drop zone, demo-data notice, limits);
+- dataset page:
+  - session countdown and «احذف الأصول الآن»;
+  - stats, column review with per-column override, relationships, ingest notes;
+  - the Nazeer / generic-tool toggle with the two numbers and labelled highlights;
+  - generate (masked recommended, synthetic «تجريبي» with its trade-off, an optional target, the hosted
+    15,000-row cap);
+- twin page:
+  - verdict banner and the 4 verdict cards (or the synthetic cards);
+  - the suggested k fix with before/after k;
+  - the admin-only before/after preview;
+  - all checks, limitations, report download, share dialog (members and external links, expiry,
+    formats, message);
+- shares list with revoke; received list and detail (preview, CSV and Excel downloads);
+- the share-link page `/s`;
+- team page with invite links and admin reset links;
+- the dashboard with real stats and a checklist.
+
+**Verified:**
+- tests: **all passing** (see the commit message for the exact count);
+- `tests_api/test_p2.py`, 14 tests: the full story, FAIL not shareable, an unaccepted account cannot see
+  a share, single-use links, expired and revoked blocked, downloads bound to user and signature, formula
+  neutralization, originals gone after the session, encrypted blobs, tenant isolation, roles, a messy
+  file through the API, hosted limits, recipients kept out of org routes;
+- `tests/test_ingest.py`, 18 tests, covering 7 messy file types;
+- a browser E2E (`scripts/e2e_web.py`) on the full demo:
+  1. signup, invite link, upload;
+  2. review, then generate (FAIL, k = 1), apply the fix (PASS, k = 1 → 5), preview;
+  3. share; the employee joins by link, sees it under «البيانات المستلمة» and downloads CSV and Excel;
+  4. the external recipient accepts the share link;
+  - **0 external requests**; screenshots in `docs/ui/web/p2-*.png`.
+
+**Next:** deployment (needs the two CLI logins), then P4 cleaning, P5 returns and re-linking, P6, P7, P8.
+
 ## Milestone log
 
 ### M2: Demo data + golden labels
@@ -1010,6 +1056,6 @@ MySQL integration tests, waiting for credentials.
 
 ## Next step
 
-Web product **P2: vertical slice** (see the P1 log for its scope).
+Deploy (Vercel Hobby + Railway trial via CLI; see docs/DEPLOY.md), then P4 cleaning.
 Still waiting on you: MySQL service and password in `.env` (engine live tests and a MySQL run of the API
 migrations); Docker Desktop, so `docker compose up` can be verified; hand-written notes.

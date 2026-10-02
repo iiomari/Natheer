@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session as DbSession
 from nazeer_api import audit, jobs
 from nazeer_api.config import Settings
 from nazeer_api.db import utcnow
-from nazeer_api.deps import admin, api_error, check_csrf, get_db, get_settings_dep, member, scoped
+from nazeer_api.deps import admin, api_error, check_csrf, data_manager, get_db, get_settings_dep, member, scoped
 from nazeer_api.models import AuditEvent, Invitation, Job, Membership, Organization, User
 from nazeer_api.routers.auth import limit, normalize_email
 from nazeer_api.security import new_token, token_hash
@@ -90,7 +90,8 @@ def update_org(org_id: str, body: OrgPatch, m: Membership = Depends(admin), db: 
 # ---------------------------------------------------------------- members
 
 @router.get("/members")
-def list_members(org_id: str, m: Membership = Depends(admin), db: DbSession = Depends(get_db)) -> list[dict]:
+def list_members(org_id: str, m: Membership = Depends(data_manager), db: DbSession = Depends(get_db)) -> list[dict]:
+    """Admins and data managers (who pick share recipients)."""
     rows = db.execute(scoped(select(Membership), Membership, org_id).order_by(Membership.created_at)).scalars()
     return [member_payload(x) for x in rows]
 

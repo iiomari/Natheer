@@ -53,3 +53,129 @@ export type AuditEvent = {
   meta: Record<string, unknown>
   at: string
 }
+
+export type ColumnInfo = {
+  name: string
+  dtype: string
+  tag: "DIRECT_ID" | "QUASI_ID" | "SENSITIVE" | "NORMAL" | "FREE_TEXT"
+  kind: string | null
+  confidence: number
+  needs_review: boolean
+  reason: string
+  nulls: number
+  unique: number
+}
+
+export type JobState = {
+  id: string
+  status: "queued" | "running" | "succeeded" | "failed"
+  progress: number
+  stage: string | null
+  error_code: string | null
+  result: Record<string, unknown> | null
+}
+
+export type TwinRef = { id: string; mode: "masked" | "synthetic"; verdict: "PASS" | "FAIL"; created_at: string; purged: boolean }
+
+export type Dataset = {
+  id: string
+  name: string
+  status: "processing" | "ready" | "failed"
+  error_code: string | null
+  created_at: string
+  session_open: boolean
+  session_expires_at: string
+  originals_deleted_at: string | null
+  tables: { name: string; rows: number; columns: number }[]
+  twins: TwinRef[]
+  summary?: {
+    tables: { name: string; rows: number; primary_key: string | null; columns: ColumnInfo[] }[]
+    relationships: { child_table: string; child_column: string; parent_table: string; parent_column: string }[]
+    spans: {
+      nazeer: Record<string, number>
+      baseline: Record<string, number>
+      nazeer_found: number
+      baseline_found: number
+      baseline_false_alarms: number
+    }
+    notes: { table: string; column: string; row: number }[]
+    entity: { table: string } | null
+    ingest: { table: string; source: string; rows: number; columns: number; encoding: string | null; delimiter: string | null; header: string; dropped_empty_rows: number; dropped_empty_columns: number; renamed_columns: number }[]
+    total_rows: number
+  } | null
+  process_job?: JobState | null
+  generate_job?: JobState | null
+}
+
+export type Mark = [number, number, string, string]
+
+export type Note = { index: number; count: number; table: string; column: string; text: string; baseline: Mark[]; nazeer: Mark[] }
+
+export type KAnon = {
+  quasi_columns: string[]
+  k_min: number
+  k_before: number
+  k_after: number
+  passed_before: boolean
+  passed_after: boolean
+  rows_in_small_classes_before: number
+  suggestions: { name: string; description: string; k_before: number; k_after: number; rows_affected: number; reaches_k_min: boolean }[]
+  applied_fix: { name: string; k_before: number; k_after: number; rows_affected: number } | null
+}
+
+export type Twin = {
+  id: string
+  dataset_id: string
+  dataset_name: string
+  mode: "masked" | "synthetic"
+  verdict: "PASS" | "FAIL"
+  created_at: string
+  purged: boolean
+  withheld: boolean
+  session_open: boolean
+  shares: string[]
+  proof: {
+    leak: { status: string; leaks: number; cells: number }
+    validity?: { status: string; share: number | null } | null
+    links?: { status: string; orphans: number } | null
+    k?: (KAnon & { status: string }) | null
+  }
+  checks: { name: string; status: string; blocking: boolean; detail: string }[]
+  failed_checks: string[]
+  limitations: string[]
+  k_anonymity: KAnon | null
+  utility: { max_auc_drop?: number | null; note?: string; models?: Record<string, { real: { auc: number }; twin: { auc: number } }> } | null
+  privacy: { dcr?: { share_twin_closer_to_train_than_holdout: number; passed: boolean } } | null
+}
+
+export type ShareInfo = {
+  id: string
+  twin_id: string
+  dataset_name: string
+  mode: string
+  status: "active" | "expired" | "revoked"
+  formats: ("csv" | "xlsx")[]
+  message: string | null
+  expires_at: string
+  created_at: string
+  download_count: number
+  recipients: number
+  links: { id: string; label: string; accepted: boolean }[]
+  new_links?: { label: string; link_path: string }[]
+}
+
+export type Received = {
+  id: string
+  org_name: string
+  dataset_name: string
+  mode: string
+  verdict: "PASS" | "FAIL"
+  status: "active" | "expired" | "revoked"
+  formats: ("csv" | "xlsx")[]
+  message: string | null
+  created_at: string
+  expires_at: string
+  tables: { name: string; rows: number }[]
+  proof?: Twin["proof"]
+  preview?: { table: string; columns: string[]; rows: (string | null)[][] }[]
+}

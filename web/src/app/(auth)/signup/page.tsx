@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useState } from "react"
 import { Building2, UserRound } from "lucide-react"
 
 import { AuthCard } from "@/components/auth-card"
@@ -10,6 +10,7 @@ import { EmailField, PasswordField, TextField } from "@/components/form"
 import { InlineError, Spinner } from "@/components/nz"
 import { Button } from "@/components/ui/button"
 import { ApiError, api, messageFor } from "@/lib/api"
+import { safeNext } from "@/lib/nav"
 import { cn } from "@/lib/utils"
 
 type Kind = "organization" | "individual"
@@ -19,9 +20,10 @@ const KINDS: { value: Kind; title: string; text: string; icon: typeof Building2 
   { value: "individual", title: "فرد", text: "تستلم بيانات نظيرة وتعيد نتائجك.", icon: UserRound },
 ]
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter()
-  const [kind, setKind] = useState<Kind>("organization")
+  const next = useSearchParams().get("next")
+  const [kind, setKind] = useState<Kind>(next ? "individual" : "organization")
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
@@ -48,7 +50,7 @@ export default function SignupPage() {
           password,
         },
       })
-      router.replace("/app?welcome=1")
+      router.replace(next ? safeNext(next) : "/app?welcome=1")
     } catch (err) {
       if (err instanceof ApiError && err.code === "invalid_request") {
         setFieldErrors(Object.fromEntries(err.fields.map((k) => [k, "تحقّق من هذا الحقل."])))
@@ -65,7 +67,7 @@ export default function SignupPage() {
       footer={
         <>
           لديك حساب؟{" "}
-          <Link href="/login" className="font-semibold text-primary hover:underline">
+          <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-semibold text-primary hover:underline">
             سجّل الدخول
           </Link>
         </>
@@ -124,5 +126,13 @@ export default function SignupPage() {
         </Button>
       </form>
     </AuthCard>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
   )
 }
