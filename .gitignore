@@ -29,3 +29,6 @@ docs/internal/
 
 # deployment secrets kept locally (never committed)
 .railway-master-key.txt
+
+# the user's own working folder (test files, notebooks)
+Data+/

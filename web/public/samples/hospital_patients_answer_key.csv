@@ -1,0 +1,2377 @@
+row,file_id,column,type,planted_value,expected
+1,MRN-100000,اسم_المريض,PERSON_NAME,عبدالله المطيري,replace
+1,MRN-100000,رقم_الهوية,SAUDI_ID,1986987970,replace
+1,MRN-100000,الجوال,MOBILE,+966530911417,replace
+2,MRN-100001,اسم_المريض,PERSON_NAME,مشعل الرشيدي,replace
+2,MRN-100001,رقم_الهوية,SAUDI_ID,1469788093,replace
+2,MRN-100001,الجوال,MOBILE,0532081967,replace
+2,MRN-100001,ملاحظات,SAUDI_ID,١٤٦٩٧٨٨٠٩٣,replace
+3,MRN-100002,اسم_المريض,PERSON_NAME,نوف القحطاني,replace
+3,MRN-100002,رقم_الهوية,SAUDI_ID,1571784725,replace
+3,MRN-100002,الجوال,MOBILE,0557147513,replace
+3,MRN-100002,آيبان_الاسترداد,IBAN,SA8810319084520599728379,replace
+4,MRN-100003,اسم_المريض,PERSON_NAME,شيماء الخالدي,replace
+4,MRN-100003,رقم_الهوية,SAUDI_ID,1008754754,replace
+4,MRN-100003,الجوال,MOBILE,050 779 9229,replace
+4,MRN-100003,آيبان_الاسترداد,IBAN,SA4360807370283822264686,replace
+5,MRN-100004,اسم_المريض,PERSON_NAME,سلطان العتيبي,replace
+5,MRN-100004,رقم_الهوية,SAUDI_ID,1756820526,replace
+5,MRN-100004,الجوال,MOBILE,0548983194,replace
+5,MRN-100004,آيبان_الاسترداد,IBAN,SA6605210521854914524410,replace
+5,MRN-100004,ملاحظات,SAUDI_ID,١٧٥٦٨٢٠٥٢٦,replace
+6,MRN-100005,اسم_المريض,PERSON_NAME,أحمد الدوسري,replace
+6,MRN-100005,رقم_الهوية,SAUDI_ID,1846450607,replace
+6,MRN-100005,الجوال,MOBILE,٠٥٤٥٤١٤٦٥٩,replace
+7,MRN-100006,اسم_المريض,PERSON_NAME,عزام السهلي,replace
+7,MRN-100006,رقم_الهوية,SAUDI_ID,1452912809,replace
+7,MRN-100006,الجوال,MOBILE,+966598458500,replace
+8,MRN-100007,اسم_المريض,PERSON_NAME,فهد الشمري,replace
+8,MRN-100007,رقم_الهوية,SAUDI_ID,1421083948,replace
+8,MRN-100007,الجوال,MOBILE,0560668828,replace
+8,MRN-100007,آيبان_الاسترداد,IBAN,SA6620484526309765828025,replace
+8,MRN-100007,ملاحظات,SAUDI_ID,١٤٢١٠٨٣٩٤٨,replace
+9,MRN-100008,اسم_المريض,PERSON_NAME,عزام العسيري,replace
+9,MRN-100008,رقم_الهوية,SAUDI_ID,2164941573,replace
+9,MRN-100008,الجوال,MOBILE,0551883579,replace
+10,MRN-100009,اسم_المريض,PERSON_NAME,لمى السبيعي,replace
+10,MRN-100009,رقم_الهوية,SAUDI_ID,1742843525,replace
+10,MRN-100009,الجوال,MOBILE,966561449766,replace
+10,MRN-100009,ملاحظات,MOBILE,056 144 9766,replace
+11,MRN-100010,اسم_المريض,PERSON_NAME,سارة المطيري,replace
+11,MRN-100010,رقم_الهوية,SAUDI_ID,1450378490,replace
+11,MRN-100010,الجوال,MOBILE,0595183801,replace
+12,MRN-100011,اسم_المريض,PERSON_NAME,سعود العتيبي,replace
+12,MRN-100011,رقم_الهوية,SAUDI_ID,1547354868,replace
+12,MRN-100011,الجوال,MOBILE,٠٥٤٣٩٠٦١٨٨,replace
+13,MRN-100012,اسم_المريض,PERSON_NAME,  غادة العسيري   ,replace
+13,MRN-100012,رقم_الهوية,SAUDI_ID,2556898324,replace
+13,MRN-100012,الجوال,MOBILE,966568222900,replace
+13,MRN-100012,آيبان_الاسترداد,IBAN,SA0380226978043858176252,replace
+14,MRN-100013,اسم_المريض,PERSON_NAME,مشعل العنزي,replace
+14,MRN-100013,رقم_الهوية,SAUDI_ID,1866753476,replace
+14,MRN-100013,الجوال,MOBILE,0569713311,replace
+14,MRN-100013,ملاحظات,IBAN,SA48 8018 4001 9273 4690 0330,replace
+15,MRN-100014,اسم_المريض,PERSON_NAME,ريم الحربي,replace
+15,MRN-100014,رقم_الهوية,SAUDI_ID,1514203817,replace
+15,MRN-100014,الجوال,MOBILE,0558057803,replace
+16,MRN-100015,اسم_المريض,PERSON_NAME,بشاير الغامدي,replace
+16,MRN-100015,رقم_الهوية,SAUDI_ID,2922328386,replace
+16,MRN-100015,الجوال,MOBILE,٠٥٤٦٤٢٧١٠٥,replace
+17,MRN-100016,اسم_المريض,PERSON_NAME,سارة العتيبي,replace
+17,MRN-100016,رقم_الهوية,SAUDI_ID,1279137291,replace
+17,MRN-100016,الجوال,MOBILE,0567112098,replace
+17,MRN-100016,آيبان_الاسترداد,IBAN,SA9310571647744796745219,replace
+17,MRN-100016,ملاحظات,PERSON_NAME,عادل القرني,replace
+17,MRN-100016,ملاحظات,MOBILE,+٩٦٦ ٥٣ ١٣٦ ٢٩٥٨,replace
+18,MRN-100017,اسم_المريض,PERSON_NAME,نوف الشمري,replace
+18,MRN-100017,رقم_الهوية,SAUDI_ID,1864573280,replace
+18,MRN-100017,الجوال,MOBILE,0540934269,replace
+19,MRN-100018,اسم_المريض,PERSON_NAME,غادة العتيبي,replace
+19,MRN-100018,رقم_الهوية,SAUDI_ID,2327967267,replace
+19,MRN-100018,الجوال,MOBILE,0563508111,replace
+19,MRN-100018,آيبان_الاسترداد,IBAN,SA5280527611387592115327,replace
+20,MRN-100019,اسم_المريض,PERSON_NAME,سلطان العمري,replace
+20,MRN-100019,رقم_الهوية,SAUDI_ID,2202994469,replace
+20,MRN-100019,الجوال,MOBILE,0503516199,replace
+20,MRN-100019,ملاحظات,SAUDI_ID,1955156691,ignore
+21,MRN-100020,اسم_المريض,PERSON_NAME,أروى الدوسري,replace
+21,MRN-100020,رقم_الهوية,SAUDI_ID,1679596500,replace
+21,MRN-100020,الجوال,MOBILE,0546547056,replace
+21,MRN-100020,ملاحظات,SAUDI_ID,1216311119,ignore
+22,MRN-100021,اسم_المريض,PERSON_NAME,بشاير السهلي,replace
+22,MRN-100021,رقم_الهوية,SAUDI_ID,1465873063,replace
+22,MRN-100021,الجوال,MOBILE,٠٥٤٢٤٨٢٩٦٠,replace
+23,MRN-100022,اسم_المريض,PERSON_NAME,هند القرني,replace
+23,MRN-100022,رقم_الهوية,SAUDI_ID,1488181379,replace
+23,MRN-100022,الجوال,MOBILE,0565222384,replace
+23,MRN-100022,ملاحظات,PERSON_NAME,هند,replace
+24,MRN-100023,اسم_المريض,PERSON_NAME,العنود الشهري,replace
+24,MRN-100023,رقم_الهوية,SAUDI_ID,1442014617,replace
+24,MRN-100023,الجوال,MOBILE,0533800530,replace
+24,MRN-100023,ملاحظات,SAUDI_ID,1067090721,ignore
+25,MRN-100024,اسم_المريض,PERSON_NAME,غادة البقمي,replace
+25,MRN-100024,رقم_الهوية,SAUDI_ID,1413633437,replace
+25,MRN-100024,الجوال,MOBILE,0550108752,replace
+26,MRN-100025,اسم_المريض,PERSON_NAME,سلطان المطيري,replace
+26,MRN-100025,رقم_الهوية,SAUDI_ID,1967704410,replace
+26,MRN-100025,الجوال,MOBILE,0590475168,replace
+26,MRN-100025,ملاحظات,IBAN,SA40 6020 0488 3004 1267 3370,replace
+27,MRN-100026,اسم_المريض,PERSON_NAME,عبدالله الحربي,replace
+27,MRN-100026,رقم_الهوية,SAUDI_ID,1581299912,replace
+27,MRN-100026,الجوال,MOBILE,0547067554,replace
+27,MRN-100026,ملاحظات,PERSON_NAME,عبدالله,replace
+28,MRN-100027,اسم_المريض,PERSON_NAME,سارة الشمري,replace
+28,MRN-100027,رقم_الهوية,SAUDI_ID,1242204269,replace
+28,MRN-100027,الجوال,MOBILE,0538370950,replace
+28,MRN-100027,آيبان_الاسترداد,IBAN,SA3110252695637827608219,replace
+28,MRN-100027,ملاحظات,SAUDI_ID,١٢٤٢٢٠٤٢٦٩,replace
+29,MRN-100104,اسم_المريض,PERSON_NAME,هند اليامي,replace
+29,MRN-100104,رقم_الهوية,SAUDI_ID,1624863302,replace
+29,MRN-100104,الجوال,MOBILE,0532087470,replace
+30,MRN-100028,اسم_المريض,PERSON_NAME,دانة الشمري,replace
+30,MRN-100028,رقم_الهوية,SAUDI_ID,1550135105,replace
+30,MRN-100028,الجوال,MOBILE,059 063 7171,replace
+30,MRN-100028,ملاحظات,SAUDI_ID,١٥٥٠١٣٥١٠٥,replace
+31,MRN-100029,اسم_المريض,PERSON_NAME,عبدالله الشهري,replace
+31,MRN-100029,رقم_الهوية,SAUDI_ID,1294183411,replace
+31,MRN-100029,الجوال,MOBILE,+966560823861,replace
+31,MRN-100029,ملاحظات,SAUDI_ID,١٢٩٤١٨٣٤١١,replace
+32,MRN-100030,اسم_المريض,PERSON_NAME,دانة العمري,replace
+32,MRN-100030,رقم_الهوية,SAUDI_ID,1129744767,replace
+32,MRN-100030,الجوال,MOBILE,966550471393,replace
+32,MRN-100030,آيبان_الاسترداد,IBAN,SA8805056433387926877109,replace
+33,MRN-100031,اسم_المريض,PERSON_NAME,وجدان اليامي,replace
+33,MRN-100031,رقم_الهوية,SAUDI_ID,1651648071,replace
+33,MRN-100031,الجوال,MOBILE,٠٥٦٨٢٠٣٩٦٢,replace
+33,MRN-100031,آيبان_الاسترداد,IBAN,SA2180989760028220701692,replace
+33,MRN-100031,ملاحظات,SAUDI_ID,1432316777,ignore
+34,MRN-100032,اسم_المريض,PERSON_NAME,نورة الشمري,replace
+34,MRN-100032,رقم_الهوية,SAUDI_ID,2534479676,replace
+34,MRN-100032,الجوال,MOBILE,0535218990,replace
+34,MRN-100032,آيبان_الاسترداد,IBAN,SA6510713831294715029529,replace
+34,MRN-100032,ملاحظات,PERSON_NAME,عبدالله العسيري,replace
+34,MRN-100032,ملاحظات,MOBILE,+٩٦٦ ٥٩ ٦٣٤ ٥٢٦٠,replace
+35,MRN-100033,اسم_المريض,PERSON_NAME,  منى القرني   ,replace
+35,MRN-100033,رقم_الهوية,SAUDI_ID,2114594605,replace
+35,MRN-100033,الجوال,MOBILE,966566584500,replace
+36,MRN-100034,اسم_المريض,PERSON_NAME,منى السبيعي,replace
+36,MRN-100034,رقم_الهوية,SAUDI_ID,1151575394,replace
+36,MRN-100034,الجوال,MOBILE,059 210 2549,replace
+37,MRN-100035,اسم_المريض,PERSON_NAME,غادة الحربي,replace
+37,MRN-100035,رقم_الهوية,SAUDI_ID,2949806554,replace
+37,MRN-100035,الجوال,MOBILE,٠٥٦٥٦٢٥٢٨٤,replace
+37,MRN-100035,آيبان_الاسترداد,IBAN,SA7205506942669814331791,replace
+38,MRN-100036,اسم_المريض,PERSON_NAME,هند السبيعي,replace
+38,MRN-100036,رقم_الهوية,SAUDI_ID,2695631438,replace
+38,MRN-100036,الجوال,MOBILE,0565461807,replace
+39,MRN-100037,اسم_المريض,PERSON_NAME,رهف اليامي,replace
+39,MRN-100037,رقم_الهوية,SAUDI_ID,1617978554,replace
+39,MRN-100037,الجوال,MOBILE,+966555660554,replace
+39,MRN-100037,آيبان_الاسترداد,IBAN,SA5605244871774836403201,replace
+39,MRN-100037,ملاحظات,SAUDI_ID,1791016992,ignore
+40,MRN-100038,اسم_المريض,PERSON_NAME,يوسف الحربي,replace
+40,MRN-100038,رقم_الهوية,SAUDI_ID,2717451435,replace
+40,MRN-100038,الجوال,MOBILE,0541159378,replace
+40,MRN-100038,آيبان_الاسترداد,IBAN,SA5010452877132744043096,replace
+41,MRN-100039,اسم_المريض,PERSON_NAME,منى الشهري,replace
+41,MRN-100039,رقم_الهوية,SAUDI_ID,1586627125,replace
+41,MRN-100039,الجوال,MOBILE,0542042651,replace
+41,MRN-100039,آيبان_الاسترداد,IBAN,SA8680052865946055183000,replace
+42,MRN-100040,اسم_المريض,PERSON_NAME,سارة الحربي,replace
+42,MRN-100040,رقم_الهوية,SAUDI_ID,1233843059,replace
+42,MRN-100040,الجوال,MOBILE,+966560619227,replace
+42,MRN-100040,آيبان_الاسترداد,IBAN,SA2960519955939298170361,replace
+43,MRN-100041,اسم_المريض,PERSON_NAME,ريم القرني,replace
+43,MRN-100041,رقم_الهوية,SAUDI_ID,2825753706,replace
+43,MRN-100041,الجوال,MOBILE,0597308090,replace
+43,MRN-100041,ملاحظات,PERSON_NAME,ريم,replace
+44,MRN-100042,اسم_المريض,PERSON_NAME,لمى العسيري,replace
+44,MRN-100042,رقم_الهوية,SAUDI_ID,1526058183,replace
+44,MRN-100042,الجوال,MOBILE,0565893832,replace
+44,MRN-100042,ملاحظات,PERSON_NAME,لمى,replace
+45,MRN-100043,اسم_المريض,PERSON_NAME,  هند الشمري   ,replace
+45,MRN-100043,رقم_الهوية,SAUDI_ID,1365966025,replace
+45,MRN-100043,الجوال,MOBILE,٠٥٥٨٣٧٥٤٧٤,replace
+46,MRN-100044,اسم_المريض,PERSON_NAME,أروى الشمري,replace
+46,MRN-100044,رقم_الهوية,SAUDI_ID,1532168703,replace
+46,MRN-100044,الجوال,MOBILE,٠٥٥٨٤٤٣١٧٣,replace
+47,MRN-100045,اسم_المريض,PERSON_NAME,بشاير اليامي,replace
+47,MRN-100045,رقم_الهوية,SAUDI_ID,1971697311,replace
+47,MRN-100045,الجوال,MOBILE,+966554891984,replace
+48,MRN-100046,اسم_المريض,PERSON_NAME,مشعل السبيعي,replace
+48,MRN-100046,رقم_الهوية,SAUDI_ID,1252196074,replace
+48,MRN-100046,الجوال,MOBILE,0553865351,replace
+48,MRN-100046,ملاحظات,MOBILE,055 386 5351,replace
+49,MRN-100047,اسم_المريض,PERSON_NAME,غادة السبيعي,replace
+49,MRN-100047,رقم_الهوية,SAUDI_ID,1284522255,replace
+49,MRN-100047,الجوال,MOBILE,0504351976,replace
+49,MRN-100047,ملاحظات,SAUDI_ID,1478753005,review
+50,MRN-100048,اسم_المريض,PERSON_NAME,أثير الخالدي,replace
+50,MRN-100048,رقم_الهوية,SAUDI_ID,1757488786,replace
+50,MRN-100048,الجوال,MOBILE,0500108102,replace
+50,MRN-100048,ملاحظات,PERSON_NAME,أثير,replace
+51,MRN-100049,اسم_المريض,PERSON_NAME,بندر العنزي,replace
+51,MRN-100049,رقم_الهوية,SAUDI_ID,2600121202,replace
+51,MRN-100049,الجوال,MOBILE,0596661205,replace
+52,MRN-100050,اسم_المريض,PERSON_NAME,راشد الحربي,replace
+52,MRN-100050,رقم_الهوية,SAUDI_ID,1327163398,replace
+52,MRN-100050,الجوال,MOBILE,053 851 0029,replace
+52,MRN-100050,آيبان_الاسترداد,IBAN,SA6105721083579996195309,replace
+52,MRN-100050,ملاحظات,MOBILE,053 851 0029,replace
+53,MRN-100051,اسم_المريض,PERSON_NAME,نورة العمري,replace
+53,MRN-100051,رقم_الهوية,SAUDI_ID,1112116841,replace
+53,MRN-100051,الجوال,MOBILE,+966545584195,replace
+53,MRN-100051,ملاحظات,SAUDI_ID,١١١٢١١٦٨٤١,replace
+54,MRN-100052,اسم_المريض,PERSON_NAME,منى العتيبي,replace
+54,MRN-100052,رقم_الهوية,SAUDI_ID,2805350192,replace
+54,MRN-100052,الجوال,MOBILE,+966509652003,replace
+55,MRN-100053,اسم_المريض,PERSON_NAME,نوف البقمي,replace
+55,MRN-100053,رقم_الهوية,SAUDI_ID,1379101726,replace
+55,MRN-100053,الجوال,MOBILE,0551722459,replace
+55,MRN-100053,ملاحظات,SAUDI_ID,1965679952,review
+56,MRN-100054,اسم_المريض,PERSON_NAME,ماجد العمري,replace
+56,MRN-100054,رقم_الهوية,SAUDI_ID,1210772578,replace
+56,MRN-100054,الجوال,MOBILE,0545090083,replace
+56,MRN-100054,آيبان_الاسترداد,IBAN,SA1005739440514381596410,replace
+57,MRN-100055,اسم_المريض,PERSON_NAME,أروى العمري,replace
+57,MRN-100055,رقم_الهوية,SAUDI_ID,1572130514,replace
+57,MRN-100055,الجوال,MOBILE,0551676505,replace
+57,MRN-100055,ملاحظات,SAUDI_ID,1572 130 514,replace
+58,MRN-100056,اسم_المريض,PERSON_NAME,غادة القحطاني,replace
+58,MRN-100056,رقم_الهوية,SAUDI_ID,1237296130,replace
+58,MRN-100056,الجوال,MOBILE,+966507857104,replace
+59,MRN-100057,اسم_المريض,PERSON_NAME,سارة الغامدي,replace
+59,MRN-100057,رقم_الهوية,SAUDI_ID,1521621449,replace
+59,MRN-100057,الجوال,MOBILE,0596134399,replace
+59,MRN-100057,آيبان_الاسترداد,IBAN,SA3820489586422386162589,replace
+60,MRN-100319,اسم_المريض,PERSON_NAME,نوف العسيري,replace
+60,MRN-100319,رقم_الهوية,SAUDI_ID,1175627791,replace
+60,MRN-100319,الجوال,MOBILE,+966540705621,replace
+60,MRN-100319,آيبان_الاسترداد,IBAN,SA8880061416335182809398,replace
+61,MRN-100058,اسم_المريض,PERSON_NAME,  دانة السهلي   ,replace
+61,MRN-100058,رقم_الهوية,SAUDI_ID,1064173592,replace
+61,MRN-100058,الجوال,MOBILE,0554852681,replace
+61,MRN-100058,آيبان_الاسترداد,IBAN,SA0480524900751429309241,replace
+62,MRN-100059,اسم_المريض,PERSON_NAME,ماجد البقمي,replace
+62,MRN-100059,رقم_الهوية,SAUDI_ID,2145302549,replace
+62,MRN-100059,الجوال,MOBILE,+966541211740,replace
+63,MRN-100060,اسم_المريض,PERSON_NAME,أثير العمري,replace
+63,MRN-100060,رقم_الهوية,SAUDI_ID,1416859690,replace
+63,MRN-100060,الجوال,MOBILE,059 030 7489,replace
+63,MRN-100060,ملاحظات,PERSON_NAME,ماجد الحربي,replace
+63,MRN-100060,ملاحظات,MOBILE,+٩٦٦ ٥٠ ٣٢٧ ٨٥٣٨,replace
+64,MRN-100061,اسم_المريض,PERSON_NAME,زياد المطيري,replace
+64,MRN-100061,رقم_الهوية,SAUDI_ID,1698604012,replace
+64,MRN-100061,الجوال,MOBILE,0548612415,replace
+64,MRN-100061,ملاحظات,MOBILE,054 861 2415,replace
+65,MRN-100062,اسم_المريض,PERSON_NAME,  أروى الحربي   ,replace
+65,MRN-100062,رقم_الهوية,SAUDI_ID,1036427050,replace
+65,MRN-100062,الجوال,MOBILE,+966555540819,replace
+65,MRN-100062,آيبان_الاسترداد,IBAN,SA1710170905747196683149,replace
+66,MRN-100063,اسم_المريض,PERSON_NAME,نورة الزهراني,replace
+66,MRN-100063,رقم_الهوية,SAUDI_ID,2277926271,replace
+66,MRN-100063,الجوال,MOBILE,0501177446,replace
+67,MRN-100064,اسم_المريض,PERSON_NAME,ماجد القرني,replace
+67,MRN-100064,رقم_الهوية,SAUDI_ID,1505434421,replace
+67,MRN-100064,الجوال,MOBILE,٠٥٤٣١٢٠١٤١,replace
+68,MRN-100242,اسم_المريض,PERSON_NAME,العنود القرني,replace
+68,MRN-100242,رقم_الهوية,SAUDI_ID,2916163823,replace
+68,MRN-100242,الجوال,MOBILE,0558010514,replace
+68,MRN-100242,ملاحظات,PERSON_NAME,العنود,replace
+69,MRN-100065,اسم_المريض,PERSON_NAME,بندر اليامي,replace
+69,MRN-100065,رقم_الهوية,SAUDI_ID,1730465232,replace
+69,MRN-100065,الجوال,MOBILE,0560359085,replace
+69,MRN-100065,آيبان_الاسترداد,IBAN,SA6545084164413207653646,replace
+70,MRN-100066,اسم_المريض,PERSON_NAME,يوسف البقمي,replace
+70,MRN-100066,رقم_الهوية,SAUDI_ID,2617591157,replace
+70,MRN-100066,الجوال,MOBILE,0506021331,replace
+71,MRN-100067,اسم_المريض,PERSON_NAME,محمد الرشيدي,replace
+71,MRN-100067,رقم_الهوية,SAUDI_ID,2013914128,replace
+71,MRN-100067,الجوال,MOBILE,0532501783,replace
+72,MRN-100068,اسم_المريض,PERSON_NAME,أروى العمري,replace
+72,MRN-100068,رقم_الهوية,SAUDI_ID,1763448816,replace
+72,MRN-100068,الجوال,MOBILE,+966502393518,replace
+72,MRN-100068,آيبان_الاسترداد,IBAN,SA2220303049417357207101,replace
+73,MRN-100069,اسم_المريض,PERSON_NAME,أحمد العنزي,replace
+73,MRN-100069,رقم_الهوية,SAUDI_ID,1926408863,replace
+73,MRN-100069,الجوال,MOBILE,٠٥٣١٥٤٧٧١٢,replace
+74,MRN-100070,اسم_المريض,PERSON_NAME,ريم القرني,replace
+74,MRN-100070,رقم_الهوية,SAUDI_ID,1324363181,replace
+74,MRN-100070,الجوال,MOBILE,0594768424,replace
+74,MRN-100070,ملاحظات,PERSON_NAME,ماجد البقمي,replace
+74,MRN-100070,ملاحظات,MOBILE,+٩٦٦ ٥٤ ٦٢٠ ٧٣٣٧,replace
+75,MRN-100071,اسم_المريض,PERSON_NAME,رهف الغامدي,replace
+75,MRN-100071,رقم_الهوية,SAUDI_ID,1029325832,replace
+75,MRN-100071,الجوال,MOBILE,056 515 3482,replace
+76,MRN-100072,اسم_المريض,PERSON_NAME,مشعل الحربي,replace
+76,MRN-100072,رقم_الهوية,SAUDI_ID,1421037787,replace
+76,MRN-100072,الجوال,MOBILE,0549739271,replace
+76,MRN-100072,ملاحظات,SAUDI_ID,١٤٢١٠٣٧٧٨٧,replace
+77,MRN-100073,اسم_المريض,PERSON_NAME,سلطان العسيري,replace
+77,MRN-100073,رقم_الهوية,SAUDI_ID,1845381050,replace
+77,MRN-100073,الجوال,MOBILE,0568134170,replace
+78,MRN-100074,اسم_المريض,PERSON_NAME,غادة البقمي,replace
+78,MRN-100074,رقم_الهوية,SAUDI_ID,1483407837,replace
+78,MRN-100074,الجوال,MOBILE,0542415468,replace
+78,MRN-100074,ملاحظات,SAUDI_ID,1483 407 837,replace
+79,MRN-100075,اسم_المريض,PERSON_NAME,جواهر القرني,replace
+79,MRN-100075,رقم_الهوية,SAUDI_ID,1171417650,replace
+79,MRN-100075,الجوال,MOBILE,+966599014494,replace
+79,MRN-100075,آيبان_الاسترداد,IBAN,SA5260839648828572995847,replace
+79,MRN-100075,ملاحظات,MOBILE,059 901 4494,replace
+80,MRN-100076,اسم_المريض,PERSON_NAME,غادة البقمي,replace
+80,MRN-100076,رقم_الهوية,SAUDI_ID,2197472778,replace
+80,MRN-100076,الجوال,MOBILE,+966565932269,replace
+81,MRN-100077,اسم_المريض,PERSON_NAME,لمى البقمي,replace
+81,MRN-100077,رقم_الهوية,SAUDI_ID,1225672185,replace
+81,MRN-100077,الجوال,MOBILE,0558701250,replace
+82,MRN-100078,اسم_المريض,PERSON_NAME,سلطان الدوسري,replace
+82,MRN-100078,رقم_الهوية,SAUDI_ID,1305717868,replace
+82,MRN-100078,الجوال,MOBILE,0546100662,replace
+82,MRN-100078,آيبان_الاسترداد,IBAN,SA6780232570874074078728,replace
+82,MRN-100078,ملاحظات,SAUDI_ID,١٣٠٥٧١٧٨٦٨,replace
+83,MRN-100079,اسم_المريض,PERSON_NAME,العنود الحربي,replace
+83,MRN-100079,رقم_الهوية,SAUDI_ID,1547067783,replace
+83,MRN-100079,الجوال,MOBILE,0505764180,replace
+84,MRN-100080,اسم_المريض,PERSON_NAME,نوف الغامدي,replace
+84,MRN-100080,رقم_الهوية,SAUDI_ID,2728177607,replace
+84,MRN-100080,الجوال,MOBILE,0539972463,replace
+84,MRN-100080,آيبان_الاسترداد,IBAN,SA3010772092264103517043,replace
+85,MRN-100081,اسم_المريض,PERSON_NAME,زياد الشمري,replace
+85,MRN-100081,رقم_الهوية,SAUDI_ID,2152635237,replace
+85,MRN-100081,الجوال,MOBILE,0508069840,replace
+86,MRN-100082,اسم_المريض,PERSON_NAME,ماجد العمري,replace
+86,MRN-100082,رقم_الهوية,SAUDI_ID,1338795220,replace
+86,MRN-100082,الجوال,MOBILE,0560777728,replace
+87,MRN-100083,اسم_المريض,PERSON_NAME,سلطان الشهري,replace
+87,MRN-100083,رقم_الهوية,SAUDI_ID,1670744018,replace
+87,MRN-100083,الجوال,MOBILE,966567859702,replace
+87,MRN-100083,ملاحظات,SAUDI_ID,١٦٧٠٧٤٤٠١٨,replace
+88,MRN-100084,اسم_المريض,PERSON_NAME,أحمد القرني,replace
+88,MRN-100084,رقم_الهوية,SAUDI_ID,1852954153,replace
+88,MRN-100084,الجوال,MOBILE,0537418371,replace
+89,MRN-100085,اسم_المريض,PERSON_NAME,نوف الشهري,replace
+89,MRN-100085,رقم_الهوية,SAUDI_ID,1478394255,replace
+89,MRN-100085,الجوال,MOBILE,0596776959,replace
+89,MRN-100085,ملاحظات,SAUDI_ID,1478394255,replace
+89,MRN-100085,ملاحظات,MOBILE,0596776959,replace
+90,MRN-100086,اسم_المريض,PERSON_NAME,لمى العمري,replace
+90,MRN-100086,رقم_الهوية,SAUDI_ID,1541495055,replace
+90,MRN-100086,الجوال,MOBILE,0549303303,replace
+91,MRN-100087,اسم_المريض,PERSON_NAME,يوسف العسيري,replace
+91,MRN-100087,رقم_الهوية,SAUDI_ID,1678224740,replace
+91,MRN-100087,الجوال,MOBILE,0507180112,replace
+91,MRN-100087,آيبان_الاسترداد,IBAN,SA7160616447153232794744,replace
+91,MRN-100087,ملاحظات,MOBILE,050 718 0112,replace
+92,MRN-100088,اسم_المريض,PERSON_NAME,أحمد الدوسري,replace
+92,MRN-100088,رقم_الهوية,SAUDI_ID,1149654079,replace
+92,MRN-100088,الجوال,MOBILE,+966599211259,replace
+93,MRN-100089,اسم_المريض,PERSON_NAME,لمى السهلي,replace
+93,MRN-100089,رقم_الهوية,SAUDI_ID,1640255483,replace
+93,MRN-100089,الجوال,MOBILE,+966559252457,replace
+93,MRN-100089,ملاحظات,MOBILE,055 925 2457,replace
+94,MRN-100090,اسم_المريض,PERSON_NAME,منى الدوسري,replace
+94,MRN-100090,رقم_الهوية,SAUDI_ID,2401640509,replace
+94,MRN-100090,الجوال,MOBILE,٠٥٠١٦٥٩٨٣٥,replace
+95,MRN-100091,اسم_المريض,PERSON_NAME,منى الزهراني,replace
+95,MRN-100091,رقم_الهوية,SAUDI_ID,1332567104,replace
+95,MRN-100091,الجوال,MOBILE,054 219 0527,replace
+95,MRN-100091,ملاحظات,MOBILE,054 219 0527,replace
+96,MRN-100092,اسم_المريض,PERSON_NAME,يوسف العسيري,replace
+96,MRN-100092,رقم_الهوية,SAUDI_ID,2441345408,replace
+96,MRN-100092,الجوال,MOBILE,966554329348,replace
+96,MRN-100092,آيبان_الاسترداد,IBAN,SA6360104979980573657003,replace
+96,MRN-100092,ملاحظات,MOBILE,055 432 9348,replace
+97,MRN-100093,اسم_المريض,PERSON_NAME,وليد الشمري,replace
+97,MRN-100093,رقم_الهوية,SAUDI_ID,1237540610,replace
+97,MRN-100093,الجوال,MOBILE,+966551861700,replace
+97,MRN-100093,آيبان_الاسترداد,IBAN,SA7580872226543413936556,replace
+97,MRN-100093,ملاحظات,PERSON_NAME,زياد الدوسري,replace
+97,MRN-100093,ملاحظات,MOBILE,+٩٦٦ ٥٩ ٣٠٩ ٦٣٦٢,replace
+98,MRN-100094,اسم_المريض,PERSON_NAME,دانة العتيبي,replace
+98,MRN-100094,رقم_الهوية,SAUDI_ID,2917296176,replace
+98,MRN-100094,الجوال,MOBILE,٠٥٦١٧٥٩٥٨٦,replace
+99,MRN-100095,اسم_المريض,PERSON_NAME,ريان الزهراني,replace
+99,MRN-100095,رقم_الهوية,SAUDI_ID,1914251051,replace
+99,MRN-100095,الجوال,MOBILE,0567980433,replace
+99,MRN-100095,آيبان_الاسترداد,IBAN,SA6810036274073866346240,replace
+100,MRN-100096,اسم_المريض,PERSON_NAME,رغد القرني,replace
+100,MRN-100096,رقم_الهوية,SAUDI_ID,1085404851,replace
+100,MRN-100096,الجوال,MOBILE,966509144448,replace
+100,MRN-100096,ملاحظات,SAUDI_ID,١٠٨٥٤٠٤٨٥١,replace
+101,MRN-100097,اسم_المريض,PERSON_NAME,دانة الشهري,replace
+101,MRN-100097,رقم_الهوية,SAUDI_ID,1721105391,replace
+101,MRN-100097,الجوال,MOBILE,0509301930,replace
+101,MRN-100097,آيبان_الاسترداد,IBAN,SA6845253959773386617876,replace
+101,MRN-100097,ملاحظات,SAUDI_ID,1149582125,ignore
+102,MRN-100098,اسم_المريض,PERSON_NAME,نوف الرشيدي,replace
+102,MRN-100098,رقم_الهوية,SAUDI_ID,1351896020,replace
+102,MRN-100098,الجوال,MOBILE,966539332250,replace
+102,MRN-100098,ملاحظات,SAUDI_ID,١٣٥١٨٩٦٠٢٠,replace
+103,MRN-100099,اسم_المريض,PERSON_NAME,محمد الحربي,replace
+103,MRN-100099,رقم_الهوية,SAUDI_ID,2495755668,replace
+103,MRN-100099,الجوال,MOBILE,٠٥٤٩٨٧٤٠٧٦,replace
+103,MRN-100099,آيبان_الاسترداد,IBAN,SA8580648740208438522519,replace
+103,MRN-100099,ملاحظات,MOBILE,054 987 4076,replace
+104,MRN-100100,اسم_المريض,PERSON_NAME,بشاير البقمي,replace
+104,MRN-100100,رقم_الهوية,SAUDI_ID,1404635367,replace
+104,MRN-100100,الجوال,MOBILE,+966590216730,replace
+105,MRN-100101,اسم_المريض,PERSON_NAME,وجدان القحطاني,replace
+105,MRN-100101,رقم_الهوية,SAUDI_ID,1274354412,replace
+105,MRN-100101,الجوال,MOBILE,055 638 0991,replace
+106,MRN-100102,اسم_المريض,PERSON_NAME,فهد القرني,replace
+106,MRN-100102,رقم_الهوية,SAUDI_ID,1623746763,replace
+106,MRN-100102,الجوال,MOBILE,054 194 2373,replace
+107,MRN-100103,اسم_المريض,PERSON_NAME,نايف الزهراني,replace
+107,MRN-100103,رقم_الهوية,SAUDI_ID,1745048551,replace
+107,MRN-100103,الجوال,MOBILE,054 096 4599,replace
+107,MRN-100103,آيبان_الاسترداد,IBAN,SA7380522683205197552220,replace
+107,MRN-100103,ملاحظات,SAUDI_ID,1745 048 551,replace
+109,MRN-100105,اسم_المريض,PERSON_NAME,غادة العسيري,replace
+109,MRN-100105,رقم_الهوية,SAUDI_ID,2628353258,replace
+109,MRN-100105,الجوال,MOBILE,0501765723,replace
+110,MRN-100106,اسم_المريض,PERSON_NAME,بندر القحطاني,replace
+110,MRN-100106,رقم_الهوية,SAUDI_ID,1800620559,replace
+110,MRN-100106,الجوال,MOBILE,053 485 3846,replace
+110,MRN-100106,آيبان_الاسترداد,IBAN,SA0410510864563386490063,replace
+111,MRN-100107,اسم_المريض,PERSON_NAME,رغد الشهري,replace
+111,MRN-100107,رقم_الهوية,SAUDI_ID,1533174114,replace
+111,MRN-100107,الجوال,MOBILE,0561132728,replace
+111,MRN-100107,ملاحظات,PERSON_NAME,ريان المطيري,replace
+111,MRN-100107,ملاحظات,MOBILE,+٩٦٦ ٥٥ ٦٧٤ ٠٧٨٢,replace
+112,MRN-100108,اسم_المريض,PERSON_NAME,فيصل الشهري,replace
+112,MRN-100108,رقم_الهوية,SAUDI_ID,1393392228,replace
+112,MRN-100108,الجوال,MOBILE,+966560280617,replace
+112,MRN-100108,ملاحظات,PERSON_NAME,ريان اليامي,replace
+112,MRN-100108,ملاحظات,MOBILE,+٩٦٦ ٥٠ ٧٢٤ ٠٤٩٣,replace
+113,MRN-100109,اسم_المريض,PERSON_NAME,نايف الخالدي,replace
+113,MRN-100109,رقم_الهوية,SAUDI_ID,2660405693,replace
+113,MRN-100109,الجوال,MOBILE,+966557843062,replace
+113,MRN-100109,آيبان_الاسترداد,IBAN,SA4345986478940184073727,replace
+114,MRN-100110,اسم_المريض,PERSON_NAME,نوف الشمري,replace
+114,MRN-100110,رقم_الهوية,SAUDI_ID,1457273579,replace
+114,MRN-100110,الجوال,MOBILE,0599342749,replace
+114,MRN-100110,ملاحظات,IBAN,SA75 2003 7631 4688 7121 5367,replace
+115,MRN-100111,اسم_المريض,PERSON_NAME,يوسف العمري,replace
+115,MRN-100111,رقم_الهوية,SAUDI_ID,1354611475,replace
+115,MRN-100111,الجوال,MOBILE,٠٥٩١١١٦٨٣١,replace
+115,MRN-100111,آيبان_الاسترداد,IBAN,SA3945114962359690551219,replace
+116,MRN-100112,اسم_المريض,PERSON_NAME,  بندر العسيري   ,replace
+116,MRN-100112,رقم_الهوية,SAUDI_ID,1668312034,replace
+116,MRN-100112,الجوال,MOBILE,+966509446411,replace
+116,MRN-100112,ملاحظات,MOBILE,050 944 6411,replace
+117,MRN-100113,اسم_المريض,PERSON_NAME,العنود القحطاني,replace
+117,MRN-100113,رقم_الهوية,SAUDI_ID,1113249930,replace
+117,MRN-100113,الجوال,MOBILE,0506457111,replace
+117,MRN-100113,ملاحظات,SAUDI_ID,1653398454,ignore
+118,MRN-100114,اسم_المريض,PERSON_NAME,سارة السهلي,replace
+118,MRN-100114,رقم_الهوية,SAUDI_ID,1957280629,replace
+118,MRN-100114,الجوال,MOBILE,966503328868,replace
+118,MRN-100114,ملاحظات,SAUDI_ID,1853249439,review
+119,MRN-100115,اسم_المريض,PERSON_NAME,  سلطان الزهراني   ,replace
+119,MRN-100115,رقم_الهوية,SAUDI_ID,1642118457,replace
+119,MRN-100115,الجوال,MOBILE,0569761054,replace
+119,MRN-100115,آيبان_الاسترداد,IBAN,SA8920459536347792064280,replace
+119,MRN-100115,ملاحظات,MOBILE,056 976 1054,replace
+120,MRN-100362,اسم_المريض,PERSON_NAME,رهف البقمي,replace
+120,MRN-100362,رقم_الهوية,SAUDI_ID,2741757435,replace
+120,MRN-100362,الجوال,MOBILE,0551382970,replace
+120,MRN-100362,ملاحظات,PERSON_NAME,خالد الشمري,replace
+120,MRN-100362,ملاحظات,MOBILE,+٩٦٦ ٥٠ ٨٨٠ ٤٣٦٣,replace
+121,MRN-100116,اسم_المريض,PERSON_NAME,ريم العتيبي,replace
+121,MRN-100116,رقم_الهوية,SAUDI_ID,1745359867,replace
+121,MRN-100116,الجوال,MOBILE,0536552401,replace
+122,MRN-100117,اسم_المريض,PERSON_NAME,هند المطيري,replace
+122,MRN-100117,رقم_الهوية,SAUDI_ID,1055087264,replace
+122,MRN-100117,الجوال,MOBILE,0550231872,replace
+122,MRN-100117,آيبان_الاسترداد,IBAN,SA7960735206128969779821,replace
+123,MRN-100118,اسم_المريض,PERSON_NAME,  مشاري العسيري   ,replace
+123,MRN-100118,رقم_الهوية,SAUDI_ID,1900290063,replace
+123,MRN-100118,الجوال,MOBILE,0502652923,replace
+123,MRN-100118,آيبان_الاسترداد,IBAN,SA3960294685075694225682,replace
+123,MRN-100118,ملاحظات,SAUDI_ID,1554919531,ignore
+124,MRN-100119,اسم_المريض,PERSON_NAME,لمى العسيري,replace
+124,MRN-100119,رقم_الهوية,SAUDI_ID,1924169525,replace
+124,MRN-100119,الجوال,MOBILE,0549867641,replace
+124,MRN-100119,آيبان_الاسترداد,IBAN,SA8080578841187902472326,replace
+124,MRN-100119,ملاحظات,SAUDI_ID,١٩٢٤١٦٩٥٢٥,replace
+125,MRN-100120,اسم_المريض,PERSON_NAME,لمى القحطاني,replace
+125,MRN-100120,رقم_الهوية,SAUDI_ID,2248599546,replace
+125,MRN-100120,الجوال,MOBILE,0547720292,replace
+125,MRN-100120,آيبان_الاسترداد,IBAN,SA3820024903199364790335,replace
+126,MRN-100121,اسم_المريض,PERSON_NAME,  يوسف الشمري   ,replace
+126,MRN-100121,رقم_الهوية,SAUDI_ID,1272904309,replace
+126,MRN-100121,الجوال,MOBILE,053 221 4173,replace
+126,MRN-100121,آيبان_الاسترداد,IBAN,SA4710497826862569527980,replace
+126,MRN-100121,ملاحظات,IBAN,SA59 0575 2097 4712 0768 4722,replace
+127,MRN-100122,اسم_المريض,PERSON_NAME,فهد العنزي,replace
+127,MRN-100122,رقم_الهوية,SAUDI_ID,1980732547,replace
+127,MRN-100122,الجوال,MOBILE,0550124278,replace
+127,MRN-100122,آيبان_الاسترداد,IBAN,SA7045294567180358469206,replace
+127,MRN-100122,ملاحظات,SAUDI_ID,١٩٨٠٧٣٢٥٤٧,replace
+128,MRN-100123,اسم_المريض,PERSON_NAME,نايف العمري,replace
+128,MRN-100123,رقم_الهوية,SAUDI_ID,1281854586,replace
+128,MRN-100123,الجوال,MOBILE,050 716 9929,replace
+128,MRN-100123,ملاحظات,SAUDI_ID,1281854586,replace
+128,MRN-100123,ملاحظات,MOBILE,0507169929,replace
+129,MRN-100124,اسم_المريض,PERSON_NAME,  سلطان السبيعي   ,replace
+129,MRN-100124,رقم_الهوية,SAUDI_ID,2912597586,replace
+129,MRN-100124,الجوال,MOBILE,٠٥٠٨٨٠١٨٧٠,replace
+129,MRN-100124,ملاحظات,SAUDI_ID,1182020295,review
+130,MRN-100125,اسم_المريض,PERSON_NAME,جواهر الجهني,replace
+130,MRN-100125,رقم_الهوية,SAUDI_ID,1783240573,replace
+130,MRN-100125,الجوال,MOBILE,0542776057,replace
+130,MRN-100125,ملاحظات,MOBILE,054 277 6057,replace
+132,MRN-100126,اسم_المريض,PERSON_NAME,سارة السبيعي,replace
+132,MRN-100126,رقم_الهوية,SAUDI_ID,2019336557,replace
+132,MRN-100126,الجوال,MOBILE,0593185991,replace
+132,MRN-100126,ملاحظات,SAUDI_ID,٢٠١٩٣٣٦٥٥٧,replace
+133,MRN-100127,اسم_المريض,PERSON_NAME,ريان الغامدي,replace
+133,MRN-100127,رقم_الهوية,SAUDI_ID,1906564370,replace
+133,MRN-100127,الجوال,MOBILE,+966504379000,replace
+133,MRN-100127,ملاحظات,SAUDI_ID,1906564370,replace
+133,MRN-100127,ملاحظات,MOBILE,0504379000,replace
+134,MRN-100128,اسم_المريض,PERSON_NAME,فهد الحربي,replace
+134,MRN-100128,رقم_الهوية,SAUDI_ID,2635551415,replace
+134,MRN-100128,الجوال,MOBILE,0562446426,replace
+134,MRN-100128,آيبان_الاسترداد,IBAN,SA4260338441948415988826,replace
+135,MRN-100129,اسم_المريض,PERSON_NAME,سلطان الحربي,replace
+135,MRN-100129,رقم_الهوية,SAUDI_ID,1536169848,replace
+135,MRN-100129,الجوال,MOBILE,٠٥٥٥٧١٤٧٤٤,replace
+135,MRN-100129,ملاحظات,SAUDI_ID,١٥٣٦١٦٩٨٤٨,replace
+136,MRN-100130,اسم_المريض,PERSON_NAME,بندر القحطاني,replace
+136,MRN-100130,رقم_الهوية,SAUDI_ID,1699467476,replace
+136,MRN-100130,الجوال,MOBILE,+966549462738,replace
+136,MRN-100130,آيبان_الاسترداد,IBAN,SA2360611109924342624663,replace
+137,MRN-100131,اسم_المريض,PERSON_NAME,بشاير القحطاني,replace
+137,MRN-100131,رقم_الهوية,SAUDI_ID,1524343025,replace
+137,MRN-100131,الجوال,MOBILE,966566481561,replace
+138,MRN-100132,اسم_المريض,PERSON_NAME,لمى الدوسري,replace
+138,MRN-100132,رقم_الهوية,SAUDI_ID,2311742601,replace
+138,MRN-100132,الجوال,MOBILE,0540775337,replace
+138,MRN-100132,آيبان_الاسترداد,IBAN,SA3620349269747439165989,replace
+139,MRN-100133,اسم_المريض,PERSON_NAME,أروى اليامي,replace
+139,MRN-100133,رقم_الهوية,SAUDI_ID,1279611832,replace
+139,MRN-100133,الجوال,MOBILE,0562772049,replace
+139,MRN-100133,آيبان_الاسترداد,IBAN,SA2860183665878205076059,replace
+140,MRN-100134,اسم_المريض,PERSON_NAME,مشعل الرشيدي,replace
+140,MRN-100134,رقم_الهوية,SAUDI_ID,1202195895,replace
+140,MRN-100134,الجوال,MOBILE,0546592249,replace
+140,MRN-100134,آيبان_الاسترداد,IBAN,SA6310144508260409821139,replace
+141,MRN-100135,اسم_المريض,PERSON_NAME,مهند المطيري,replace
+141,MRN-100135,رقم_الهوية,SAUDI_ID,1289564518,replace
+141,MRN-100135,الجوال,MOBILE,+966506476012,replace
+141,MRN-100135,ملاحظات,IBAN,SA41 0518 3174 5091 4538 4757,replace
+142,MRN-100136,اسم_المريض,PERSON_NAME,نايف الدوسري,replace
+142,MRN-100136,رقم_الهوية,SAUDI_ID,1188739195,replace
+142,MRN-100136,الجوال,MOBILE,0548539821,replace
+142,MRN-100136,ملاحظات,SAUDI_ID,1442356331,review
+143,MRN-100137,اسم_المريض,PERSON_NAME,بندر العمري,replace
+143,MRN-100137,رقم_الهوية,SAUDI_ID,1554749240,replace
+143,MRN-100137,الجوال,MOBILE,٠٥٦٥٧٨٥٣٧١,replace
+144,MRN-100138,اسم_المريض,PERSON_NAME,مشاري الشهري,replace
+144,MRN-100138,رقم_الهوية,SAUDI_ID,1419304280,replace
+144,MRN-100138,الجوال,MOBILE,055 005 3759,replace
+144,MRN-100138,آيبان_الاسترداد,IBAN,SA4610707316616586643715,replace
+145,MRN-100139,اسم_المريض,PERSON_NAME,سلطان العمري,replace
+145,MRN-100139,رقم_الهوية,SAUDI_ID,1781140981,replace
+145,MRN-100139,الجوال,MOBILE,0537109034,replace
+145,MRN-100139,ملاحظات,SAUDI_ID,١٧٨١١٤٠٩٨١,replace
+146,MRN-100140,اسم_المريض,PERSON_NAME,أروى الخالدي,replace
+146,MRN-100140,رقم_الهوية,SAUDI_ID,2047284100,replace
+146,MRN-100140,الجوال,MOBILE,0597794476,replace
+147,MRN-100141,اسم_المريض,PERSON_NAME,خالد الزهراني,replace
+147,MRN-100141,رقم_الهوية,SAUDI_ID,1994440491,replace
+147,MRN-100141,الجوال,MOBILE,0531352764,replace
+148,MRN-100142,اسم_المريض,PERSON_NAME,يوسف الجهني,replace
+148,MRN-100142,رقم_الهوية,SAUDI_ID,1552892513,replace
+148,MRN-100142,الجوال,MOBILE,+966547327320,replace
+148,MRN-100142,آيبان_الاسترداد,IBAN,SA0405268991577387207619,replace
+149,MRN-100143,اسم_المريض,PERSON_NAME,أروى القحطاني,replace
+149,MRN-100143,رقم_الهوية,SAUDI_ID,1583430135,replace
+149,MRN-100143,الجوال,MOBILE,0547753002,replace
+150,MRN-100144,اسم_المريض,PERSON_NAME,راشد الشمري,replace
+150,MRN-100144,رقم_الهوية,SAUDI_ID,1213978438,replace
+150,MRN-100144,الجوال,MOBILE,966549444527,replace
+150,MRN-100144,ملاحظات,SAUDI_ID,1213 978 438,replace
+151,MRN-100145,اسم_المريض,PERSON_NAME,نورة القرني,replace
+151,MRN-100145,رقم_الهوية,SAUDI_ID,1286404866,replace
+151,MRN-100145,الجوال,MOBILE,+966595472087,replace
+151,MRN-100145,آيبان_الاسترداد,IBAN,SA3205863013435445672688,replace
+151,MRN-100145,ملاحظات,PERSON_NAME,حمدان العنزي,replace
+151,MRN-100145,ملاحظات,MOBILE,+٩٦٦ ٥٦ ١٠٦ ٤٣١٣,replace
+152,MRN-100146,اسم_المريض,PERSON_NAME,مشعل العتيبي,replace
+152,MRN-100146,رقم_الهوية,SAUDI_ID,1839970934,replace
+152,MRN-100146,الجوال,MOBILE,٠٥٥٤٩٦٤١٩٩,replace
+152,MRN-100146,ملاحظات,IBAN,SA06 2000 0401 2799 4632 5748,replace
+153,MRN-100147,اسم_المريض,PERSON_NAME,غادة الخالدي,replace
+153,MRN-100147,رقم_الهوية,SAUDI_ID,1764686158,replace
+153,MRN-100147,الجوال,MOBILE,0592418746,replace
+154,MRN-100148,اسم_المريض,PERSON_NAME,نورة العسيري,replace
+154,MRN-100148,رقم_الهوية,SAUDI_ID,2444881284,replace
+154,MRN-100148,الجوال,MOBILE,050 360 7470,replace
+154,MRN-100148,آيبان_الاسترداد,IBAN,SA7880218298461794516975,replace
+155,MRN-100149,اسم_المريض,PERSON_NAME,نوف اليامي,replace
+155,MRN-100149,رقم_الهوية,SAUDI_ID,2316832696,replace
+155,MRN-100149,الجوال,MOBILE,050 172 3551,replace
+156,MRN-100150,اسم_المريض,PERSON_NAME,دانة العنزي,replace
+156,MRN-100150,رقم_الهوية,SAUDI_ID,1133854024,replace
+156,MRN-100150,الجوال,MOBILE,966596859052,replace
+156,MRN-100150,ملاحظات,SAUDI_ID,١١٣٣٨٥٤٠٢٤,replace
+157,MRN-100151,اسم_المريض,PERSON_NAME,سعود الزهراني,replace
+157,MRN-100151,رقم_الهوية,SAUDI_ID,1508023619,replace
+157,MRN-100151,الجوال,MOBILE,966503523187,replace
+158,MRN-100152,اسم_المريض,PERSON_NAME,سارة اليامي,replace
+158,MRN-100152,رقم_الهوية,SAUDI_ID,1252562622,replace
+158,MRN-100152,الجوال,MOBILE,966598343307,replace
+158,MRN-100152,آيبان_الاسترداد,IBAN,SA4605576386973883143823,replace
+158,MRN-100152,ملاحظات,SAUDI_ID,1606612065,review
+159,MRN-100153,اسم_المريض,PERSON_NAME,زياد السهلي,replace
+159,MRN-100153,رقم_الهوية,SAUDI_ID,1055503203,replace
+159,MRN-100153,الجوال,MOBILE,0593514219,replace
+160,MRN-100154,اسم_المريض,PERSON_NAME,راشد الشهري,replace
+160,MRN-100154,رقم_الهوية,SAUDI_ID,1695537074,replace
+160,MRN-100154,الجوال,MOBILE,0543170246,replace
+160,MRN-100154,آيبان_الاسترداد,IBAN,SA6410051598534331619693,replace
+161,MRN-100155,اسم_المريض,PERSON_NAME,  فيصل الدوسري   ,replace
+161,MRN-100155,رقم_الهوية,SAUDI_ID,1956432924,replace
+161,MRN-100155,الجوال,MOBILE,0503423858,replace
+161,MRN-100155,آيبان_الاسترداد,IBAN,SA1405648819397567571612,replace
+161,MRN-100155,ملاحظات,PERSON_NAME,ريان الدوسري,replace
+161,MRN-100155,ملاحظات,MOBILE,+٩٦٦ ٥٤ ٤٢١ ٣٢٦٩,replace
+162,MRN-100156,اسم_المريض,PERSON_NAME,مشعل البقمي,replace
+162,MRN-100156,رقم_الهوية,SAUDI_ID,1121375834,replace
+162,MRN-100156,الجوال,MOBILE,0534474855,replace
+162,MRN-100156,آيبان_الاسترداد,IBAN,SA6860276204753205238716,replace
+162,MRN-100156,ملاحظات,SAUDI_ID,1121375834,replace
+162,MRN-100156,ملاحظات,MOBILE,0534474855,replace
+163,MRN-100157,اسم_المريض,PERSON_NAME,فهد القرني,replace
+163,MRN-100157,رقم_الهوية,SAUDI_ID,2077044689,replace
+163,MRN-100157,الجوال,MOBILE,+966554870048,replace
+164,MRN-100158,اسم_المريض,PERSON_NAME,لمى الغامدي,replace
+164,MRN-100158,رقم_الهوية,SAUDI_ID,1738877529,replace
+164,MRN-100158,الجوال,MOBILE,0556526663,replace
+165,MRN-100240,اسم_المريض,PERSON_NAME,نورة الغامدي,replace
+165,MRN-100240,رقم_الهوية,SAUDI_ID,1145823462,replace
+165,MRN-100240,الجوال,MOBILE,966540425648,replace
+166,MRN-100159,اسم_المريض,PERSON_NAME,  ريم السبيعي   ,replace
+166,MRN-100159,رقم_الهوية,SAUDI_ID,1490908207,replace
+166,MRN-100159,الجوال,MOBILE,0566251256,replace
+167,MRN-100160,اسم_المريض,PERSON_NAME,بشاير الخالدي,replace
+167,MRN-100160,رقم_الهوية,SAUDI_ID,2153590910,replace
+167,MRN-100160,الجوال,MOBILE,0553432063,replace
+168,MRN-100161,اسم_المريض,PERSON_NAME,فيصل الجهني,replace
+168,MRN-100161,رقم_الهوية,SAUDI_ID,1658259203,replace
+168,MRN-100161,الجوال,MOBILE,٠٥٦٤٤٨١٠٠٣,replace
+169,MRN-100162,اسم_المريض,PERSON_NAME,سارة الدوسري,replace
+169,MRN-100162,رقم_الهوية,SAUDI_ID,1187846249,replace
+169,MRN-100162,الجوال,MOBILE,0554493734,replace
+169,MRN-100162,ملاحظات,IBAN,SA28 1002 4751 6668 8545 4145,replace
+170,MRN-100163,اسم_المريض,PERSON_NAME,رهف القحطاني,replace
+170,MRN-100163,رقم_الهوية,SAUDI_ID,2564777486,replace
+170,MRN-100163,الجوال,MOBILE,0500397222,replace
+171,MRN-100164,اسم_المريض,PERSON_NAME,فيصل الشهري,replace
+171,MRN-100164,رقم_الهوية,SAUDI_ID,1798982565,replace
+171,MRN-100164,الجوال,MOBILE,0594598430,replace
+171,MRN-100164,آيبان_الاسترداد,IBAN,SA3745334989183006857591,replace
+171,MRN-100164,ملاحظات,MOBILE,059 459 8430,replace
+172,MRN-100165,اسم_المريض,PERSON_NAME,ريم اليامي,replace
+172,MRN-100165,رقم_الهوية,SAUDI_ID,1344869308,replace
+172,MRN-100165,الجوال,MOBILE,0505263172,replace
+173,MRN-100166,اسم_المريض,PERSON_NAME,خالد العمري,replace
+173,MRN-100166,رقم_الهوية,SAUDI_ID,1298667955,replace
+173,MRN-100166,الجوال,MOBILE,0503876304,replace
+173,MRN-100166,آيبان_الاسترداد,IBAN,SA4010395043437979818308,replace
+173,MRN-100166,ملاحظات,SAUDI_ID,1298 667 955,replace
+174,MRN-100167,اسم_المريض,PERSON_NAME,هند السهلي,replace
+174,MRN-100167,رقم_الهوية,SAUDI_ID,1033227420,replace
+174,MRN-100167,الجوال,MOBILE,0568356530,replace
+175,MRN-100168,اسم_المريض,PERSON_NAME,وجدان السهلي,replace
+175,MRN-100168,رقم_الهوية,SAUDI_ID,1162427577,replace
+175,MRN-100168,الجوال,MOBILE,0507211571,replace
+175,MRN-100168,آيبان_الاسترداد,IBAN,SA1280103617335270025785,replace
+175,MRN-100168,ملاحظات,MOBILE,050 721 1571,replace
+176,MRN-100169,اسم_المريض,PERSON_NAME,فيصل الدوسري,replace
+176,MRN-100169,رقم_الهوية,SAUDI_ID,1732306780,replace
+176,MRN-100169,الجوال,MOBILE,966545523735,replace
+176,MRN-100169,ملاحظات,SAUDI_ID,١٧٣٢٣٠٦٧٨٠,replace
+177,MRN-100170,اسم_المريض,PERSON_NAME,نوف البقمي,replace
+177,MRN-100170,رقم_الهوية,SAUDI_ID,1086891908,replace
+177,MRN-100170,الجوال,MOBILE,٠٥٦٦٨٨٥٣١٠,replace
+178,MRN-100171,اسم_المريض,PERSON_NAME,يوسف المطيري,replace
+178,MRN-100171,رقم_الهوية,SAUDI_ID,1453227835,replace
+178,MRN-100171,الجوال,MOBILE,0594375835,replace
+179,MRN-100172,اسم_المريض,PERSON_NAME,محمد المطيري,replace
+179,MRN-100172,رقم_الهوية,SAUDI_ID,2926266004,replace
+179,MRN-100172,الجوال,MOBILE,053 631 1257,replace
+179,MRN-100172,آيبان_الاسترداد,IBAN,SA9060046993119922269617,replace
+180,MRN-100173,اسم_المريض,PERSON_NAME,فيصل العنزي,replace
+180,MRN-100173,رقم_الهوية,SAUDI_ID,1819378116,replace
+180,MRN-100173,الجوال,MOBILE,0537388861,replace
+180,MRN-100173,ملاحظات,PERSON_NAME,فيصل,replace
+181,MRN-100174,اسم_المريض,PERSON_NAME,غادة الرشيدي,replace
+181,MRN-100174,رقم_الهوية,SAUDI_ID,1785636968,replace
+181,MRN-100174,الجوال,MOBILE,0568889586,replace
+182,MRN-100175,اسم_المريض,PERSON_NAME,رغد الخالدي,replace
+182,MRN-100175,رقم_الهوية,SAUDI_ID,1870077433,replace
+182,MRN-100175,الجوال,MOBILE,0536808192,replace
+182,MRN-100175,آيبان_الاسترداد,IBAN,SA2620463046870364984929,replace
+182,MRN-100175,ملاحظات,PERSON_NAME,رغد,replace
+183,MRN-100176,اسم_المريض,PERSON_NAME,رغد الغامدي,replace
+183,MRN-100176,رقم_الهوية,SAUDI_ID,1594735498,replace
+183,MRN-100176,الجوال,MOBILE,+966590651397,replace
+184,MRN-100177,اسم_المريض,PERSON_NAME,محمد القحطاني,replace
+184,MRN-100177,رقم_الهوية,SAUDI_ID,1367284799,replace
+184,MRN-100177,الجوال,MOBILE,055 331 6934,replace
+184,MRN-100177,آيبان_الاسترداد,IBAN,SA1505832498559613746632,replace
+185,MRN-100178,اسم_المريض,PERSON_NAME,أحمد الجهني,replace
+185,MRN-100178,رقم_الهوية,SAUDI_ID,1901463693,replace
+185,MRN-100178,الجوال,MOBILE,966559009395,replace
+185,MRN-100178,ملاحظات,PERSON_NAME,أحمد,replace
+186,MRN-100179,اسم_المريض,PERSON_NAME,رهف ​الحربي,replace
+186,MRN-100179,رقم_الهوية,SAUDI_ID,1321636902,replace
+186,MRN-100179,الجوال,MOBILE,0509168184,replace
+187,MRN-100180,اسم_المريض,PERSON_NAME,بندر العسيري,replace
+187,MRN-100180,رقم_الهوية,SAUDI_ID,1341378972,replace
+187,MRN-100180,الجوال,MOBILE,966597424262,replace
+187,MRN-100180,ملاحظات,MOBILE,059 742 4262,replace
+188,MRN-100181,اسم_المريض,PERSON_NAME,منى الزهراني,replace
+188,MRN-100181,رقم_الهوية,SAUDI_ID,1139479669,replace
+188,MRN-100181,الجوال,MOBILE,050 073 3452,replace
+188,MRN-100181,ملاحظات,SAUDI_ID,1962754611,ignore
+189,MRN-100182,اسم_المريض,PERSON_NAME,  سارة الزهراني   ,replace
+189,MRN-100182,رقم_الهوية,SAUDI_ID,1211453285,replace
+189,MRN-100182,الجوال,MOBILE,+966594221593,replace
+189,MRN-100182,آيبان_الاسترداد,IBAN,SA7720174208618634485406,replace
+190,MRN-100183,اسم_المريض,PERSON_NAME,فهد الزهراني,replace
+190,MRN-100183,رقم_الهوية,SAUDI_ID,1497082014,replace
+190,MRN-100183,الجوال,MOBILE,٠٥٥٦٢٩٨٢٥٠,replace
+190,MRN-100183,آيبان_الاسترداد,IBAN,SA8310942736339950865301,replace
+191,MRN-100184,اسم_المريض,PERSON_NAME,رهف الشمري,replace
+191,MRN-100184,رقم_الهوية,SAUDI_ID,1617781941,replace
+191,MRN-100184,الجوال,MOBILE,٠٥٩٥٤٤٨٦٧٣,replace
+191,MRN-100184,آيبان_الاسترداد,IBAN,SA6520665155256353998135,replace
+191,MRN-100184,ملاحظات,SAUDI_ID,1617 781 941,replace
+192,MRN-100185,اسم_المريض,PERSON_NAME,وجدان العمري,replace
+192,MRN-100185,رقم_الهوية,SAUDI_ID,1637415538,replace
+192,MRN-100185,الجوال,MOBILE,0546525569,replace
+192,MRN-100185,آيبان_الاسترداد,IBAN,SA1360861159350445126144,replace
+192,MRN-100185,ملاحظات,PERSON_NAME,ماجد الدوسري,replace
+192,MRN-100185,ملاحظات,MOBILE,+٩٦٦ ٥٩ ١٦٤ ١٦٠٩,replace
+193,MRN-100186,اسم_المريض,PERSON_NAME,رهف البقمي,replace
+193,MRN-100186,رقم_الهوية,SAUDI_ID,1787558509,replace
+193,MRN-100186,الجوال,MOBILE,+966542942705,replace
+193,MRN-100186,آيبان_الاسترداد,IBAN,SA0960040864303879038348,replace
+194,MRN-100187,اسم_المريض,PERSON_NAME,العنود القحطاني,replace
+194,MRN-100187,رقم_الهوية,SAUDI_ID,2604433769,replace
+194,MRN-100187,الجوال,MOBILE,0554755322,replace
+195,MRN-100188,اسم_المريض,PERSON_NAME,وجدان المطيري,replace
+195,MRN-100188,رقم_الهوية,SAUDI_ID,1545457465,replace
+195,MRN-100188,الجوال,MOBILE,0567584434,replace
+195,MRN-100188,ملاحظات,PERSON_NAME,وجدان,replace
+196,MRN-100189,اسم_المريض,PERSON_NAME,محمد الزهراني,replace
+196,MRN-100189,رقم_الهوية,SAUDI_ID,2371160793,replace
+196,MRN-100189,الجوال,MOBILE,٠٥٤٦٥٥٥٢٦٤,replace
+196,MRN-100189,آيبان_الاسترداد,IBAN,SA5610842330843817152549,replace
+196,MRN-100189,ملاحظات,MOBILE,054 655 5264,replace
+197,MRN-100190,اسم_المريض,PERSON_NAME,رهف اليامي,replace
+197,MRN-100190,رقم_الهوية,SAUDI_ID,1249863398,replace
+197,MRN-100190,الجوال,MOBILE,0506399433,replace
+197,MRN-100190,آيبان_الاسترداد,IBAN,SA6945148779313689585110,replace
+197,MRN-100190,ملاحظات,SAUDI_ID,١٢٤٩٨٦٣٣٩٨,replace
+198,MRN-100191,اسم_المريض,PERSON_NAME,أروى الزهراني,replace
+198,MRN-100191,رقم_الهوية,SAUDI_ID,1944061215,replace
+198,MRN-100191,الجوال,MOBILE,056 558 5557,replace
+198,MRN-100191,ملاحظات,PERSON_NAME,أروى,replace
+199,MRN-100192,اسم_المريض,PERSON_NAME,أروى العتيبي,replace
+199,MRN-100192,رقم_الهوية,SAUDI_ID,1922481856,replace
+199,MRN-100192,الجوال,MOBILE,966561231196,replace
+199,MRN-100192,آيبان_الاسترداد,IBAN,SA3860347962794722159431,replace
+200,MRN-100193,اسم_المريض,PERSON_NAME,أثير الشمري,replace
+200,MRN-100193,رقم_الهوية,SAUDI_ID,1613997509,replace
+200,MRN-100193,الجوال,MOBILE,+966537921664,replace
+200,MRN-100193,ملاحظات,PERSON_NAME,يوسف اليامي,replace
+200,MRN-100193,ملاحظات,MOBILE,+٩٦٦ ٥٥ ٣٩٤ ٥٩٤٧,replace
+201,MRN-100194,اسم_المريض,PERSON_NAME,هند القرني,replace
+201,MRN-100194,رقم_الهوية,SAUDI_ID,1803945144,replace
+201,MRN-100194,الجوال,MOBILE,+966550242437,replace
+201,MRN-100194,ملاحظات,PERSON_NAME,هند,replace
+202,MRN-100195,اسم_المريض,PERSON_NAME,حمدان الدوسري,replace
+202,MRN-100195,رقم_الهوية,SAUDI_ID,1359617394,replace
+202,MRN-100195,الجوال,MOBILE,0546785178,replace
+203,MRN-100196,اسم_المريض,PERSON_NAME,أحمد القرني,replace
+203,MRN-100196,رقم_الهوية,SAUDI_ID,2524314370,replace
+203,MRN-100196,الجوال,MOBILE,054 206 7049,replace
+204,MRN-100197,اسم_المريض,PERSON_NAME,راشد الزهراني,replace
+204,MRN-100197,رقم_الهوية,SAUDI_ID,1533071849,replace
+204,MRN-100197,الجوال,MOBILE,0539400353,replace
+204,MRN-100197,آيبان_الاسترداد,IBAN,SA5920985237506686741674,replace
+205,MRN-100198,اسم_المريض,PERSON_NAME,رهف الشمري,replace
+205,MRN-100198,رقم_الهوية,SAUDI_ID,1739146080,replace
+205,MRN-100198,الجوال,MOBILE,0502143503,replace
+206,MRN-100199,اسم_المريض,PERSON_NAME,زياد البقمي,replace
+206,MRN-100199,رقم_الهوية,SAUDI_ID,1960979951,replace
+206,MRN-100199,الجوال,MOBILE,0590516264,replace
+206,MRN-100199,ملاحظات,SAUDI_ID,1877166585,review
+207,MRN-100200,اسم_المريض,PERSON_NAME,رهف العنزي,replace
+207,MRN-100200,رقم_الهوية,SAUDI_ID,1635779497,replace
+207,MRN-100200,الجوال,MOBILE,966559156453,replace
+207,MRN-100200,ملاحظات,MOBILE,055 915 6453,replace
+208,MRN-100201,اسم_المريض,PERSON_NAME,يوسف الرشيدي,replace
+208,MRN-100201,رقم_الهوية,SAUDI_ID,1337688327,replace
+208,MRN-100201,الجوال,MOBILE,0539777793,replace
+208,MRN-100201,ملاحظات,MOBILE,053 977 7793,replace
+209,MRN-100202,اسم_المريض,PERSON_NAME,ماجد الخالدي,replace
+209,MRN-100202,رقم_الهوية,SAUDI_ID,1179398357,replace
+209,MRN-100202,الجوال,MOBILE,966564705331,replace
+209,MRN-100202,آيبان_الاسترداد,IBAN,SA8305329716543475423368,replace
+209,MRN-100202,ملاحظات,SAUDI_ID,1179398357,replace
+209,MRN-100202,ملاحظات,MOBILE,0564705331,replace
+210,MRN-100203,اسم_المريض,PERSON_NAME,رغد الشمري,replace
+210,MRN-100203,رقم_الهوية,SAUDI_ID,1944216918,replace
+210,MRN-100203,الجوال,MOBILE,0504613894,replace
+210,MRN-100203,ملاحظات,PERSON_NAME,عزام الحربي,replace
+210,MRN-100203,ملاحظات,MOBILE,+٩٦٦ ٥٣ ٧٥٠ ٦٦٢٨,replace
+211,MRN-100204,اسم_المريض,PERSON_NAME,سارة السهلي,replace
+211,MRN-100204,رقم_الهوية,SAUDI_ID,2935060646,replace
+211,MRN-100204,الجوال,MOBILE,0538525299,replace
+211,MRN-100204,آيبان_الاسترداد,IBAN,SA5280512609881813580473,replace
+211,MRN-100204,ملاحظات,SAUDI_ID,1830266787,review
+212,MRN-100205,اسم_المريض,PERSON_NAME,محمد القحطاني,replace
+212,MRN-100205,رقم_الهوية,SAUDI_ID,1865054488,replace
+212,MRN-100205,الجوال,MOBILE,0506565520,replace
+212,MRN-100205,ملاحظات,SAUDI_ID,1865054488,replace
+212,MRN-100205,ملاحظات,MOBILE,0506565520,replace
+213,MRN-100206,اسم_المريض,PERSON_NAME,وجدان الشمري,replace
+213,MRN-100206,رقم_الهوية,SAUDI_ID,2648780589,replace
+213,MRN-100206,الجوال,MOBILE,+966567123157,replace
+214,MRN-100207,اسم_المريض,PERSON_NAME,هند الزهراني,replace
+214,MRN-100207,رقم_الهوية,SAUDI_ID,1134913365,replace
+214,MRN-100207,الجوال,MOBILE,0543031198,replace
+214,MRN-100207,ملاحظات,PERSON_NAME,هند,replace
+215,MRN-100208,اسم_المريض,PERSON_NAME,دانة السهلي,replace
+215,MRN-100208,رقم_الهوية,SAUDI_ID,1896595251,replace
+215,MRN-100208,الجوال,MOBILE,0560560118,replace
+216,MRN-100209,اسم_المريض,PERSON_NAME,زياد الرشيدي,replace
+216,MRN-100209,رقم_الهوية,SAUDI_ID,1795693629,replace
+216,MRN-100209,الجوال,MOBILE,0565976362,replace
+216,MRN-100209,آيبان_الاسترداد,IBAN,SA1105689211589218380210,replace
+216,MRN-100209,ملاحظات,SAUDI_ID,1955717625,ignore
+217,MRN-100210,اسم_المريض,PERSON_NAME,منى العمري,replace
+217,MRN-100210,رقم_الهوية,SAUDI_ID,1240870442,replace
+217,MRN-100210,الجوال,MOBILE,+966557391599,replace
+217,MRN-100210,ملاحظات,MOBILE,055 739 1599,replace
+218,MRN-100211,اسم_المريض,PERSON_NAME,وجدان العسيري,replace
+218,MRN-100211,رقم_الهوية,SAUDI_ID,1371365873,replace
+218,MRN-100211,الجوال,MOBILE,0554823855,replace
+218,MRN-100211,ملاحظات,PERSON_NAME,راشد المطيري,replace
+218,MRN-100211,ملاحظات,MOBILE,+٩٦٦ ٥٥ ٤٠٤ ٢٢٠٨,replace
+219,MRN-100212,اسم_المريض,PERSON_NAME,نايف الدوسري,replace
+219,MRN-100212,رقم_الهوية,SAUDI_ID,1533933998,replace
+219,MRN-100212,الجوال,MOBILE,055 147 7234,replace
+219,MRN-100212,آيبان_الاسترداد,IBAN,SA0810519519428436123240,replace
+219,MRN-100212,ملاحظات,SAUDI_ID,1533 933 998,replace
+220,MRN-100213,اسم_المريض,PERSON_NAME,عادل الحربي,replace
+220,MRN-100213,رقم_الهوية,SAUDI_ID,1293509905,replace
+220,MRN-100213,الجوال,MOBILE,٠٥٥٢١٣٤٠١٩,replace
+220,MRN-100213,ملاحظات,IBAN,SA94 1017 6933 3069 4476 9133,replace
+221,MRN-100214,اسم_المريض,PERSON_NAME,فهد الدوسري,replace
+221,MRN-100214,رقم_الهوية,SAUDI_ID,2912111537,replace
+221,MRN-100214,الجوال,MOBILE,059 527 8407,replace
+221,MRN-100214,آيبان_الاسترداد,IBAN,SA3720790037690566961044,replace
+221,MRN-100214,ملاحظات,MOBILE,059 527 8407,replace
+222,MRN-100215,اسم_المريض,PERSON_NAME,رغد الخالدي,replace
+222,MRN-100215,رقم_الهوية,SAUDI_ID,2531014500,replace
+222,MRN-100215,الجوال,MOBILE,+966548767092,replace
+223,MRN-100216,اسم_المريض,PERSON_NAME,خالد العسيري,replace
+223,MRN-100216,رقم_الهوية,SAUDI_ID,1678053107,replace
+223,MRN-100216,الجوال,MOBILE,0509850612,replace
+223,MRN-100216,ملاحظات,MOBILE,050 985 0612,replace
+224,MRN-100217,اسم_المريض,PERSON_NAME,رغد القحطاني,replace
+224,MRN-100217,رقم_الهوية,SAUDI_ID,2297487825,replace
+224,MRN-100217,الجوال,MOBILE,+966549023464,replace
+225,MRN-100218,اسم_المريض,PERSON_NAME,العنود الشهري,replace
+225,MRN-100218,رقم_الهوية,SAUDI_ID,1036435442,replace
+225,MRN-100218,الجوال,MOBILE,0599682345,replace
+225,MRN-100218,ملاحظات,SAUDI_ID,1036 435 442,replace
+226,MRN-100219,اسم_المريض,PERSON_NAME,ماجد العنزي,replace
+226,MRN-100219,رقم_الهوية,SAUDI_ID,1958971523,replace
+226,MRN-100219,الجوال,MOBILE,+966505071968,replace
+227,MRN-100220,اسم_المريض,PERSON_NAME,راشد الخالدي,replace
+227,MRN-100220,رقم_الهوية,SAUDI_ID,1705516316,replace
+227,MRN-100220,الجوال,MOBILE,050 057 4142,replace
+228,MRN-100221,اسم_المريض,PERSON_NAME,أروى الجهني,replace
+228,MRN-100221,رقم_الهوية,SAUDI_ID,2874469881,replace
+228,MRN-100221,الجوال,MOBILE,0500588823,replace
+228,MRN-100221,ملاحظات,SAUDI_ID,٢٨٧٤٤٦٩٨٨١,replace
+229,MRN-100222,اسم_المريض,PERSON_NAME,منى القرني,replace
+229,MRN-100222,رقم_الهوية,SAUDI_ID,1306775550,replace
+229,MRN-100222,الجوال,MOBILE,054 039 2059,replace
+229,MRN-100222,آيبان_الاسترداد,IBAN,SA7220004588648466643920,replace
+229,MRN-100222,ملاحظات,SAUDI_ID,١٣٠٦٧٧٥٥٥٠,replace
+230,MRN-100223,اسم_المريض,PERSON_NAME,بندر الغامدي,replace
+230,MRN-100223,رقم_الهوية,SAUDI_ID,2524346851,replace
+230,MRN-100223,الجوال,MOBILE,0531981277,replace
+231,MRN-100224,اسم_المريض,PERSON_NAME,مشعل الدوسري,replace
+231,MRN-100224,رقم_الهوية,SAUDI_ID,1248425710,replace
+231,MRN-100224,الجوال,MOBILE,0551829855,replace
+231,MRN-100224,آيبان_الاسترداد,IBAN,SA3820375395811185213702,replace
+231,MRN-100224,ملاحظات,PERSON_NAME,مشعل,replace
+232,MRN-100225,اسم_المريض,PERSON_NAME,أروى الرشيدي,replace
+232,MRN-100225,رقم_الهوية,SAUDI_ID,1147652752,replace
+232,MRN-100225,الجوال,MOBILE,+966545329120,replace
+232,MRN-100225,ملاحظات,MOBILE,054 532 9120,replace
+233,MRN-100226,اسم_المريض,PERSON_NAME,هند الجهني,replace
+233,MRN-100226,رقم_الهوية,SAUDI_ID,1217658242,replace
+233,MRN-100226,الجوال,MOBILE,053 445 1461,replace
+233,MRN-100226,ملاحظات,SAUDI_ID,1633884422,review
+234,MRN-100227,اسم_المريض,PERSON_NAME,  هند الغامدي   ,replace
+234,MRN-100227,رقم_الهوية,SAUDI_ID,1403038464,replace
+234,MRN-100227,الجوال,MOBILE,٠٥٣٦٧٥١١٩٩,replace
+235,MRN-100228,اسم_المريض,PERSON_NAME,غادة الرشيدي,replace
+235,MRN-100228,رقم_الهوية,SAUDI_ID,2650171933,replace
+235,MRN-100228,الجوال,MOBILE,0566481782,replace
+235,MRN-100228,ملاحظات,SAUDI_ID,٢٦٥٠١٧١٩٣٣,replace
+236,MRN-100229,اسم_المريض,PERSON_NAME,جواهر البقمي,replace
+236,MRN-100229,رقم_الهوية,SAUDI_ID,1363792399,replace
+236,MRN-100229,الجوال,MOBILE,0591177523,replace
+236,MRN-100229,آيبان_الاسترداد,IBAN,SA3780146312173602846211,replace
+237,MRN-100230,اسم_المريض,PERSON_NAME,عزام العنزي,replace
+237,MRN-100230,رقم_الهوية,SAUDI_ID,1472003332,replace
+237,MRN-100230,الجوال,MOBILE,0503477682,replace
+237,MRN-100230,آيبان_الاسترداد,IBAN,SA3360390379180563156712,replace
+237,MRN-100230,ملاحظات,SAUDI_ID,1472 003 332,replace
+238,MRN-100231,اسم_المريض,PERSON_NAME,زياد الغامدي,replace
+238,MRN-100231,رقم_الهوية,SAUDI_ID,2574568479,replace
+238,MRN-100231,الجوال,MOBILE,0556542644,replace
+238,MRN-100231,ملاحظات,SAUDI_ID,2574568479,replace
+238,MRN-100231,ملاحظات,MOBILE,0556542644,replace
+239,MRN-100232,اسم_المريض,PERSON_NAME,نايف الرشيدي,replace
+239,MRN-100232,رقم_الهوية,SAUDI_ID,2411166412,replace
+239,MRN-100232,الجوال,MOBILE,+966539207572,replace
+239,MRN-100232,ملاحظات,PERSON_NAME,نايف,replace
+240,MRN-100233,اسم_المريض,PERSON_NAME,العنود العتيبي,replace
+240,MRN-100233,رقم_الهوية,SAUDI_ID,2447309994,replace
+240,MRN-100233,الجوال,MOBILE,055 743 8496,replace
+241,MRN-100234,اسم_المريض,PERSON_NAME,سارة الحربي,replace
+241,MRN-100234,رقم_الهوية,SAUDI_ID,2668316694,replace
+241,MRN-100234,الجوال,MOBILE,054 846 1645,replace
+242,MRN-100235,اسم_المريض,PERSON_NAME,نورة العسيري,replace
+242,MRN-100235,رقم_الهوية,SAUDI_ID,1370376475,replace
+242,MRN-100235,الجوال,MOBILE,0563528436,replace
+242,MRN-100235,ملاحظات,MOBILE,056 352 8436,replace
+243,MRN-100236,اسم_المريض,PERSON_NAME,أثير الدوسري,replace
+243,MRN-100236,رقم_الهوية,SAUDI_ID,1091622462,replace
+243,MRN-100236,الجوال,MOBILE,+966503096989,replace
+243,MRN-100236,آيبان_الاسترداد,IBAN,SA9660732821182239435131,replace
+243,MRN-100236,ملاحظات,MOBILE,050 309 6989,replace
+244,MRN-100237,اسم_المريض,PERSON_NAME,فيصل العسيري,replace
+244,MRN-100237,رقم_الهوية,SAUDI_ID,1456654894,replace
+244,MRN-100237,الجوال,MOBILE,050 712 9591,replace
+244,MRN-100237,آيبان_الاسترداد,IBAN,SA9220675913460783599798,replace
+244,MRN-100237,ملاحظات,SAUDI_ID,1160631561,ignore
+245,MRN-100238,اسم_المريض,PERSON_NAME,غادة العتيبي,replace
+245,MRN-100238,رقم_الهوية,SAUDI_ID,1888544671,replace
+245,MRN-100238,الجوال,MOBILE,0553171071,replace
+245,MRN-100238,آيبان_الاسترداد,IBAN,SA7110030666716022129902,replace
+245,MRN-100238,ملاحظات,SAUDI_ID,١٨٨٨٥٤٤٦٧١,replace
+246,MRN-100239,اسم_المريض,PERSON_NAME,هند الزهراني,replace
+246,MRN-100239,رقم_الهوية,SAUDI_ID,2073902518,replace
+246,MRN-100239,الجوال,MOBILE,0539412413,replace
+246,MRN-100239,آيبان_الاسترداد,IBAN,SA2245179065203195738995,replace
+246,MRN-100239,ملاحظات,SAUDI_ID,٢٠٧٣٩٠٢٥١٨,replace
+248,MRN-100241,اسم_المريض,PERSON_NAME,أحمد المطيري,replace
+248,MRN-100241,رقم_الهوية,SAUDI_ID,1678720911,replace
+248,MRN-100241,الجوال,MOBILE,0507633682,replace
+248,MRN-100241,آيبان_الاسترداد,IBAN,SA2345597394605853339767,replace
+250,MRN-100243,اسم_المريض,PERSON_NAME,نايف الشمري,replace
+250,MRN-100243,رقم_الهوية,SAUDI_ID,2434618043,replace
+250,MRN-100243,الجوال,MOBILE,+966539244657,replace
+251,MRN-100244,اسم_المريض,PERSON_NAME,عادل الرشيدي,replace
+251,MRN-100244,رقم_الهوية,SAUDI_ID,1808938953,replace
+251,MRN-100244,الجوال,MOBILE,0558150535,replace
+252,MRN-100245,اسم_المريض,PERSON_NAME,غادة ​السبيعي,replace
+252,MRN-100245,رقم_الهوية,SAUDI_ID,1985379823,replace
+252,MRN-100245,الجوال,MOBILE,0500331905,replace
+253,MRN-100246,اسم_المريض,PERSON_NAME,عبدالله الغامدي,replace
+253,MRN-100246,رقم_الهوية,SAUDI_ID,1235862008,replace
+253,MRN-100246,الجوال,MOBILE,0568820067,replace
+253,MRN-100246,ملاحظات,MOBILE,056 882 0067,replace
+254,MRN-100247,اسم_المريض,PERSON_NAME,خالد الحربي,replace
+254,MRN-100247,رقم_الهوية,SAUDI_ID,2019195995,replace
+254,MRN-100247,الجوال,MOBILE,053 082 3552,replace
+254,MRN-100247,آيبان_الاسترداد,IBAN,SA5105280274441141352095,replace
+255,MRN-100248,اسم_المريض,PERSON_NAME,سارة الرشيدي,replace
+255,MRN-100248,رقم_الهوية,SAUDI_ID,2201043805,replace
+255,MRN-100248,الجوال,MOBILE,966555401131,replace
+255,MRN-100248,آيبان_الاسترداد,IBAN,SA9510469556271304343309,replace
+256,MRN-100249,اسم_المريض,PERSON_NAME,أحمد ​الشهري,replace
+256,MRN-100249,رقم_الهوية,SAUDI_ID,2289323251,replace
+256,MRN-100249,الجوال,MOBILE,966509309098,replace
+257,MRN-100250,اسم_المريض,PERSON_NAME,غادة العتيبي,replace
+257,MRN-100250,رقم_الهوية,SAUDI_ID,2341070395,replace
+257,MRN-100250,الجوال,MOBILE,050 734 5882,replace
+257,MRN-100250,ملاحظات,SAUDI_ID,1962399706,ignore
+258,MRN-100251,اسم_المريض,PERSON_NAME,هند القرني,replace
+258,MRN-100251,رقم_الهوية,SAUDI_ID,2224832143,replace
+258,MRN-100251,الجوال,MOBILE,0532588824,replace
+259,MRN-100252,اسم_المريض,PERSON_NAME,سارة العسيري,replace
+259,MRN-100252,رقم_الهوية,SAUDI_ID,1384801138,replace
+259,MRN-100252,الجوال,MOBILE,0594440949,replace
+260,MRN-100253,اسم_المريض,PERSON_NAME,نورة المطيري,replace
+260,MRN-100253,رقم_الهوية,SAUDI_ID,1809691791,replace
+260,MRN-100253,الجوال,MOBILE,059 023 6415,replace
+261,MRN-100254,اسم_المريض,PERSON_NAME,دانة الحربي,replace
+261,MRN-100254,رقم_الهوية,SAUDI_ID,1972012015,replace
+261,MRN-100254,الجوال,MOBILE,0534097130,replace
+261,MRN-100254,آيبان_الاسترداد,IBAN,SA7020344390930328516100,replace
+262,MRN-100255,اسم_المريض,PERSON_NAME,غادة الشهري,replace
+262,MRN-100255,رقم_الهوية,SAUDI_ID,2714508682,replace
+262,MRN-100255,الجوال,MOBILE,0552099548,replace
+262,MRN-100255,آيبان_الاسترداد,IBAN,SA4145900860438176223839,replace
+262,MRN-100255,ملاحظات,SAUDI_ID,2714508682,replace
+262,MRN-100255,ملاحظات,MOBILE,0552099548,replace
+263,MRN-100256,اسم_المريض,PERSON_NAME,يوسف الخالدي,replace
+263,MRN-100256,رقم_الهوية,SAUDI_ID,1318813126,replace
+263,MRN-100256,الجوال,MOBILE,059 506 4884,replace
+264,MRN-100257,اسم_المريض,PERSON_NAME,ريم الغامدي,replace
+264,MRN-100257,رقم_الهوية,SAUDI_ID,1415924404,replace
+264,MRN-100257,الجوال,MOBILE,٠٥٤٤٠٨٩٧٣٠,replace
+265,MRN-100258,اسم_المريض,PERSON_NAME,وجدان العنزي,replace
+265,MRN-100258,رقم_الهوية,SAUDI_ID,1085428447,replace
+265,MRN-100258,الجوال,MOBILE,0561450527,replace
+265,MRN-100258,آيبان_الاسترداد,IBAN,SA6920531410079291605797,replace
+265,MRN-100258,ملاحظات,IBAN,SA53 0589 6342 1302 2896 9675,replace
+266,MRN-100259,اسم_المريض,PERSON_NAME,نورة القحطاني,replace
+266,MRN-100259,رقم_الهوية,SAUDI_ID,1151013255,replace
+266,MRN-100259,الجوال,MOBILE,٠٥٣٩١٨٣١٢٢,replace
+266,MRN-100259,آيبان_الاسترداد,IBAN,SA7545680419581315341040,replace
+266,MRN-100259,ملاحظات,SAUDI_ID,١١٥١٠١٣٢٥٥,replace
+267,MRN-100260,اسم_المريض,PERSON_NAME,نوف الزهراني,replace
+267,MRN-100260,رقم_الهوية,SAUDI_ID,1594034603,replace
+267,MRN-100260,الجوال,MOBILE,966552780743,replace
+267,MRN-100260,آيبان_الاسترداد,IBAN,SA2210989468104625347175,replace
+268,MRN-100261,اسم_المريض,PERSON_NAME,أحمد البقمي,replace
+268,MRN-100261,رقم_الهوية,SAUDI_ID,1589920006,replace
+268,MRN-100261,الجوال,MOBILE,0596803508,replace
+268,MRN-100261,ملاحظات,MOBILE,059 680 3508,replace
+269,MRN-100262,اسم_المريض,PERSON_NAME,مشعل الرشيدي,replace
+269,MRN-100262,رقم_الهوية,SAUDI_ID,1161952385,replace
+269,MRN-100262,الجوال,MOBILE,٠٥٠٥٩٢٨٢١٦,replace
+270,MRN-100263,اسم_المريض,PERSON_NAME,عبدالله الحربي,replace
+270,MRN-100263,رقم_الهوية,SAUDI_ID,1074221829,replace
+270,MRN-100263,الجوال,MOBILE,+966549714694,replace
+271,MRN-100264,اسم_المريض,PERSON_NAME,دانة العتيبي,replace
+271,MRN-100264,رقم_الهوية,SAUDI_ID,1988739239,replace
+271,MRN-100264,الجوال,MOBILE,966539390885,replace
+271,MRN-100264,ملاحظات,SAUDI_ID,1988 739 239,replace
+272,MRN-100265,اسم_المريض,PERSON_NAME,ماجد الشمري,replace
+272,MRN-100265,رقم_الهوية,SAUDI_ID,1003347448,replace
+272,MRN-100265,الجوال,MOBILE,0502129189,replace
+273,MRN-100266,اسم_المريض,PERSON_NAME,منى الزهراني,replace
+273,MRN-100266,رقم_الهوية,SAUDI_ID,1289863944,replace
+273,MRN-100266,الجوال,MOBILE,0598532966,replace
+273,MRN-100266,ملاحظات,IBAN,SA55 4506 4775 4135 6508 2112,replace
+274,MRN-100267,اسم_المريض,PERSON_NAME,محمد العسيري,replace
+274,MRN-100267,رقم_الهوية,SAUDI_ID,1670952702,replace
+274,MRN-100267,الجوال,MOBILE,0595188432,replace
+275,MRN-100268,اسم_المريض,PERSON_NAME,العنود الخالدي,replace
+275,MRN-100268,رقم_الهوية,SAUDI_ID,1338581380,replace
+275,MRN-100268,الجوال,MOBILE,+966535305859,replace
+275,MRN-100268,آيبان_الاسترداد,IBAN,SA6005273012556642529107,replace
+275,MRN-100268,ملاحظات,SAUDI_ID,١٣٣٨٥٨١٣٨٠,replace
+276,MRN-100269,اسم_المريض,PERSON_NAME,لمى البقمي,replace
+276,MRN-100269,رقم_الهوية,SAUDI_ID,1435056740,replace
+276,MRN-100269,الجوال,MOBILE,0549094781,replace
+276,MRN-100269,آيبان_الاسترداد,IBAN,SA5260747757124328289025,replace
+276,MRN-100269,ملاحظات,SAUDI_ID,١٤٣٥٠٥٦٧٤٠,replace
+277,MRN-100270,اسم_المريض,PERSON_NAME,وليد الرشيدي,replace
+277,MRN-100270,رقم_الهوية,SAUDI_ID,2465128623,replace
+277,MRN-100270,الجوال,MOBILE,050 492 4025,replace
+277,MRN-100270,آيبان_الاسترداد,IBAN,SA8645081987774586747565,replace
+277,MRN-100270,ملاحظات,SAUDI_ID,٢٤٦٥١٢٨٦٢٣,replace
+278,MRN-100271,اسم_المريض,PERSON_NAME,ريم البقمي,replace
+278,MRN-100271,رقم_الهوية,SAUDI_ID,1904036652,replace
+278,MRN-100271,الجوال,MOBILE,0558739219,replace
+278,MRN-100271,ملاحظات,SAUDI_ID,1904036652,replace
+278,MRN-100271,ملاحظات,MOBILE,0558739219,replace
+279,MRN-100272,اسم_المريض,PERSON_NAME,بندر العسيري,replace
+279,MRN-100272,رقم_الهوية,SAUDI_ID,1357802634,replace
+279,MRN-100272,الجوال,MOBILE,0594054070,replace
+280,MRN-100273,اسم_المريض,PERSON_NAME,لمى الرشيدي,replace
+280,MRN-100273,رقم_الهوية,SAUDI_ID,1829321544,replace
+280,MRN-100273,الجوال,MOBILE,966504470607,replace
+280,MRN-100273,ملاحظات,MOBILE,050 447 0607,replace
+281,MRN-100274,اسم_المريض,PERSON_NAME,زياد الجهني,replace
+281,MRN-100274,رقم_الهوية,SAUDI_ID,2325969653,replace
+281,MRN-100274,الجوال,MOBILE,0598760044,replace
+281,MRN-100274,ملاحظات,SAUDI_ID,1146549838,ignore
+282,MRN-100275,اسم_المريض,PERSON_NAME,أثير الشهري,replace
+282,MRN-100275,رقم_الهوية,SAUDI_ID,2332555255,replace
+282,MRN-100275,الجوال,MOBILE,0566360766,replace
+282,MRN-100275,ملاحظات,SAUDI_ID,1451036519,review
+283,MRN-100276,اسم_المريض,PERSON_NAME,أحمد ​الغامدي,replace
+283,MRN-100276,رقم_الهوية,SAUDI_ID,2208890083,replace
+283,MRN-100276,الجوال,MOBILE,+966547367284,replace
+283,MRN-100276,ملاحظات,PERSON_NAME,أحمد,replace
+284,MRN-100277,اسم_المريض,PERSON_NAME,سعود القحطاني,replace
+284,MRN-100277,رقم_الهوية,SAUDI_ID,1411815416,replace
+284,MRN-100277,الجوال,MOBILE,0534619447,replace
+285,MRN-100278,اسم_المريض,PERSON_NAME,نورة القحطاني,replace
+285,MRN-100278,رقم_الهوية,SAUDI_ID,1140155993,replace
+285,MRN-100278,الجوال,MOBILE,+966567655946,replace
+285,MRN-100278,ملاحظات,IBAN,SA93 0599 2338 8545 3831 7285,replace
+286,MRN-100279,اسم_المريض,PERSON_NAME,سارة اليامي,replace
+286,MRN-100279,رقم_الهوية,SAUDI_ID,1521094993,replace
+286,MRN-100279,الجوال,MOBILE,0546391537,replace
+286,MRN-100279,ملاحظات,SAUDI_ID,١٥٢١٠٩٤٩٩٣,replace
+287,MRN-100280,اسم_المريض,PERSON_NAME,  وجدان القرني   ,replace
+287,MRN-100280,رقم_الهوية,SAUDI_ID,1272913789,replace
+287,MRN-100280,الجوال,MOBILE,0534953952,replace
+287,MRN-100280,آيبان_الاسترداد,IBAN,SA0705311919105138242380,replace
+288,MRN-100281,اسم_المريض,PERSON_NAME,منى الغامدي,replace
+288,MRN-100281,رقم_الهوية,SAUDI_ID,1276648555,replace
+288,MRN-100281,الجوال,MOBILE,053 601 0273,replace
+288,MRN-100281,ملاحظات,SAUDI_ID,1126124419,review
+289,MRN-100282,اسم_المريض,PERSON_NAME,نورة الجهني,replace
+289,MRN-100282,رقم_الهوية,SAUDI_ID,1027257300,replace
+289,MRN-100282,الجوال,MOBILE,٠٥٠٥٨٧٢٥٥٨,replace
+289,MRN-100282,ملاحظات,MOBILE,050 587 2558,replace
+290,MRN-100283,اسم_المريض,PERSON_NAME,رغد الدوسري,replace
+290,MRN-100283,رقم_الهوية,SAUDI_ID,1891941070,replace
+290,MRN-100283,الجوال,MOBILE,0503057985,replace
+290,MRN-100283,ملاحظات,SAUDI_ID,1891 941 070,replace
+291,MRN-100284,اسم_المريض,PERSON_NAME,زياد الزهراني,replace
+291,MRN-100284,رقم_الهوية,SAUDI_ID,2539447215,replace
+291,MRN-100284,الجوال,MOBILE,+966557385065,replace
+292,MRN-100285,اسم_المريض,PERSON_NAME,نوف الشهري,replace
+292,MRN-100285,رقم_الهوية,SAUDI_ID,1724719610,replace
+292,MRN-100285,الجوال,MOBILE,966569926620,replace
+293,MRN-100286,اسم_المريض,PERSON_NAME,ريم الرشيدي,replace
+293,MRN-100286,رقم_الهوية,SAUDI_ID,2242914139,replace
+293,MRN-100286,الجوال,MOBILE,966534247259,replace
+294,MRN-100287,اسم_المريض,PERSON_NAME,ريان السهلي,replace
+294,MRN-100287,رقم_الهوية,SAUDI_ID,2085287544,replace
+294,MRN-100287,الجوال,MOBILE,٠٥٦٤٠٠٠٦٠٠,replace
+294,MRN-100287,آيبان_الاسترداد,IBAN,SA3760294181938230483976,replace
+295,MRN-100288,اسم_المريض,PERSON_NAME,فيصل العتيبي,replace
+295,MRN-100288,رقم_الهوية,SAUDI_ID,2049549815,replace
+295,MRN-100288,الجوال,MOBILE,0558414512,replace
+295,MRN-100288,ملاحظات,SAUDI_ID,٢٠٤٩٥٤٩٨١٥,replace
+296,MRN-100289,اسم_المريض,PERSON_NAME,لمى الرشيدي,replace
+296,MRN-100289,رقم_الهوية,SAUDI_ID,2380445490,replace
+296,MRN-100289,الجوال,MOBILE,+966534756920,replace
+296,MRN-100289,ملاحظات,PERSON_NAME,فهد الرشيدي,replace
+296,MRN-100289,ملاحظات,MOBILE,+٩٦٦ ٥٩ ٥٦٩ ٥٢٦٨,replace
+297,MRN-100290,اسم_المريض,PERSON_NAME,ريم القرني,replace
+297,MRN-100290,رقم_الهوية,SAUDI_ID,1850847037,replace
+297,MRN-100290,الجوال,MOBILE,0509605089,replace
+298,MRN-100291,اسم_المريض,PERSON_NAME,أحمد الغامدي,replace
+298,MRN-100291,رقم_الهوية,SAUDI_ID,1916957572,replace
+298,MRN-100291,الجوال,MOBILE,0549567009,replace
+298,MRN-100291,ملاحظات,SAUDI_ID,١٩١٦٩٥٧٥٧٢,replace
+299,MRN-100292,اسم_المريض,PERSON_NAME,نورة الرشيدي,replace
+299,MRN-100292,رقم_الهوية,SAUDI_ID,2583235417,replace
+299,MRN-100292,الجوال,MOBILE,0508236205,replace
+299,MRN-100292,آيبان_الاسترداد,IBAN,SA9010283861750067121283,replace
+300,MRN-100293,اسم_المريض,PERSON_NAME,أحمد الخالدي,replace
+300,MRN-100293,رقم_الهوية,SAUDI_ID,1164700179,replace
+300,MRN-100293,الجوال,MOBILE,0551918529,replace
+300,MRN-100293,آيبان_الاسترداد,IBAN,SA3745204996656846368429,replace
+301,MRN-100294,اسم_المريض,PERSON_NAME,أروى الغامدي,replace
+301,MRN-100294,رقم_الهوية,SAUDI_ID,1291489696,replace
+301,MRN-100294,الجوال,MOBILE,+966592179616,replace
+301,MRN-100294,ملاحظات,SAUDI_ID,1353784482,ignore
+302,MRN-100295,اسم_المريض,PERSON_NAME,فهد العمري,replace
+302,MRN-100295,رقم_الهوية,SAUDI_ID,2389315421,replace
+302,MRN-100295,الجوال,MOBILE,0537470574,replace
+302,MRN-100295,ملاحظات,MOBILE,053 747 0574,replace
+303,MRN-100296,اسم_المريض,PERSON_NAME,زياد الدوسري,replace
+303,MRN-100296,رقم_الهوية,SAUDI_ID,1645766989,replace
+303,MRN-100296,الجوال,MOBILE,0599606068,replace
+303,MRN-100296,آيبان_الاسترداد,IBAN,SA5905496659521103436232,replace
+304,MRN-100484,اسم_المريض,PERSON_NAME,ريم القرني,replace
+304,MRN-100484,رقم_الهوية,SAUDI_ID,2748436959,replace
+304,MRN-100484,الجوال,MOBILE,0598511360,replace
+304,MRN-100484,آيبان_الاسترداد,IBAN,SA6820153843227893088293,replace
+305,MRN-100297,اسم_المريض,PERSON_NAME,أروى العنزي,replace
+305,MRN-100297,رقم_الهوية,SAUDI_ID,2877317178,replace
+305,MRN-100297,الجوال,MOBILE,056 253 6252,replace
+305,MRN-100297,آيبان_الاسترداد,IBAN,SA5020220254272165752329,replace
+306,MRN-100298,اسم_المريض,PERSON_NAME,العنود العنزي,replace
+306,MRN-100298,رقم_الهوية,SAUDI_ID,1997587629,replace
+306,MRN-100298,الجوال,MOBILE,0531168504,replace
+306,MRN-100298,آيبان_الاسترداد,IBAN,SA1560774005809874141574,replace
+306,MRN-100298,ملاحظات,MOBILE,053 116 8504,replace
+307,MRN-100299,اسم_المريض,PERSON_NAME,أحمد السهلي,replace
+307,MRN-100299,رقم_الهوية,SAUDI_ID,2305938579,replace
+307,MRN-100299,الجوال,MOBILE,966544811178,replace
+307,MRN-100299,ملاحظات,MOBILE,054 481 1178,replace
+308,MRN-100300,اسم_المريض,PERSON_NAME,فيصل الحربي,replace
+308,MRN-100300,رقم_الهوية,SAUDI_ID,1032873083,replace
+308,MRN-100300,الجوال,MOBILE,966531848785,replace
+308,MRN-100300,آيبان_الاسترداد,IBAN,SA8205839086236619907384,replace
+308,MRN-100300,ملاحظات,SAUDI_ID,١٠٣٢٨٧٣٠٨٣,replace
+309,MRN-100301,اسم_المريض,PERSON_NAME,ريم البقمي,replace
+309,MRN-100301,رقم_الهوية,SAUDI_ID,2183180690,replace
+309,MRN-100301,الجوال,MOBILE,0594454676,replace
+309,MRN-100301,آيبان_الاسترداد,IBAN,SA5310155839633782132785,replace
+309,MRN-100301,ملاحظات,SAUDI_ID,٢١٨٣١٨٠٦٩٠,replace
+310,MRN-100302,اسم_المريض,PERSON_NAME,سارة السهلي,replace
+310,MRN-100302,رقم_الهوية,SAUDI_ID,1684925108,replace
+310,MRN-100302,الجوال,MOBILE,0503624490,replace
+310,MRN-100302,ملاحظات,MOBILE,050 362 4490,replace
+311,MRN-100303,اسم_المريض,PERSON_NAME,رهف الدوسري,replace
+311,MRN-100303,رقم_الهوية,SAUDI_ID,1642682031,replace
+311,MRN-100303,الجوال,MOBILE,+966554124262,replace
+312,MRN-100304,اسم_المريض,PERSON_NAME,أروى العتيبي,replace
+312,MRN-100304,رقم_الهوية,SAUDI_ID,1525934004,replace
+312,MRN-100304,الجوال,MOBILE,0502392961,replace
+312,MRN-100304,ملاحظات,SAUDI_ID,١٥٢٥٩٣٤٠٠٤,replace
+313,MRN-100305,اسم_المريض,PERSON_NAME,زياد العنزي,replace
+313,MRN-100305,رقم_الهوية,SAUDI_ID,2909191880,replace
+313,MRN-100305,الجوال,MOBILE,+966560327797,replace
+313,MRN-100305,ملاحظات,SAUDI_ID,٢٩٠٩١٩١٨٨٠,replace
+314,MRN-100306,اسم_المريض,PERSON_NAME,نوف اليامي,replace
+314,MRN-100306,رقم_الهوية,SAUDI_ID,1307398394,replace
+314,MRN-100306,الجوال,MOBILE,059 890 5436,replace
+314,MRN-100306,ملاحظات,SAUDI_ID,1307398394,replace
+314,MRN-100306,ملاحظات,MOBILE,0598905436,replace
+315,MRN-100307,اسم_المريض,PERSON_NAME,مشعل السهلي,replace
+315,MRN-100307,رقم_الهوية,SAUDI_ID,1170543373,replace
+315,MRN-100307,الجوال,MOBILE,053 793 5139,replace
+316,MRN-100308,اسم_المريض,PERSON_NAME,يوسف العمري,replace
+316,MRN-100308,رقم_الهوية,SAUDI_ID,1528127358,replace
+316,MRN-100308,الجوال,MOBILE,0551283855,replace
+317,MRN-100309,اسم_المريض,PERSON_NAME,سارة اليامي,replace
+317,MRN-100309,رقم_الهوية,SAUDI_ID,1464389848,replace
+317,MRN-100309,الجوال,MOBILE,0549888258,replace
+317,MRN-100309,آيبان_الاسترداد,IBAN,SA4480140880036608754066,replace
+317,MRN-100309,ملاحظات,PERSON_NAME,مشاري البقمي,replace
+317,MRN-100309,ملاحظات,MOBILE,+٩٦٦ ٥٠ ٧٩٤ ١٠٧٣,replace
+318,MRN-100310,اسم_المريض,PERSON_NAME,رهف الجهني,replace
+318,MRN-100310,رقم_الهوية,SAUDI_ID,1793681618,replace
+318,MRN-100310,الجوال,MOBILE,٠٥٩٣٩٧١٩٩٩,replace
+318,MRN-100310,آيبان_الاسترداد,IBAN,SA8420112165902230827868,replace
+319,MRN-100311,اسم_المريض,PERSON_NAME,سارة الشهري,replace
+319,MRN-100311,رقم_الهوية,SAUDI_ID,1407008224,replace
+319,MRN-100311,الجوال,MOBILE,+966553690503,replace
+319,MRN-100311,آيبان_الاسترداد,IBAN,SA9505932557329056774181,replace
+320,MRN-100312,اسم_المريض,PERSON_NAME,أحمد الحربي,replace
+320,MRN-100312,رقم_الهوية,SAUDI_ID,2553801735,replace
+320,MRN-100312,الجوال,MOBILE,966551986784,replace
+321,MRN-100313,اسم_المريض,PERSON_NAME,يوسف القحطاني,replace
+321,MRN-100313,رقم_الهوية,SAUDI_ID,2232397154,replace
+321,MRN-100313,الجوال,MOBILE,0550653165,replace
+321,MRN-100313,ملاحظات,SAUDI_ID,٢٢٣٢٣٩٧١٥٤,replace
+322,MRN-100314,اسم_المريض,PERSON_NAME,هند الحربي,replace
+322,MRN-100314,رقم_الهوية,SAUDI_ID,1512388347,replace
+322,MRN-100314,الجوال,MOBILE,054 625 8242,replace
+322,MRN-100314,آيبان_الاسترداد,IBAN,SA0445719684123896169670,replace
+322,MRN-100314,ملاحظات,SAUDI_ID,1512 388 347,replace
+323,MRN-100315,اسم_المريض,PERSON_NAME,عبدالله العسيري,replace
+323,MRN-100315,رقم_الهوية,SAUDI_ID,1005119878,replace
+323,MRN-100315,الجوال,MOBILE,0544218935,replace
+324,MRN-100316,اسم_المريض,PERSON_NAME,خالد القحطاني,replace
+324,MRN-100316,رقم_الهوية,SAUDI_ID,1694872860,replace
+324,MRN-100316,الجوال,MOBILE,0545504660,replace
+324,MRN-100316,ملاحظات,SAUDI_ID,1694872860,replace
+324,MRN-100316,ملاحظات,MOBILE,0545504660,replace
+325,MRN-100317,اسم_المريض,PERSON_NAME,لمى الزهراني,replace
+325,MRN-100317,رقم_الهوية,SAUDI_ID,2262333699,replace
+325,MRN-100317,الجوال,MOBILE,053 800 9071,replace
+325,MRN-100317,آيبان_الاسترداد,IBAN,SA2060366625874530508790,replace
+326,MRN-100318,اسم_المريض,PERSON_NAME,لمى الدوسري,replace
+326,MRN-100318,رقم_الهوية,SAUDI_ID,1335070007,replace
+326,MRN-100318,الجوال,MOBILE,0563001319,replace
+326,MRN-100318,ملاحظات,PERSON_NAME,مشعل العتيبي,replace
+326,MRN-100318,ملاحظات,MOBILE,+٩٦٦ ٥٥ ١٩٢ ٩٧٧٣,replace
+328,MRN-100320,اسم_المريض,PERSON_NAME,زياد الرشيدي,replace
+328,MRN-100320,رقم_الهوية,SAUDI_ID,1524186457,replace
+328,MRN-100320,الجوال,MOBILE,0554665764,replace
+328,MRN-100320,ملاحظات,SAUDI_ID,1524 186 457,replace
+330,MRN-100428,اسم_المريض,PERSON_NAME,بندر الخالدي,replace
+330,MRN-100428,رقم_الهوية,SAUDI_ID,1429997354,replace
+330,MRN-100428,الجوال,MOBILE,0596244498,replace
+330,MRN-100428,ملاحظات,MOBILE,059 624 4498,replace
+331,MRN-100321,اسم_المريض,PERSON_NAME,نوف اليامي,replace
+331,MRN-100321,رقم_الهوية,SAUDI_ID,1264832310,replace
+331,MRN-100321,الجوال,MOBILE,966568650440,replace
+331,MRN-100321,ملاحظات,SAUDI_ID,1522090779,ignore
+332,MRN-100322,اسم_المريض,PERSON_NAME,جواهر الغامدي,replace
+332,MRN-100322,رقم_الهوية,SAUDI_ID,1372029262,replace
+332,MRN-100322,الجوال,MOBILE,0546794050,replace
+333,MRN-100323,اسم_المريض,PERSON_NAME,نورة العسيري,replace
+333,MRN-100323,رقم_الهوية,SAUDI_ID,1598864419,replace
+333,MRN-100323,الجوال,MOBILE,0543647154,replace
+334,MRN-100324,اسم_المريض,PERSON_NAME,نوف العسيري,replace
+334,MRN-100324,رقم_الهوية,SAUDI_ID,1835740893,replace
+334,MRN-100324,الجوال,MOBILE,0553866878,replace
+335,MRN-100325,اسم_المريض,PERSON_NAME,  ريم الحربي   ,replace
+335,MRN-100325,رقم_الهوية,SAUDI_ID,1546738996,replace
+335,MRN-100325,الجوال,MOBILE,0561259769,replace
+336,MRN-100326,اسم_المريض,PERSON_NAME,نوف المطيري,replace
+336,MRN-100326,رقم_الهوية,SAUDI_ID,1636514620,replace
+336,MRN-100326,الجوال,MOBILE,0562952940,replace
+336,MRN-100326,ملاحظات,SAUDI_ID,1130136758,ignore
+337,MRN-100327,اسم_المريض,PERSON_NAME,خالد السبيعي,replace
+337,MRN-100327,رقم_الهوية,SAUDI_ID,2330018389,replace
+337,MRN-100327,الجوال,MOBILE,0569487235,replace
+337,MRN-100327,آيبان_الاسترداد,IBAN,SA6560109396269759318305,replace
+337,MRN-100327,ملاحظات,SAUDI_ID,1463196616,review
+338,MRN-100328,اسم_المريض,PERSON_NAME,  لمى الزهراني   ,replace
+338,MRN-100328,رقم_الهوية,SAUDI_ID,1580964722,replace
+338,MRN-100328,الجوال,MOBILE,0594344024,replace
+339,MRN-100329,اسم_المريض,PERSON_NAME,نورة الخالدي,replace
+339,MRN-100329,رقم_الهوية,SAUDI_ID,2866056241,replace
+339,MRN-100329,الجوال,MOBILE,+966537110978,replace
+340,MRN-100330,اسم_المريض,PERSON_NAME,رهف السبيعي,replace
+340,MRN-100330,رقم_الهوية,SAUDI_ID,2365916614,replace
+340,MRN-100330,الجوال,MOBILE,+966541204532,replace
+340,MRN-100330,آيبان_الاسترداد,IBAN,SA1580059270163510418558,replace
+341,MRN-100331,اسم_المريض,PERSON_NAME,سعود الرشيدي,replace
+341,MRN-100331,رقم_الهوية,SAUDI_ID,1790891442,replace
+341,MRN-100331,الجوال,MOBILE,+966567828705,replace
+342,MRN-100332,اسم_المريض,PERSON_NAME,دانة المطيري,replace
+342,MRN-100332,رقم_الهوية,SAUDI_ID,1580862975,replace
+342,MRN-100332,الجوال,MOBILE,0542097242,replace
+342,MRN-100332,آيبان_الاسترداد,IBAN,SA8680783051102341861776,replace
+342,MRN-100332,ملاحظات,SAUDI_ID,1144984011,ignore
+343,MRN-100333,اسم_المريض,PERSON_NAME,جواهر الزهراني,replace
+343,MRN-100333,رقم_الهوية,SAUDI_ID,1560741934,replace
+343,MRN-100333,الجوال,MOBILE,+966548373105,replace
+343,MRN-100333,ملاحظات,SAUDI_ID,١٥٦٠٧٤١٩٣٤,replace
+344,MRN-100334,اسم_المريض,PERSON_NAME,نوف الزهراني,replace
+344,MRN-100334,رقم_الهوية,SAUDI_ID,1056085630,replace
+344,MRN-100334,الجوال,MOBILE,0545954057,replace
+344,MRN-100334,ملاحظات,PERSON_NAME,نوف,replace
+345,MRN-100335,اسم_المريض,PERSON_NAME,فهد القرني,replace
+345,MRN-100335,رقم_الهوية,SAUDI_ID,1648065207,replace
+345,MRN-100335,الجوال,MOBILE,0530752707,replace
+345,MRN-100335,ملاحظات,SAUDI_ID,١٦٤٨٠٦٥٢٠٧,replace
+346,MRN-100336,اسم_المريض,PERSON_NAME,  سعود الحربي   ,replace
+346,MRN-100336,رقم_الهوية,SAUDI_ID,1581640693,replace
+346,MRN-100336,الجوال,MOBILE,0560043923,replace
+347,MRN-100337,اسم_المريض,PERSON_NAME,نوف البقمي,replace
+347,MRN-100337,رقم_الهوية,SAUDI_ID,1900849173,replace
+347,MRN-100337,الجوال,MOBILE,0548679124,replace
+348,MRN-100338,اسم_المريض,PERSON_NAME,مشعل القرني,replace
+348,MRN-100338,رقم_الهوية,SAUDI_ID,1220350035,replace
+348,MRN-100338,الجوال,MOBILE,0540322881,replace
+348,MRN-100338,ملاحظات,SAUDI_ID,1169083632,ignore
+349,MRN-100339,اسم_المريض,PERSON_NAME,سارة العمري,replace
+349,MRN-100339,رقم_الهوية,SAUDI_ID,1841340720,replace
+349,MRN-100339,الجوال,MOBILE,054 085 3978,replace
+349,MRN-100339,ملاحظات,PERSON_NAME,مشعل المطيري,replace
+349,MRN-100339,ملاحظات,MOBILE,+٩٦٦ ٥٠ ٧٦١ ٢٢١٩,replace
+350,MRN-100340,اسم_المريض,PERSON_NAME,سارة اليامي,replace
+350,MRN-100340,رقم_الهوية,SAUDI_ID,2423771878,replace
+350,MRN-100340,الجوال,MOBILE,0562409713,replace
+350,MRN-100340,ملاحظات,PERSON_NAME,راشد المطيري,replace
+350,MRN-100340,ملاحظات,MOBILE,+٩٦٦ ٥٤ ٢٨٩ ٩٩٥٢,replace
+351,MRN-100341,اسم_المريض,PERSON_NAME,منى السهلي,replace
+351,MRN-100341,رقم_الهوية,SAUDI_ID,1641207731,replace
+351,MRN-100341,الجوال,MOBILE,053 640 2555,replace
+351,MRN-100341,آيبان_الاسترداد,IBAN,SA9020379119052374933364,replace
+351,MRN-100341,ملاحظات,SAUDI_ID,1651843113,ignore
+352,MRN-100342,اسم_المريض,PERSON_NAME,نايف اليامي,replace
+352,MRN-100342,رقم_الهوية,SAUDI_ID,1164486738,replace
+352,MRN-100342,الجوال,MOBILE,0594672605,replace
+352,MRN-100342,آيبان_الاسترداد,IBAN,SA4960388934092099001209,replace
+352,MRN-100342,ملاحظات,PERSON_NAME,أحمد العنزي,replace
+352,MRN-100342,ملاحظات,MOBILE,+٩٦٦ ٥٦ ٥٨٦ ٨٥٧٤,replace
+353,MRN-100343,اسم_المريض,PERSON_NAME,رهف الدوسري,replace
+353,MRN-100343,رقم_الهوية,SAUDI_ID,1134889664,replace
+353,MRN-100343,الجوال,MOBILE,0554192289,replace
+353,MRN-100343,ملاحظات,IBAN,SA48 2073 5949 1239 7503 6188,replace
+354,MRN-100344,اسم_المريض,PERSON_NAME,لمى الشهري,replace
+354,MRN-100344,رقم_الهوية,SAUDI_ID,1372683142,replace
+354,MRN-100344,الجوال,MOBILE,0551761483,replace
+354,MRN-100344,آيبان_الاسترداد,IBAN,SA6805004191518687173198,replace
+354,MRN-100344,ملاحظات,MOBILE,055 176 1483,replace
+355,MRN-100345,اسم_المريض,PERSON_NAME,نورة السبيعي,replace
+355,MRN-100345,رقم_الهوية,SAUDI_ID,1283879425,replace
+355,MRN-100345,الجوال,MOBILE,966500266205,replace
+355,MRN-100345,ملاحظات,PERSON_NAME,نورة,replace
+357,MRN-100346,اسم_المريض,PERSON_NAME,ريم الزهراني,replace
+357,MRN-100346,رقم_الهوية,SAUDI_ID,2320855097,replace
+357,MRN-100346,الجوال,MOBILE,0548798148,replace
+358,MRN-100347,اسم_المريض,PERSON_NAME,راشد الجهني,replace
+358,MRN-100347,رقم_الهوية,SAUDI_ID,1144125125,replace
+358,MRN-100347,الجوال,MOBILE,0538816939,replace
+359,MRN-100348,اسم_المريض,PERSON_NAME,أروى العمري,replace
+359,MRN-100348,رقم_الهوية,SAUDI_ID,1129784326,replace
+359,MRN-100348,الجوال,MOBILE,0552506107,replace
+359,MRN-100348,آيبان_الاسترداد,IBAN,SA8660618504800244821592,replace
+360,MRN-100349,اسم_المريض,PERSON_NAME,العنود الشهري,replace
+360,MRN-100349,رقم_الهوية,SAUDI_ID,2437898576,replace
+360,MRN-100349,الجوال,MOBILE,+966595600684,replace
+360,MRN-100349,آيبان_الاسترداد,IBAN,SA1720936053441002405331,replace
+360,MRN-100349,ملاحظات,SAUDI_ID,1096417580,ignore
+361,MRN-100350,اسم_المريض,PERSON_NAME,نايف الشمري,replace
+361,MRN-100350,رقم_الهوية,SAUDI_ID,1324669173,replace
+361,MRN-100350,الجوال,MOBILE,0561822889,replace
+362,MRN-100351,اسم_المريض,PERSON_NAME,نورة الخالدي,replace
+362,MRN-100351,رقم_الهوية,SAUDI_ID,1547689263,replace
+362,MRN-100351,الجوال,MOBILE,0533924569,replace
+362,MRN-100351,ملاحظات,MOBILE,053 392 4569,replace
+363,MRN-100352,اسم_المريض,PERSON_NAME,نورة السبيعي,replace
+363,MRN-100352,رقم_الهوية,SAUDI_ID,1561510148,replace
+363,MRN-100352,الجوال,MOBILE,0557937748,replace
+363,MRN-100352,ملاحظات,MOBILE,055 793 7748,replace
+364,MRN-100353,اسم_المريض,PERSON_NAME,سعود السهلي,replace
+364,MRN-100353,رقم_الهوية,SAUDI_ID,1508096862,replace
+364,MRN-100353,الجوال,MOBILE,966594800378,replace
+365,MRN-100354,اسم_المريض,PERSON_NAME,أروى الحربي,replace
+365,MRN-100354,رقم_الهوية,SAUDI_ID,2770398408,replace
+365,MRN-100354,الجوال,MOBILE,0590560117,replace
+365,MRN-100354,ملاحظات,SAUDI_ID,2770 398 408,replace
+366,MRN-100355,اسم_المريض,PERSON_NAME,يوسف العمري,replace
+366,MRN-100355,رقم_الهوية,SAUDI_ID,1110064340,replace
+366,MRN-100355,الجوال,MOBILE,٠٥٣٦٥٩١٥٠١,replace
+366,MRN-100355,آيبان_الاسترداد,IBAN,SA4180032846435649914884,replace
+366,MRN-100355,ملاحظات,MOBILE,053 659 1501,replace
+367,MRN-100356,اسم_المريض,PERSON_NAME,  فهد الجهني   ,replace
+367,MRN-100356,رقم_الهوية,SAUDI_ID,1377297989,replace
+367,MRN-100356,الجوال,MOBILE,٠٥٤٤٠٦٢٥٤٤,replace
+367,MRN-100356,آيبان_الاسترداد,IBAN,SA3060783480679282043463,replace
+368,MRN-100357,اسم_المريض,PERSON_NAME,عادل القرني,replace
+368,MRN-100357,رقم_الهوية,SAUDI_ID,1483826176,replace
+368,MRN-100357,الجوال,MOBILE,0566991524,replace
+369,MRN-100358,اسم_المريض,PERSON_NAME,دانة اليامي,replace
+369,MRN-100358,رقم_الهوية,SAUDI_ID,1446820423,replace
+369,MRN-100358,الجوال,MOBILE,0545163013,replace
+369,MRN-100358,ملاحظات,SAUDI_ID,1446 820 423,replace
+370,MRN-100359,اسم_المريض,PERSON_NAME,  نايف الحربي   ,replace
+370,MRN-100359,رقم_الهوية,SAUDI_ID,1983324383,replace
+370,MRN-100359,الجوال,MOBILE,+966549771621,replace
+370,MRN-100359,ملاحظات,PERSON_NAME,وليد الشهري,replace
+370,MRN-100359,ملاحظات,MOBILE,+٩٦٦ ٥٦ ٠٩٩ ٣٦٥٣,replace
+371,MRN-100360,اسم_المريض,PERSON_NAME,سارة الغامدي,replace
+371,MRN-100360,رقم_الهوية,SAUDI_ID,1148433905,replace
+371,MRN-100360,الجوال,MOBILE,0561866877,replace
+371,MRN-100360,آيبان_الاسترداد,IBAN,SA5745444227999625833508,replace
+371,MRN-100360,ملاحظات,PERSON_NAME,سارة,replace
+372,MRN-100361,اسم_المريض,PERSON_NAME,العنود العسيري,replace
+372,MRN-100361,رقم_الهوية,SAUDI_ID,1136272810,replace
+372,MRN-100361,الجوال,MOBILE,053 041 4982,replace
+372,MRN-100361,ملاحظات,SAUDI_ID,١١٣٦٢٧٢٨١٠,replace
+374,MRN-100363,اسم_المريض,PERSON_NAME,خالد الجهني,replace
+374,MRN-100363,رقم_الهوية,SAUDI_ID,2002911150,replace
+374,MRN-100363,الجوال,MOBILE,0544898966,replace
+375,MRN-100364,اسم_المريض,PERSON_NAME,فهد اليامي,replace
+375,MRN-100364,رقم_الهوية,SAUDI_ID,1028750469,replace
+375,MRN-100364,الجوال,MOBILE,0542722079,replace
+375,MRN-100364,آيبان_الاسترداد,IBAN,SA0605788367505868100278,replace
+376,MRN-100365,اسم_المريض,PERSON_NAME,ريان العنزي,replace
+376,MRN-100365,رقم_الهوية,SAUDI_ID,1040356378,replace
+376,MRN-100365,الجوال,MOBILE,056 079 0118,replace
+376,MRN-100365,آيبان_الاسترداد,IBAN,SA8880638013081693943631,replace
+377,MRN-100366,اسم_المريض,PERSON_NAME,منى السهلي,replace
+377,MRN-100366,رقم_الهوية,SAUDI_ID,1601840943,replace
+377,MRN-100366,الجوال,MOBILE,053 196 7289,replace
+377,MRN-100366,ملاحظات,SAUDI_ID,1624229945,ignore
+378,MRN-100367,اسم_المريض,PERSON_NAME,  ريم الغامدي   ,replace
+378,MRN-100367,رقم_الهوية,SAUDI_ID,1490960430,replace
+378,MRN-100367,الجوال,MOBILE,050 801 4751,replace
+378,MRN-100367,ملاحظات,SAUDI_ID,1139065057,ignore
+379,MRN-100368,اسم_المريض,PERSON_NAME,يوسف الشهري,replace
+379,MRN-100368,رقم_الهوية,SAUDI_ID,1603966340,replace
+379,MRN-100368,الجوال,MOBILE,0590383054,replace
+380,MRN-100369,اسم_المريض,PERSON_NAME,نوف السهلي,replace
+380,MRN-100369,رقم_الهوية,SAUDI_ID,2692477058,replace
+380,MRN-100369,الجوال,MOBILE,050 877 0335,replace
+380,MRN-100369,آيبان_الاسترداد,IBAN,SA2260153305801258349777,replace
+381,MRN-100370,اسم_المريض,PERSON_NAME,ريان السهلي,replace
+381,MRN-100370,رقم_الهوية,SAUDI_ID,1200828703,replace
+381,MRN-100370,الجوال,MOBILE,0543030394,replace
+381,MRN-100370,آيبان_الاسترداد,IBAN,SA9420777132667713880886,replace
+381,MRN-100370,ملاحظات,SAUDI_ID,1497263203,ignore
+382,MRN-100371,اسم_المريض,PERSON_NAME,دانة العسيري,replace
+382,MRN-100371,رقم_الهوية,SAUDI_ID,1112917834,replace
+382,MRN-100371,الجوال,MOBILE,0593706377,replace
+382,MRN-100371,آيبان_الاسترداد,IBAN,SA0380243379275603212388,replace
+383,MRN-100372,اسم_المريض,PERSON_NAME,نوف السبيعي,replace
+383,MRN-100372,رقم_الهوية,SAUDI_ID,2802834297,replace
+383,MRN-100372,الجوال,MOBILE,0502139758,replace
+384,MRN-100373,اسم_المريض,PERSON_NAME,لمى الجهني,replace
+384,MRN-100373,رقم_الهوية,SAUDI_ID,1349880037,replace
+384,MRN-100373,الجوال,MOBILE,0532475355,replace
+384,MRN-100373,آيبان_الاسترداد,IBAN,SA9705339081498948466746,replace
+385,MRN-100374,اسم_المريض,PERSON_NAME,سلطان السبيعي,replace
+385,MRN-100374,رقم_الهوية,SAUDI_ID,1470010933,replace
+385,MRN-100374,الجوال,MOBILE,٠٥٣٩٨٤٢٢١٥,replace
+385,MRN-100374,ملاحظات,SAUDI_ID,1927798208,ignore
+386,MRN-100375,اسم_المريض,PERSON_NAME,شيماء القحطاني,replace
+386,MRN-100375,رقم_الهوية,SAUDI_ID,1698215249,replace
+386,MRN-100375,الجوال,MOBILE,050 707 9634,replace
+386,MRN-100375,آيبان_الاسترداد,IBAN,SA5020542692274056945988,replace
+387,MRN-100376,اسم_المريض,PERSON_NAME,فيصل السهلي,replace
+387,MRN-100376,رقم_الهوية,SAUDI_ID,1145476501,replace
+387,MRN-100376,الجوال,MOBILE,0563588361,replace
+387,MRN-100376,ملاحظات,IBAN,SA36 4554 8713 6616 5717 0326,replace
+388,MRN-100377,اسم_المريض,PERSON_NAME,زياد السبيعي,replace
+388,MRN-100377,رقم_الهوية,SAUDI_ID,1054071426,replace
+388,MRN-100377,الجوال,MOBILE,0501233494,replace
+388,MRN-100377,ملاحظات,SAUDI_ID,١٠٥٤٠٧١٤٢٦,replace
+389,MRN-100378,اسم_المريض,PERSON_NAME,منى الغامدي,replace
+389,MRN-100378,رقم_الهوية,SAUDI_ID,1819123207,replace
+389,MRN-100378,الجوال,MOBILE,0593642477,replace
+390,MRN-100379,اسم_المريض,PERSON_NAME,هند القحطاني,replace
+390,MRN-100379,رقم_الهوية,SAUDI_ID,1149242743,replace
+390,MRN-100379,الجوال,MOBILE,966546382379,replace
+390,MRN-100379,آيبان_الاسترداد,IBAN,SA0810028862121157073212,replace
+391,MRN-100380,اسم_المريض,PERSON_NAME,غادة الرشيدي,replace
+391,MRN-100380,رقم_الهوية,SAUDI_ID,1559401268,replace
+391,MRN-100380,الجوال,MOBILE,0596546418,replace
+391,MRN-100380,آيبان_الاسترداد,IBAN,SA9180795518271207115055,replace
+391,MRN-100380,ملاحظات,PERSON_NAME,عبدالله الشمري,replace
+391,MRN-100380,ملاحظات,MOBILE,+٩٦٦ ٥٩ ٠١٤ ٥٨٠٨,replace
+392,MRN-100381,اسم_المريض,PERSON_NAME,سلطان الرشيدي,replace
+392,MRN-100381,رقم_الهوية,SAUDI_ID,2358061709,replace
+392,MRN-100381,الجوال,MOBILE,0545661805,replace
+392,MRN-100381,ملاحظات,SAUDI_ID,1986607258,ignore
+393,MRN-100382,اسم_المريض,PERSON_NAME,  زياد الرشيدي   ,replace
+393,MRN-100382,رقم_الهوية,SAUDI_ID,1413795624,replace
+393,MRN-100382,الجوال,MOBILE,0548283224,replace
+393,MRN-100382,آيبان_الاسترداد,IBAN,SA9810338235104845019778,replace
+393,MRN-100382,ملاحظات,SAUDI_ID,1035466588,review
+394,MRN-100383,اسم_المريض,PERSON_NAME,بشاير ​العنزي,replace
+394,MRN-100383,رقم_الهوية,SAUDI_ID,2480431549,replace
+394,MRN-100383,الجوال,MOBILE,0542520624,replace
+394,MRN-100383,ملاحظات,SAUDI_ID,2480 431 549,replace
+395,MRN-100384,اسم_المريض,PERSON_NAME,محمد القرني,replace
+395,MRN-100384,رقم_الهوية,SAUDI_ID,2645086105,replace
+395,MRN-100384,الجوال,MOBILE,٠٥٣٦٦٠٢٢٩٧,replace
+396,MRN-100385,اسم_المريض,PERSON_NAME,سارة السهلي,replace
+396,MRN-100385,رقم_الهوية,SAUDI_ID,1343228845,replace
+396,MRN-100385,الجوال,MOBILE,0554495237,replace
+396,MRN-100385,آيبان_الاسترداد,IBAN,SA8610172963716386403532,replace
+396,MRN-100385,ملاحظات,SAUDI_ID,١٣٤٣٢٢٨٨٤٥,replace
+397,MRN-100386,اسم_المريض,PERSON_NAME,أحمد العمري,replace
+397,MRN-100386,رقم_الهوية,SAUDI_ID,1443440530,replace
+397,MRN-100386,الجوال,MOBILE,+966551074247,replace
+397,MRN-100386,ملاحظات,PERSON_NAME,أحمد,replace
+398,MRN-100387,اسم_المريض,PERSON_NAME,مشعل الغامدي,replace
+398,MRN-100387,رقم_الهوية,SAUDI_ID,2926699675,replace
+398,MRN-100387,الجوال,MOBILE,0563202576,replace
+398,MRN-100387,ملاحظات,MOBILE,056 320 2576,replace
+399,MRN-100388,اسم_المريض,PERSON_NAME,غادة الرشيدي,replace
+399,MRN-100388,رقم_الهوية,SAUDI_ID,1461864942,replace
+399,MRN-100388,الجوال,MOBILE,+966547708123,replace
+399,MRN-100388,آيبان_الاسترداد,IBAN,SA7120151119308489025692,replace
+400,MRN-100389,اسم_المريض,PERSON_NAME,عزام القرني,replace
+400,MRN-100389,رقم_الهوية,SAUDI_ID,2055717405,replace
+400,MRN-100389,الجوال,MOBILE,0536265408,replace
+400,MRN-100389,آيبان_الاسترداد,IBAN,SA2010521226098835803063,replace
+400,MRN-100389,ملاحظات,SAUDI_ID,2055717405,replace
+400,MRN-100389,ملاحظات,MOBILE,0536265408,replace
+401,MRN-100390,اسم_المريض,PERSON_NAME,بشاير اليامي,replace
+401,MRN-100390,رقم_الهوية,SAUDI_ID,2357274675,replace
+401,MRN-100390,الجوال,MOBILE,0500089761,replace
+401,MRN-100390,ملاحظات,SAUDI_ID,2357 274 675,replace
+402,MRN-100391,اسم_المريض,PERSON_NAME,منى الخالدي,replace
+402,MRN-100391,رقم_الهوية,SAUDI_ID,1868434059,replace
+402,MRN-100391,الجوال,MOBILE,0594811137,replace
+402,MRN-100391,آيبان_الاسترداد,IBAN,SA4410390886975508999462,replace
+402,MRN-100391,ملاحظات,SAUDI_ID,1916507677,ignore
+403,MRN-100392,اسم_المريض,PERSON_NAME,هند الجهني,replace
+403,MRN-100392,رقم_الهوية,SAUDI_ID,1381921426,replace
+403,MRN-100392,الجوال,MOBILE,966552787370,replace
+403,MRN-100392,ملاحظات,PERSON_NAME,هند,replace
+404,MRN-100393,اسم_المريض,PERSON_NAME,وجدان العمري,replace
+404,MRN-100393,رقم_الهوية,SAUDI_ID,1891509331,replace
+404,MRN-100393,الجوال,MOBILE,0552241137,replace
+404,MRN-100393,آيبان_الاسترداد,IBAN,SA3905019169128403534670,replace
+404,MRN-100393,ملاحظات,PERSON_NAME,وجدان,replace
+405,MRN-100394,اسم_المريض,PERSON_NAME,دانة المطيري,replace
+405,MRN-100394,رقم_الهوية,SAUDI_ID,1176161634,replace
+405,MRN-100394,الجوال,MOBILE,0540164179,replace
+405,MRN-100394,ملاحظات,IBAN,SA02 4519 0363 1542 5453 1647,replace
+406,MRN-100395,اسم_المريض,PERSON_NAME,خالد الشهري,replace
+406,MRN-100395,رقم_الهوية,SAUDI_ID,1330054964,replace
+406,MRN-100395,الجوال,MOBILE,٠٥٦٦٩٧٩٨٠٣,replace
+407,MRN-100396,اسم_المريض,PERSON_NAME,دانة الشمري,replace
+407,MRN-100396,رقم_الهوية,SAUDI_ID,1337536658,replace
+407,MRN-100396,الجوال,MOBILE,+966565660778,replace
+408,MRN-100397,اسم_المريض,PERSON_NAME,رهف المطيري,replace
+408,MRN-100397,رقم_الهوية,SAUDI_ID,1735427138,replace
+408,MRN-100397,الجوال,MOBILE,059 049 7317,replace
+408,MRN-100397,آيبان_الاسترداد,IBAN,SA7020807475197909233500,replace
+409,MRN-100398,اسم_المريض,PERSON_NAME,سارة الغامدي,replace
+409,MRN-100398,رقم_الهوية,SAUDI_ID,1707930010,replace
+409,MRN-100398,الجوال,MOBILE,٠٥٣٩٧٨٢٤٦٦,replace
+409,MRN-100398,آيبان_الاسترداد,IBAN,SA2660207043512925123466,replace
+410,MRN-100399,اسم_المريض,PERSON_NAME,زياد الجهني,replace
+410,MRN-100399,رقم_الهوية,SAUDI_ID,1941481390,replace
+410,MRN-100399,الجوال,MOBILE,0548919067,replace
+410,MRN-100399,ملاحظات,PERSON_NAME,راشد الرشيدي,replace
+410,MRN-100399,ملاحظات,MOBILE,+٩٦٦ ٥٥ ١٥٤ ٤٩٩٠,replace
+411,MRN-100400,اسم_المريض,PERSON_NAME,بندر القرني,replace
+411,MRN-100400,رقم_الهوية,SAUDI_ID,1057970962,replace
+411,MRN-100400,الجوال,MOBILE,0551398237,replace
+411,MRN-100400,ملاحظات,SAUDI_ID,1001438652,review
+412,MRN-100401,اسم_المريض,PERSON_NAME,نوف العسيري,replace
+412,MRN-100401,رقم_الهوية,SAUDI_ID,1615563051,replace
+412,MRN-100401,الجوال,MOBILE,0556160988,replace
+412,MRN-100401,آيبان_الاسترداد,IBAN,SA2520398798094349804692,replace
+413,MRN-100402,اسم_المريض,PERSON_NAME,جواهر اليامي,replace
+413,MRN-100402,رقم_الهوية,SAUDI_ID,1867113704,replace
+413,MRN-100402,الجوال,MOBILE,0591625260,replace
+413,MRN-100402,ملاحظات,SAUDI_ID,١٨٦٧١١٣٧٠٤,replace
+414,MRN-100403,اسم_المريض,PERSON_NAME,نورة الرشيدي,replace
+414,MRN-100403,رقم_الهوية,SAUDI_ID,1730227137,replace
+414,MRN-100403,الجوال,MOBILE,0590507957,replace
+414,MRN-100403,ملاحظات,SAUDI_ID,1206356561,ignore
+415,MRN-100404,اسم_المريض,PERSON_NAME,غادة المطيري,replace
+415,MRN-100404,رقم_الهوية,SAUDI_ID,1718586660,replace
+415,MRN-100404,الجوال,MOBILE,0560815900,replace
+415,MRN-100404,ملاحظات,MOBILE,056 081 5900,replace
+416,MRN-100405,اسم_المريض,PERSON_NAME,محمد الشمري,replace
+416,MRN-100405,رقم_الهوية,SAUDI_ID,1427820061,replace
+416,MRN-100405,الجوال,MOBILE,059 356 4253,replace
+416,MRN-100405,ملاحظات,PERSON_NAME,محمد,replace
+417,MRN-100406,اسم_المريض,PERSON_NAME,بندر السهلي,replace
+417,MRN-100406,رقم_الهوية,SAUDI_ID,1656167200,replace
+417,MRN-100406,الجوال,MOBILE,+966548444735,replace
+418,MRN-100407,اسم_المريض,PERSON_NAME,سعود الجهني,replace
+418,MRN-100407,رقم_الهوية,SAUDI_ID,2435733528,replace
+418,MRN-100407,الجوال,MOBILE,0561602300,replace
+418,MRN-100407,آيبان_الاسترداد,IBAN,SA3520576017272305115992,replace
+418,MRN-100407,ملاحظات,PERSON_NAME,سعود,replace
+419,MRN-100408,اسم_المريض,PERSON_NAME,زياد البقمي,replace
+419,MRN-100408,رقم_الهوية,SAUDI_ID,1716172943,replace
+419,MRN-100408,الجوال,MOBILE,0554396875,replace
+419,MRN-100408,آيبان_الاسترداد,IBAN,SA8810739309578563601199,replace
+419,MRN-100408,ملاحظات,PERSON_NAME,زياد,replace
+420,MRN-100409,اسم_المريض,PERSON_NAME,رهف الخالدي,replace
+420,MRN-100409,رقم_الهوية,SAUDI_ID,2301449852,replace
+420,MRN-100409,الجوال,MOBILE,0538690143,replace
+420,MRN-100409,ملاحظات,PERSON_NAME,ماجد الحربي,replace
+420,MRN-100409,ملاحظات,MOBILE,+٩٦٦ ٥٥ ٢٧٩ ٧٢٨٥,replace
+421,MRN-100410,اسم_المريض,PERSON_NAME,هند السهلي,replace
+421,MRN-100410,رقم_الهوية,SAUDI_ID,1358199675,replace
+421,MRN-100410,الجوال,MOBILE,+966597876277,replace
+421,MRN-100410,ملاحظات,MOBILE,059 787 6277,replace
+422,MRN-100411,اسم_المريض,PERSON_NAME,نوف القرني,replace
+422,MRN-100411,رقم_الهوية,SAUDI_ID,2473731962,replace
+422,MRN-100411,الجوال,MOBILE,0545678517,replace
+422,MRN-100411,آيبان_الاسترداد,IBAN,SA3745532444244985877688,replace
+422,MRN-100411,ملاحظات,SAUDI_ID,٢٤٧٣٧٣١٩٦٢,replace
+423,MRN-100412,اسم_المريض,PERSON_NAME,عبدالله القحطاني,replace
+423,MRN-100412,رقم_الهوية,SAUDI_ID,2773869371,replace
+423,MRN-100412,الجوال,MOBILE,0539205648,replace
+423,MRN-100412,آيبان_الاسترداد,IBAN,SA2480747579404657865678,replace
+424,MRN-100413,اسم_المريض,PERSON_NAME,جواهر السبيعي,replace
+424,MRN-100413,رقم_الهوية,SAUDI_ID,2699802449,replace
+424,MRN-100413,الجوال,MOBILE,966550845503,replace
+424,MRN-100413,آيبان_الاسترداد,IBAN,SA4805475427779928955599,replace
+424,MRN-100413,ملاحظات,SAUDI_ID,٢٦٩٩٨٠٢٤٤٩,replace
+425,MRN-100414,اسم_المريض,PERSON_NAME,وجدان القرني,replace
+425,MRN-100414,رقم_الهوية,SAUDI_ID,1817252198,replace
+425,MRN-100414,الجوال,MOBILE,0549137001,replace
+425,MRN-100414,آيبان_الاسترداد,IBAN,SA3360876050032960890856,replace
+425,MRN-100414,ملاحظات,SAUDI_ID,١٨١٧٢٥٢١٩٨,replace
+426,MRN-100415,اسم_المريض,PERSON_NAME,أثير الرشيدي,replace
+426,MRN-100415,رقم_الهوية,SAUDI_ID,1200659025,replace
+426,MRN-100415,الجوال,MOBILE,+966539166377,replace
+427,MRN-100495,اسم_المريض,PERSON_NAME,العنود الشمري,replace
+427,MRN-100495,رقم_الهوية,SAUDI_ID,2752988333,replace
+427,MRN-100495,الجوال,MOBILE,0543191217,replace
+427,MRN-100495,آيبان_الاسترداد,IBAN,SA5580629745973185930606,replace
+428,MRN-100416,اسم_المريض,PERSON_NAME,غادة العسيري,replace
+428,MRN-100416,رقم_الهوية,SAUDI_ID,1981016676,replace
+428,MRN-100416,الجوال,MOBILE,0550776245,replace
+428,MRN-100416,آيبان_الاسترداد,IBAN,SA9510933921718510647072,replace
+429,MRN-100417,اسم_المريض,PERSON_NAME,خالد المطيري,replace
+429,MRN-100417,رقم_الهوية,SAUDI_ID,1314489384,replace
+429,MRN-100417,الجوال,MOBILE,0550968254,replace
+429,MRN-100417,ملاحظات,MOBILE,055 096 8254,replace
+430,MRN-100418,اسم_المريض,PERSON_NAME,ماجد الخالدي,replace
+430,MRN-100418,رقم_الهوية,SAUDI_ID,1159571460,replace
+430,MRN-100418,الجوال,MOBILE,966540165567,replace
+430,MRN-100418,آيبان_الاسترداد,IBAN,SA5445126187083426473460,replace
+431,MRN-100419,اسم_المريض,PERSON_NAME,نوف القرني,replace
+431,MRN-100419,رقم_الهوية,SAUDI_ID,2298911625,replace
+431,MRN-100419,الجوال,MOBILE,0545641476,replace
+431,MRN-100419,آيبان_الاسترداد,IBAN,SA7405695884593777121862,replace
+432,MRN-100420,اسم_المريض,PERSON_NAME,رغد الشهري,replace
+432,MRN-100420,رقم_الهوية,SAUDI_ID,1171730904,replace
+432,MRN-100420,الجوال,MOBILE,0539132678,replace
+432,MRN-100420,آيبان_الاسترداد,IBAN,SA2145520689048008755652,replace
+432,MRN-100420,ملاحظات,MOBILE,053 913 2678,replace
+433,MRN-100421,اسم_المريض,PERSON_NAME,أروى الدوسري,replace
+433,MRN-100421,رقم_الهوية,SAUDI_ID,1843143957,replace
+433,MRN-100421,الجوال,MOBILE,0500994568,replace
+433,MRN-100421,ملاحظات,PERSON_NAME,ريان الزهراني,replace
+433,MRN-100421,ملاحظات,MOBILE,+٩٦٦ ٥٣ ٤٨٠ ٠٥٧٠,replace
+434,MRN-100422,اسم_المريض,PERSON_NAME,ريم الجهني,replace
+434,MRN-100422,رقم_الهوية,SAUDI_ID,1068099736,replace
+434,MRN-100422,الجوال,MOBILE,+966593973536,replace
+435,MRN-100423,اسم_المريض,PERSON_NAME,لمى العتيبي,replace
+435,MRN-100423,رقم_الهوية,SAUDI_ID,2332157904,replace
+435,MRN-100423,الجوال,MOBILE,0599719396,replace
+435,MRN-100423,ملاحظات,PERSON_NAME,فيصل اليامي,replace
+435,MRN-100423,ملاحظات,MOBILE,+٩٦٦ ٥٠ ٨٥٧ ٠٣٥٤,replace
+436,MRN-100424,اسم_المريض,PERSON_NAME,شيماء القرني,replace
+436,MRN-100424,رقم_الهوية,SAUDI_ID,1450213200,replace
+436,MRN-100424,الجوال,MOBILE,054 115 3220,replace
+436,MRN-100424,ملاحظات,SAUDI_ID,1042218824,review
+437,MRN-100425,اسم_المريض,PERSON_NAME,غادة ​اليامي,replace
+437,MRN-100425,رقم_الهوية,SAUDI_ID,1501061178,replace
+437,MRN-100425,الجوال,MOBILE,0553795738,replace
+438,MRN-100426,اسم_المريض,PERSON_NAME,ريم المطيري,replace
+438,MRN-100426,رقم_الهوية,SAUDI_ID,2814098808,replace
+438,MRN-100426,الجوال,MOBILE,0564035425,replace
+439,MRN-100427,اسم_المريض,PERSON_NAME,سارة العتيبي,replace
+439,MRN-100427,رقم_الهوية,SAUDI_ID,1145290449,replace
+439,MRN-100427,الجوال,MOBILE,966539519102,replace
+439,MRN-100427,ملاحظات,IBAN,SA95 0517 2263 2355 7785 9986,replace
+441,MRN-100429,اسم_المريض,PERSON_NAME,نورة الحربي,replace
+441,MRN-100429,رقم_الهوية,SAUDI_ID,2824914358,replace
+441,MRN-100429,الجوال,MOBILE,0538706622,replace
+441,MRN-100429,آيبان_الاسترداد,IBAN,SA9620356177904010306292,replace
+442,MRN-100430,اسم_المريض,PERSON_NAME,أروى الدوسري,replace
+442,MRN-100430,رقم_الهوية,SAUDI_ID,2261268946,replace
+442,MRN-100430,الجوال,MOBILE,0543234813,replace
+442,MRN-100430,ملاحظات,PERSON_NAME,أروى,replace
+443,MRN-100431,اسم_المريض,PERSON_NAME,  بشاير البقمي   ,replace
+443,MRN-100431,رقم_الهوية,SAUDI_ID,1347229799,replace
+443,MRN-100431,الجوال,MOBILE,+966563872908,replace
+444,MRN-100432,اسم_المريض,PERSON_NAME,أروى الشهري,replace
+444,MRN-100432,رقم_الهوية,SAUDI_ID,1260248263,replace
+444,MRN-100432,الجوال,MOBILE,0590055532,replace
+444,MRN-100432,ملاحظات,SAUDI_ID,1260 248 263,replace
+445,MRN-100433,اسم_المريض,PERSON_NAME,فهد القرني,replace
+445,MRN-100433,رقم_الهوية,SAUDI_ID,1729518736,replace
+445,MRN-100433,الجوال,MOBILE,0568227320,replace
+445,MRN-100433,ملاحظات,MOBILE,056 822 7320,replace
+446,MRN-100434,اسم_المريض,PERSON_NAME,محمد السهلي,replace
+446,MRN-100434,رقم_الهوية,SAUDI_ID,1854272414,replace
+446,MRN-100434,الجوال,MOBILE,966550413198,replace
+447,MRN-100435,اسم_المريض,PERSON_NAME,جواهر العسيري,replace
+447,MRN-100435,رقم_الهوية,SAUDI_ID,1434423503,replace
+447,MRN-100435,الجوال,MOBILE,0558109432,replace
+447,MRN-100435,ملاحظات,IBAN,SA22 2039 6826 6664 1941 7203,replace
+448,MRN-100436,اسم_المريض,PERSON_NAME,  سعود العسيري   ,replace
+448,MRN-100436,رقم_الهوية,SAUDI_ID,1752222156,replace
+448,MRN-100436,الجوال,MOBILE,0504918561,replace
+449,MRN-100437,اسم_المريض,PERSON_NAME,جواهر العنزي,replace
+449,MRN-100437,رقم_الهوية,SAUDI_ID,2534019811,replace
+449,MRN-100437,الجوال,MOBILE,0530340430,replace
+450,MRN-100438,اسم_المريض,PERSON_NAME,رغد الحربي,replace
+450,MRN-100438,رقم_الهوية,SAUDI_ID,2200638811,replace
+450,MRN-100438,الجوال,MOBILE,055 778 9821,replace
+450,MRN-100438,ملاحظات,PERSON_NAME,راشد العمري,replace
+450,MRN-100438,ملاحظات,MOBILE,+٩٦٦ ٥٣ ٨٦٥ ٦١٢٤,replace
+451,MRN-100439,اسم_المريض,PERSON_NAME,زياد البقمي,replace
+451,MRN-100439,رقم_الهوية,SAUDI_ID,1717926362,replace
+451,MRN-100439,الجوال,MOBILE,0543810704,replace
+452,MRN-100440,اسم_المريض,PERSON_NAME,فهد السبيعي,replace
+452,MRN-100440,رقم_الهوية,SAUDI_ID,1955976640,replace
+452,MRN-100440,الجوال,MOBILE,966544948393,replace
+452,MRN-100440,ملاحظات,SAUDI_ID,1955976640,replace
+452,MRN-100440,ملاحظات,MOBILE,0544948393,replace
+453,MRN-100441,اسم_المريض,PERSON_NAME,دانة السبيعي,replace
+453,MRN-100441,رقم_الهوية,SAUDI_ID,1855079701,replace
+453,MRN-100441,الجوال,MOBILE,0562699013,replace
+454,MRN-100442,اسم_المريض,PERSON_NAME,ريان القحطاني,replace
+454,MRN-100442,رقم_الهوية,SAUDI_ID,2163413087,replace
+454,MRN-100442,الجوال,MOBILE,0537012136,replace
+454,MRN-100442,ملاحظات,PERSON_NAME,فهد العنزي,replace
+454,MRN-100442,ملاحظات,MOBILE,+٩٦٦ ٥٣ ٢٠٤ ٢٤٩٩,replace
+455,MRN-100443,اسم_المريض,PERSON_NAME,رغد الدوسري,replace
+455,MRN-100443,رقم_الهوية,SAUDI_ID,1797339940,replace
+455,MRN-100443,الجوال,MOBILE,0556901782,replace
+455,MRN-100443,ملاحظات,MOBILE,055 690 1782,replace
+456,MRN-100444,اسم_المريض,PERSON_NAME,رهف الشمري,replace
+456,MRN-100444,رقم_الهوية,SAUDI_ID,2849768227,replace
+456,MRN-100444,الجوال,MOBILE,0590286176,replace
+456,MRN-100444,ملاحظات,MOBILE,059 028 6176,replace
+457,MRN-100445,اسم_المريض,PERSON_NAME,دانة السهلي,replace
+457,MRN-100445,رقم_الهوية,SAUDI_ID,1211651169,replace
+457,MRN-100445,الجوال,MOBILE,0532713769,replace
+458,MRN-100446,اسم_المريض,PERSON_NAME,فهد القرني,replace
+458,MRN-100446,رقم_الهوية,SAUDI_ID,1089583031,replace
+458,MRN-100446,الجوال,MOBILE,0566383459,replace
+458,MRN-100446,ملاحظات,SAUDI_ID,1250040939,ignore
+459,MRN-100447,اسم_المريض,PERSON_NAME,منى المطيري,replace
+459,MRN-100447,رقم_الهوية,SAUDI_ID,1767355173,replace
+459,MRN-100447,الجوال,MOBILE,+966534387664,replace
+460,MRN-100448,اسم_المريض,PERSON_NAME,العنود القرني,replace
+460,MRN-100448,رقم_الهوية,SAUDI_ID,1833762790,replace
+460,MRN-100448,الجوال,MOBILE,966533629910,replace
+460,MRN-100448,آيبان_الاسترداد,IBAN,SA7020642846910243002909,replace
+461,MRN-100449,اسم_المريض,PERSON_NAME,أروى القرني,replace
+461,MRN-100449,رقم_الهوية,SAUDI_ID,1416507836,replace
+461,MRN-100449,الجوال,MOBILE,0559493122,replace
+461,MRN-100449,ملاحظات,PERSON_NAME,عبدالله الدوسري,replace
+461,MRN-100449,ملاحظات,MOBILE,+٩٦٦ ٥٥ ٩٩٥ ١٠١٠,replace
+462,MRN-100450,اسم_المريض,PERSON_NAME,دانة السبيعي,replace
+462,MRN-100450,رقم_الهوية,SAUDI_ID,1276860614,replace
+462,MRN-100450,الجوال,MOBILE,0598287306,replace
+463,MRN-100451,اسم_المريض,PERSON_NAME,ماجد الدوسري,replace
+463,MRN-100451,رقم_الهوية,SAUDI_ID,2609579624,replace
+463,MRN-100451,الجوال,MOBILE,0503378906,replace
+463,MRN-100451,ملاحظات,MOBILE,050 337 8906,replace
+464,MRN-100452,اسم_المريض,PERSON_NAME,أثير العتيبي,replace
+464,MRN-100452,رقم_الهوية,SAUDI_ID,1106379991,replace
+464,MRN-100452,الجوال,MOBILE,0506937890,replace
+464,MRN-100452,آيبان_الاسترداد,IBAN,SA3460664685199593298134,replace
+464,MRN-100452,ملاحظات,SAUDI_ID,1106 379 991,replace
+465,MRN-100453,اسم_المريض,PERSON_NAME,نوف العمري,replace
+465,MRN-100453,رقم_الهوية,SAUDI_ID,2785141900,replace
+465,MRN-100453,الجوال,MOBILE,0552838144,replace
+465,MRN-100453,ملاحظات,SAUDI_ID,1607651248,ignore
+466,MRN-100454,اسم_المريض,PERSON_NAME,غادة العتيبي,replace
+466,MRN-100454,رقم_الهوية,SAUDI_ID,1899862633,replace
+466,MRN-100454,الجوال,MOBILE,0533076297,replace
+466,MRN-100454,ملاحظات,IBAN,SA27 2048 2505 4068 3673 7351,replace
+467,MRN-100455,اسم_المريض,PERSON_NAME,العنود البقمي,replace
+467,MRN-100455,رقم_الهوية,SAUDI_ID,1689229670,replace
+467,MRN-100455,الجوال,MOBILE,0531719271,replace
+467,MRN-100455,ملاحظات,SAUDI_ID,1689 229 670,replace
+468,MRN-100456,اسم_المريض,PERSON_NAME,نورة الخالدي,replace
+468,MRN-100456,رقم_الهوية,SAUDI_ID,2541243149,replace
+468,MRN-100456,الجوال,MOBILE,966546085464,replace
+468,MRN-100456,ملاحظات,SAUDI_ID,2541243149,replace
+468,MRN-100456,ملاحظات,MOBILE,0546085464,replace
+469,MRN-100457,اسم_المريض,PERSON_NAME,نوف الشمري,replace
+469,MRN-100457,رقم_الهوية,SAUDI_ID,1614510210,replace
+469,MRN-100457,الجوال,MOBILE,+966590583803,replace
+470,MRN-100458,اسم_المريض,PERSON_NAME,ريان الجهني,replace
+470,MRN-100458,رقم_الهوية,SAUDI_ID,1629351675,replace
+470,MRN-100458,الجوال,MOBILE,+966530858740,replace
+470,MRN-100458,آيبان_الاسترداد,IBAN,SA4420802780768582698499,replace
+470,MRN-100458,ملاحظات,SAUDI_ID,1982034713,ignore
+471,MRN-100459,اسم_المريض,PERSON_NAME,نوف الشهري,replace
+471,MRN-100459,رقم_الهوية,SAUDI_ID,1242293445,replace
+471,MRN-100459,الجوال,MOBILE,0546987655,replace
+471,MRN-100459,آيبان_الاسترداد,IBAN,SA4605907228941998539301,replace
+472,MRN-100460,اسم_المريض,PERSON_NAME,ماجد الجهني,replace
+472,MRN-100460,رقم_الهوية,SAUDI_ID,1002755823,replace
+472,MRN-100460,الجوال,MOBILE,966595317558,replace
+473,MRN-100461,اسم_المريض,PERSON_NAME,مشاري الدوسري,replace
+473,MRN-100461,رقم_الهوية,SAUDI_ID,1639471042,replace
+473,MRN-100461,الجوال,MOBILE,966553765141,replace
+473,MRN-100461,ملاحظات,IBAN,SA54 1099 7722 7275 3677 4913,replace
+474,MRN-100462,اسم_المريض,PERSON_NAME,منى العنزي,replace
+474,MRN-100462,رقم_الهوية,SAUDI_ID,2934365574,replace
+474,MRN-100462,الجوال,MOBILE,0508035368,replace
+474,MRN-100462,ملاحظات,MOBILE,050 803 5368,replace
+475,MRN-100463,اسم_المريض,PERSON_NAME,سارة العسيري,replace
+475,MRN-100463,رقم_الهوية,SAUDI_ID,1069771507,replace
+475,MRN-100463,الجوال,MOBILE,0599944760,replace
+475,MRN-100463,آيبان_الاسترداد,IBAN,SA8610028308196554764657,replace
+475,MRN-100463,ملاحظات,SAUDI_ID,1123189392,ignore
+476,MRN-100464,اسم_المريض,PERSON_NAME,  نايف الشهري   ,replace
+476,MRN-100464,رقم_الهوية,SAUDI_ID,1473209144,replace
+476,MRN-100464,الجوال,MOBILE,966509470456,replace
+477,MRN-100465,اسم_المريض,PERSON_NAME,راشد العسيري,replace
+477,MRN-100465,رقم_الهوية,SAUDI_ID,1559252901,replace
+477,MRN-100465,الجوال,MOBILE,0536337152,replace
+477,MRN-100465,آيبان_الاسترداد,IBAN,SA6905734278996917184813,replace
+478,MRN-100466,اسم_المريض,PERSON_NAME,ريان القحطاني,replace
+478,MRN-100466,رقم_الهوية,SAUDI_ID,1216485746,replace
+478,MRN-100466,الجوال,MOBILE,0548825822,replace
+478,MRN-100466,ملاحظات,SAUDI_ID,1216 485 746,replace
+479,MRN-100467,اسم_المريض,PERSON_NAME,محمد الشهري,replace
+479,MRN-100467,رقم_الهوية,SAUDI_ID,1686450923,replace
+479,MRN-100467,الجوال,MOBILE,966555689453,replace
+479,MRN-100467,آيبان_الاسترداد,IBAN,SA7820299814774812274841,replace
+479,MRN-100467,ملاحظات,SAUDI_ID,١٦٨٦٤٥٠٩٢٣,replace
+480,MRN-100468,اسم_المريض,PERSON_NAME,  غادة السهلي   ,replace
+480,MRN-100468,رقم_الهوية,SAUDI_ID,2314404951,replace
+480,MRN-100468,الجوال,MOBILE,966500803913,replace
+481,MRN-100469,اسم_المريض,PERSON_NAME,سارة العتيبي,replace
+481,MRN-100469,رقم_الهوية,SAUDI_ID,2149210276,replace
+481,MRN-100469,الجوال,MOBILE,0567963003,replace
+481,MRN-100469,ملاحظات,SAUDI_ID,2149 210 276,replace
+482,MRN-100470,اسم_المريض,PERSON_NAME,أروى العتيبي,replace
+482,MRN-100470,رقم_الهوية,SAUDI_ID,2221061449,replace
+482,MRN-100470,الجوال,MOBILE,0569136311,replace
+482,MRN-100470,ملاحظات,PERSON_NAME,أروى,replace
+483,MRN-100471,اسم_المريض,PERSON_NAME,دانة الغامدي,replace
+483,MRN-100471,رقم_الهوية,SAUDI_ID,1560592774,replace
+483,MRN-100471,الجوال,MOBILE,056 501 5340,replace
+484,MRN-100472,اسم_المريض,PERSON_NAME,نورة الشهري,replace
+484,MRN-100472,رقم_الهوية,SAUDI_ID,1504993310,replace
+484,MRN-100472,الجوال,MOBILE,0595651026,replace
+484,MRN-100472,ملاحظات,SAUDI_ID,1939227813,review
+485,MRN-100473,اسم_المريض,PERSON_NAME,بندر الحربي,replace
+485,MRN-100473,رقم_الهوية,SAUDI_ID,1254592486,replace
+485,MRN-100473,الجوال,MOBILE,054 029 3202,replace
+486,MRN-100474,اسم_المريض,PERSON_NAME,ريم السبيعي,replace
+486,MRN-100474,رقم_الهوية,SAUDI_ID,2494593268,replace
+486,MRN-100474,الجوال,MOBILE,0555233539,replace
+486,MRN-100474,آيبان_الاسترداد,IBAN,SA3780719515574489046973,replace
+486,MRN-100474,ملاحظات,SAUDI_ID,٢٤٩٤٥٩٣٢٦٨,replace
+487,MRN-100475,اسم_المريض,PERSON_NAME,سارة البقمي,replace
+487,MRN-100475,رقم_الهوية,SAUDI_ID,2000214417,replace
+487,MRN-100475,الجوال,MOBILE,0507009938,replace
+487,MRN-100475,ملاحظات,PERSON_NAME,سارة,replace
+488,MRN-100476,اسم_المريض,PERSON_NAME,نوف الدوسري,replace
+488,MRN-100476,رقم_الهوية,SAUDI_ID,1057079020,replace
+488,MRN-100476,الجوال,MOBILE,٠٥٦٠٤٣٣٣٨٠,replace
+488,MRN-100476,آيبان_الاسترداد,IBAN,SA3620913164602063725869,replace
+488,MRN-100476,ملاحظات,PERSON_NAME,سعود اليامي,replace
+488,MRN-100476,ملاحظات,MOBILE,+٩٦٦ ٥٤ ٦٢٧ ٢١١٤,replace
+489,MRN-100477,اسم_المريض,PERSON_NAME,عبدالله القرني,replace
+489,MRN-100477,رقم_الهوية,SAUDI_ID,1911070694,replace
+489,MRN-100477,الجوال,MOBILE,056 491 8916,replace
+490,MRN-100478,اسم_المريض,PERSON_NAME,هند القرني,replace
+490,MRN-100478,رقم_الهوية,SAUDI_ID,1514438421,replace
+490,MRN-100478,الجوال,MOBILE,0546020729,replace
+490,MRN-100478,آيبان_الاسترداد,IBAN,SA2120600719720724195042,replace
+490,MRN-100478,ملاحظات,SAUDI_ID,١٥١٤٤٣٨٤٢١,replace
+491,MRN-100479,اسم_المريض,PERSON_NAME,أروى ​البقمي,replace
+491,MRN-100479,رقم_الهوية,SAUDI_ID,1750540104,replace
+491,MRN-100479,الجوال,MOBILE,0535518230,replace
+491,MRN-100479,ملاحظات,SAUDI_ID,1750540104,replace
+491,MRN-100479,ملاحظات,MOBILE,0535518230,replace
+492,MRN-100480,اسم_المريض,PERSON_NAME,غادة العمري,replace
+492,MRN-100480,رقم_الهوية,SAUDI_ID,2340628748,replace
+492,MRN-100480,الجوال,MOBILE,+966506247046,replace
+492,MRN-100480,آيبان_الاسترداد,IBAN,SA6920897876647674675763,replace
+492,MRN-100480,ملاحظات,SAUDI_ID,2340628748,replace
+492,MRN-100480,ملاحظات,MOBILE,0506247046,replace
+493,MRN-100481,اسم_المريض,PERSON_NAME,دانة العسيري,replace
+493,MRN-100481,رقم_الهوية,SAUDI_ID,1249306059,replace
+493,MRN-100481,الجوال,MOBILE,0538604373,replace
+493,MRN-100481,ملاحظات,MOBILE,053 860 4373,replace
+494,MRN-100482,اسم_المريض,PERSON_NAME,العنود الشمري,replace
+494,MRN-100482,رقم_الهوية,SAUDI_ID,1939553481,replace
+494,MRN-100482,الجوال,MOBILE,+966566992625,replace
+494,MRN-100482,ملاحظات,IBAN,SA87 1007 5024 6253 2335 8975,replace
+495,MRN-100483,اسم_المريض,PERSON_NAME,ريان الرشيدي,replace
+495,MRN-100483,رقم_الهوية,SAUDI_ID,1816824740,replace
+495,MRN-100483,الجوال,MOBILE,0552841039,replace
+495,MRN-100483,ملاحظات,SAUDI_ID,١٨١٦٨٢٤٧٤٠,replace
+497,MRN-100485,اسم_المريض,PERSON_NAME,منى ​الحربي,replace
+497,MRN-100485,رقم_الهوية,SAUDI_ID,1653214369,replace
+497,MRN-100485,الجوال,MOBILE,0509632535,replace
+498,MRN-100486,اسم_المريض,PERSON_NAME,منى القحطاني,replace
+498,MRN-100486,رقم_الهوية,SAUDI_ID,1513150001,replace
+498,MRN-100486,الجوال,MOBILE,٠٥٥٤٥٢٩١٨١,replace
+498,MRN-100486,ملاحظات,SAUDI_ID,1856973905,ignore
+499,MRN-100487,اسم_المريض,PERSON_NAME,عبدالله المطيري,replace
+499,MRN-100487,رقم_الهوية,SAUDI_ID,1794573996,replace
+499,MRN-100487,الجوال,MOBILE,+966560008464,replace
+499,MRN-100487,ملاحظات,SAUDI_ID,1794573996,replace
+499,MRN-100487,ملاحظات,MOBILE,0560008464,replace
+500,MRN-100488,اسم_المريض,PERSON_NAME,هند القحطاني,replace
+500,MRN-100488,رقم_الهوية,SAUDI_ID,1572246625,replace
+500,MRN-100488,الجوال,MOBILE,+966563862794,replace
+500,MRN-100488,ملاحظات,PERSON_NAME,سلطان الخالدي,replace
+500,MRN-100488,ملاحظات,MOBILE,+٩٦٦ ٥٥ ٤٨٧ ٩٠٤٨,replace
+501,MRN-100489,اسم_المريض,PERSON_NAME,مشعل العنزي,replace
+501,MRN-100489,رقم_الهوية,SAUDI_ID,1425924428,replace
+501,MRN-100489,الجوال,MOBILE,966554323282,replace
+501,MRN-100489,ملاحظات,SAUDI_ID,1125640456,review
+502,MRN-100490,اسم_المريض,PERSON_NAME,بندر القحطاني,replace
+502,MRN-100490,رقم_الهوية,SAUDI_ID,1422466142,replace
+502,MRN-100490,الجوال,MOBILE,0543528135,replace
+503,MRN-100491,اسم_المريض,PERSON_NAME,نوف السهلي,replace
+503,MRN-100491,رقم_الهوية,SAUDI_ID,1631396841,replace
+503,MRN-100491,الجوال,MOBILE,0546484191,replace
+504,MRN-100492,اسم_المريض,PERSON_NAME,  فيصل الرشيدي   ,replace
+504,MRN-100492,رقم_الهوية,SAUDI_ID,1507196374,replace
+504,MRN-100492,الجوال,MOBILE,0569704849,replace
+504,MRN-100492,ملاحظات,SAUDI_ID,1507 196 374,replace
+505,MRN-100493,اسم_المريض,PERSON_NAME,  هند اليامي   ,replace
+505,MRN-100493,رقم_الهوية,SAUDI_ID,2411940691,replace
+505,MRN-100493,الجوال,MOBILE,059 043 9714,replace
+505,MRN-100493,ملاحظات,SAUDI_ID,٢٤١١٩٤٠٦٩١,replace
+506,MRN-100494,اسم_المريض,PERSON_NAME,فهد السهلي,replace
+506,MRN-100494,رقم_الهوية,SAUDI_ID,2703330569,replace
+506,MRN-100494,الجوال,MOBILE,053 696 9760,replace
+506,MRN-100494,آيبان_الاسترداد,IBAN,SA3860606906793043202796,replace
+506,MRN-100494,ملاحظات,SAUDI_ID,٢٧٠٣٣٣٠٥٦٩,replace
+508,MRN-100496,اسم_المريض,PERSON_NAME,محمد العمري,replace
+508,MRN-100496,رقم_الهوية,SAUDI_ID,1435730989,replace
+508,MRN-100496,الجوال,MOBILE,0567534618,replace
+509,MRN-100497,اسم_المريض,PERSON_NAME,بندر اليامي,replace
+509,MRN-100497,رقم_الهوية,SAUDI_ID,1227821939,replace
+509,MRN-100497,الجوال,MOBILE,053 150 6710,replace
+510,MRN-100498,اسم_المريض,PERSON_NAME,دانة العسيري,replace
+510,MRN-100498,رقم_الهوية,SAUDI_ID,1016653253,replace
+510,MRN-100498,الجوال,MOBILE,0548065642,replace
+510,MRN-100498,آيبان_الاسترداد,IBAN,SA1220815695447296625831,replace
+510,MRN-100498,ملاحظات,SAUDI_ID,1567850632,ignore
+511,MRN-100499,اسم_المريض,PERSON_NAME,خالد السهلي,replace
+511,MRN-100499,رقم_الهوية,SAUDI_ID,1944682861,replace
+511,MRN-100499,الجوال,MOBILE,0557835472,replace
+511,MRN-100499,ملاحظات,SAUDI_ID,١٩٤٤٦٨٢٨٦١,replace
+512,MRN-100500,اسم_المريض,PERSON_NAME,خالد البقمي,replace
+512,MRN-100500,رقم_الهوية,SAUDI_ID,1496171883,replace
+512,MRN-100500,الجوال,MOBILE,0566717920,replace
+512,MRN-100500,آيبان_الاسترداد,IBAN,SA0520790826652869916736,replace
+513,MRN-100501,اسم_المريض,PERSON_NAME,جواهر القحطاني,replace
+513,MRN-100501,رقم_الهوية,SAUDI_ID,2359454853,replace
+513,MRN-100501,الجوال,MOBILE,056 936 6439,replace
+513,MRN-100501,ملاحظات,IBAN,SA19 1059 7027 7033 4851 8238,replace
+515,MRN-100502,اسم_المريض,PERSON_NAME,ريان البقمي,replace
+515,MRN-100502,رقم_الهوية,SAUDI_ID,1069421954,replace
+515,MRN-100502,الجوال,MOBILE,0537673124,replace
+516,MRN-100503,اسم_المريض,PERSON_NAME,مشعل الرشيدي,replace
+516,MRN-100503,رقم_الهوية,SAUDI_ID,1163085721,replace
+516,MRN-100503,الجوال,MOBILE,055 333 7617,replace
+516,MRN-100503,ملاحظات,SAUDI_ID,1163085721,replace
+516,MRN-100503,ملاحظات,MOBILE,0553337617,replace
+517,MRN-100504,اسم_المريض,PERSON_NAME,منى العتيبي,replace
+517,MRN-100504,رقم_الهوية,SAUDI_ID,1230081372,replace
+517,MRN-100504,الجوال,MOBILE,+966552294505,replace
+517,MRN-100504,آيبان_الاسترداد,IBAN,SA9205095642302888347761,replace
+517,MRN-100504,ملاحظات,PERSON_NAME,عزام العسيري,replace
+517,MRN-100504,ملاحظات,MOBILE,+٩٦٦ ٥٠ ١٨٢ ٣١١٧,replace
+518,MRN-100505,اسم_المريض,PERSON_NAME,نايف القرني,replace
+518,MRN-100505,رقم_الهوية,SAUDI_ID,1706956073,replace
+518,MRN-100505,الجوال,MOBILE,٠٥٤٧٣٥٠٣٠٢,replace
+518,MRN-100505,ملاحظات,SAUDI_ID,١٧٠٦٩٥٦٠٧٣,replace
+519,MRN-100506,اسم_المريض,PERSON_NAME,ريم البقمي,replace
+519,MRN-100506,رقم_الهوية,SAUDI_ID,1052198411,replace
+519,MRN-100506,الجوال,MOBILE,0552970373,replace
+519,MRN-100506,ملاحظات,MOBILE,055 297 0373,replace
+520,MRN-100507,اسم_المريض,PERSON_NAME,سارة العنزي,replace
+520,MRN-100507,رقم_الهوية,SAUDI_ID,1652452085,replace
+520,MRN-100507,الجوال,MOBILE,0553016749,replace
+521,MRN-100508,اسم_المريض,PERSON_NAME,سارة الشمري,replace
+521,MRN-100508,رقم_الهوية,SAUDI_ID,2014467860,replace
+521,MRN-100508,الجوال,MOBILE,059 869 6470,replace
+521,MRN-100508,ملاحظات,MOBILE,059 869 6470,replace
+522,MRN-100509,اسم_المريض,PERSON_NAME,أحمد الدوسري,replace
+522,MRN-100509,رقم_الهوية,SAUDI_ID,1031488446,replace
+522,MRN-100509,الجوال,MOBILE,0508541470,replace
+522,MRN-100509,آيبان_الاسترداد,IBAN,SA5045948796825286582621,replace
+523,MRN-100510,اسم_المريض,PERSON_NAME,نورة الجهني,replace
+523,MRN-100510,رقم_الهوية,SAUDI_ID,2459616435,replace
+523,MRN-100510,الجوال,MOBILE,059 602 8998,replace
+523,MRN-100510,آيبان_الاسترداد,IBAN,SA8405398783988926397348,replace
+524,MRN-100511,اسم_المريض,PERSON_NAME,ريان العسيري,replace
+524,MRN-100511,رقم_الهوية,SAUDI_ID,2683327783,replace
+524,MRN-100511,الجوال,MOBILE,966594633935,replace
+524,MRN-100511,آيبان_الاسترداد,IBAN,SA7660855652531520286354,replace
+524,MRN-100511,ملاحظات,PERSON_NAME,ريان,replace
+525,MRN-100512,اسم_المريض,PERSON_NAME,غادة الزهراني,replace
+525,MRN-100512,رقم_الهوية,SAUDI_ID,1053822589,replace
+525,MRN-100512,الجوال,MOBILE,+966559092098,replace
+525,MRN-100512,ملاحظات,SAUDI_ID,١٠٥٣٨٢٢٥٨٩,replace
+526,MRN-100513,اسم_المريض,PERSON_NAME,محمد اليامي,replace
+526,MRN-100513,رقم_الهوية,SAUDI_ID,2886125091,replace
+526,MRN-100513,الجوال,MOBILE,966507684890,replace
+526,MRN-100513,آيبان_الاسترداد,IBAN,SA6210854278730774797958,replace
+527,MRN-100514,اسم_المريض,PERSON_NAME,ريم المطيري,replace
+527,MRN-100514,رقم_الهوية,SAUDI_ID,1243368352,replace
+527,MRN-100514,الجوال,MOBILE,055 856 1326,replace
+527,MRN-100514,آيبان_الاسترداد,IBAN,SA7080534094853605075358,replace
+527,MRN-100514,ملاحظات,MOBILE,055 856 1326,replace
+528,MRN-100515,اسم_المريض,PERSON_NAME,  رهف القرني   ,replace
+528,MRN-100515,رقم_الهوية,SAUDI_ID,2840554618,replace
+528,MRN-100515,الجوال,MOBILE,٠٥٩٩٥١٦١٤٨,replace
+528,MRN-100515,ملاحظات,SAUDI_ID,1444053761,review
+529,MRN-100516,اسم_المريض,PERSON_NAME,رهف البقمي,replace
+529,MRN-100516,رقم_الهوية,SAUDI_ID,2554004305,replace
+529,MRN-100516,الجوال,MOBILE,054 398 1877,replace
+529,MRN-100516,ملاحظات,PERSON_NAME,أحمد الدوسري,replace
+529,MRN-100516,ملاحظات,MOBILE,+٩٦٦ ٥٦ ٧٢١ ٤٩٤٤,replace
+530,MRN-100517,اسم_المريض,PERSON_NAME,زياد الرشيدي,replace
+530,MRN-100517,رقم_الهوية,SAUDI_ID,2565689938,replace
+530,MRN-100517,الجوال,MOBILE,0565067940,replace
+530,MRN-100517,آيبان_الاسترداد,IBAN,SA2610059268467845080650,replace
+531,MRN-100518,اسم_المريض,PERSON_NAME,مشعل العسيري,replace
+531,MRN-100518,رقم_الهوية,SAUDI_ID,1536864554,replace
+531,MRN-100518,الجوال,MOBILE,966548150959,replace
+531,MRN-100518,ملاحظات,SAUDI_ID,١٥٣٦٨٦٤٥٥٤,replace
+532,MRN-100519,اسم_المريض,PERSON_NAME,عبدالله الشهري,replace
+532,MRN-100519,رقم_الهوية,SAUDI_ID,2216885323,replace
+532,MRN-100519,الجوال,MOBILE,0543600530,replace
+532,MRN-100519,آيبان_الاسترداد,IBAN,SA0960526207214077002519,replace
+532,MRN-100519,ملاحظات,SAUDI_ID,2216 885 323,replace
+533,MRN-100520,اسم_المريض,PERSON_NAME,بشاير العسيري,replace
+533,MRN-100520,رقم_الهوية,SAUDI_ID,1135734075,replace
+533,MRN-100520,الجوال,MOBILE,٠٥٠١٠١٩٢٢١,replace
+533,MRN-100520,ملاحظات,MOBILE,050 101 9221,replace
+534,MRN-100521,اسم_المريض,PERSON_NAME,منى الغامدي,replace
+534,MRN-100521,رقم_الهوية,SAUDI_ID,1511526558,replace
+534,MRN-100521,الجوال,MOBILE,966550765141,replace
+535,MRN-100522,اسم_المريض,PERSON_NAME,بندر الشهري,replace
+535,MRN-100522,رقم_الهوية,SAUDI_ID,1540603733,replace
+535,MRN-100522,الجوال,MOBILE,0501248959,replace
+535,MRN-100522,آيبان_الاسترداد,IBAN,SA7205500614266597006697,replace
+535,MRN-100522,ملاحظات,IBAN,SA03 8093 0768 0247 2677 3495,replace
+536,MRN-100523,اسم_المريض,PERSON_NAME,ريم الزهراني,replace
+536,MRN-100523,رقم_الهوية,SAUDI_ID,1081546663,replace
+536,MRN-100523,الجوال,MOBILE,0530739457,replace
+537,MRN-100524,اسم_المريض,PERSON_NAME,ريم اليامي,replace
+537,MRN-100524,رقم_الهوية,SAUDI_ID,2632936221,replace
+537,MRN-100524,الجوال,MOBILE,٠٥٥٩٢٠٨٤١٦,replace
+537,MRN-100524,ملاحظات,SAUDI_ID,1696222687,ignore
+538,MRN-100525,اسم_المريض,PERSON_NAME,أروى الغامدي,replace
+538,MRN-100525,رقم_الهوية,SAUDI_ID,2957151588,replace
+538,MRN-100525,الجوال,MOBILE,056 253 9639,replace
+538,MRN-100525,آيبان_الاسترداد,IBAN,SA8160896959789882403201,replace
+538,MRN-100525,ملاحظات,SAUDI_ID,٢٩٥٧١٥١٥٨٨,replace
+539,MRN-100526,اسم_المريض,PERSON_NAME,مهند الحربي,replace
+539,MRN-100526,رقم_الهوية,SAUDI_ID,1412870394,replace
+539,MRN-100526,الجوال,MOBILE,٠٥٦٩٧٦٠٥٢٠,replace
+539,MRN-100526,آيبان_الاسترداد,IBAN,SA4245832257370157603333,replace
+540,MRN-100527,اسم_المريض,PERSON_NAME,هند الشمري,replace
+540,MRN-100527,رقم_الهوية,SAUDI_ID,1659380420,replace
+540,MRN-100527,الجوال,MOBILE,+966546885334,replace
+541,MRN-100528,اسم_المريض,PERSON_NAME,ريم العتيبي,replace
+541,MRN-100528,رقم_الهوية,SAUDI_ID,1665485528,replace
+541,MRN-100528,الجوال,MOBILE,0568769405,replace
+541,MRN-100528,آيبان_الاسترداد,IBAN,SA2345101830610166667417,replace
+542,MRN-100529,اسم_المريض,PERSON_NAME,  سلطان السبيعي   ,replace
+542,MRN-100529,رقم_الهوية,SAUDI_ID,1094763644,replace
+542,MRN-100529,الجوال,MOBILE,0548249839,replace
+542,MRN-100529,آيبان_الاسترداد,IBAN,SA7260091537643414928271,replace
+542,MRN-100529,ملاحظات,SAUDI_ID,١٠٩٤٧٦٣٦٤٤,replace
+543,MRN-100530,اسم_المريض,PERSON_NAME,أروى البقمي,replace
+543,MRN-100530,رقم_الهوية,SAUDI_ID,1631744081,replace
+543,MRN-100530,الجوال,MOBILE,+966592006882,replace
+544,MRN-100531,اسم_المريض,PERSON_NAME,مهند البقمي,replace
+544,MRN-100531,رقم_الهوية,SAUDI_ID,1589285244,replace
+544,MRN-100531,الجوال,MOBILE,0530556255,replace
+544,MRN-100531,ملاحظات,SAUDI_ID,1589 285 244,replace
+545,MRN-100532,اسم_المريض,PERSON_NAME,العنود السبيعي,replace
+545,MRN-100532,رقم_الهوية,SAUDI_ID,1244441919,replace
+545,MRN-100532,الجوال,MOBILE,966549700047,replace
+545,MRN-100532,آيبان_الاسترداد,IBAN,SA1210680976979687214808,replace
+545,MRN-100532,ملاحظات,SAUDI_ID,1271898965,review
+546,MRN-100533,اسم_المريض,PERSON_NAME,سعود العتيبي,replace
+546,MRN-100533,رقم_الهوية,SAUDI_ID,1993927373,replace
+546,MRN-100533,الجوال,MOBILE,+966558784860,replace
+546,MRN-100533,آيبان_الاسترداد,IBAN,SA0845091738848917510023,replace
+546,MRN-100533,ملاحظات,PERSON_NAME,سعود,replace
+547,MRN-100534,اسم_المريض,PERSON_NAME,ريم السهلي,replace
+547,MRN-100534,رقم_الهوية,SAUDI_ID,1352204158,replace
+547,MRN-100534,الجوال,MOBILE,0535974847,replace
+547,MRN-100534,آيبان_الاسترداد,IBAN,SA7420832299773185127092,replace
+547,MRN-100534,ملاحظات,SAUDI_ID,١٣٥٢٢٠٤١٥٨,replace
+548,MRN-100535,اسم_المريض,PERSON_NAME,نورة البقمي,replace
+548,MRN-100535,رقم_الهوية,SAUDI_ID,2803807474,replace
+548,MRN-100535,الجوال,MOBILE,+966590817296,replace
+548,MRN-100535,ملاحظات,SAUDI_ID,1151671516,review
+549,MRN-100536,اسم_المريض,PERSON_NAME,جواهر الجهني,replace
+549,MRN-100536,رقم_الهوية,SAUDI_ID,1833620964,replace
+549,MRN-100536,الجوال,MOBILE,0561797924,replace
+549,MRN-100536,آيبان_الاسترداد,IBAN,SA1310432344635239467291,replace
+549,MRN-100536,ملاحظات,SAUDI_ID,1833 620 964,replace
+550,MRN-100537,اسم_المريض,PERSON_NAME,ماجد الغامدي,replace
+550,MRN-100537,رقم_الهوية,SAUDI_ID,2211162074,replace
+550,MRN-100537,الجوال,MOBILE,0597616566,replace
+550,MRN-100537,آيبان_الاسترداد,IBAN,SA2160419414988288293294,replace
+550,MRN-100537,ملاحظات,SAUDI_ID,1485045817,review
+551,MRN-100538,اسم_المريض,PERSON_NAME,لمى الحربي,replace
+551,MRN-100538,رقم_الهوية,SAUDI_ID,1764580708,replace
+551,MRN-100538,الجوال,MOBILE,٠٥٠١٦٥٥٥٧٨,replace
+551,MRN-100538,ملاحظات,SAUDI_ID,1660165763,ignore
+552,MRN-100539,اسم_المريض,PERSON_NAME,رغد الدوسري,replace
+552,MRN-100539,رقم_الهوية,SAUDI_ID,1964132292,replace
+552,MRN-100539,الجوال,MOBILE,966505061937,replace
+553,MRN-100540,اسم_المريض,PERSON_NAME,رهف الشهري,replace
+553,MRN-100540,رقم_الهوية,SAUDI_ID,2127356356,replace
+553,MRN-100540,الجوال,MOBILE,966534927065,replace
+553,MRN-100540,ملاحظات,SAUDI_ID,٢١٢٧٣٥٦٣٥٦,replace
+554,MRN-100541,اسم_المريض,PERSON_NAME,نورة العسيري,replace
+554,MRN-100541,رقم_الهوية,SAUDI_ID,1320481409,replace
+554,MRN-100541,الجوال,MOBILE,٠٥٤٢٦٦٢٠٤٤,replace
+555,MRN-100542,اسم_المريض,PERSON_NAME,نورة الجهني,replace
+555,MRN-100542,رقم_الهوية,SAUDI_ID,2800224772,replace
+555,MRN-100542,الجوال,MOBILE,0548165427,replace
+556,MRN-100543,اسم_المريض,PERSON_NAME,رهف الغامدي,replace
+556,MRN-100543,رقم_الهوية,SAUDI_ID,1982037564,replace
+556,MRN-100543,الجوال,MOBILE,٠٥٥٠٣٧٨٤٨٥,replace
+556,MRN-100543,ملاحظات,MOBILE,055 037 8485,replace
+557,MRN-100544,اسم_المريض,PERSON_NAME,رغد الشهري,replace
+557,MRN-100544,رقم_الهوية,SAUDI_ID,1290573094,replace
+557,MRN-100544,الجوال,MOBILE,0554754228,replace
+558,MRN-100545,اسم_المريض,PERSON_NAME,هند الحربي,replace
+558,MRN-100545,رقم_الهوية,SAUDI_ID,1931994444,replace
+558,MRN-100545,الجوال,MOBILE,0504341256,replace
+558,MRN-100545,ملاحظات,SAUDI_ID,١٩٣١٩٩٤٤٤٤,replace
+559,MRN-100546,اسم_المريض,PERSON_NAME,رهف العنزي,replace
+559,MRN-100546,رقم_الهوية,SAUDI_ID,1567378326,replace
+559,MRN-100546,الجوال,MOBILE,0501631920,replace
+559,MRN-100546,ملاحظات,SAUDI_ID,1567 378 326,replace
+560,MRN-100547,اسم_المريض,PERSON_NAME,عبدالله الشمري,replace
+560,MRN-100547,رقم_الهوية,SAUDI_ID,1245960537,replace
+560,MRN-100547,الجوال,MOBILE,٠٥٣٠١٢١٣٩٦,replace
+561,MRN-100548,اسم_المريض,PERSON_NAME,أحمد المطيري,replace
+561,MRN-100548,رقم_الهوية,SAUDI_ID,2306974482,replace
+561,MRN-100548,الجوال,MOBILE,0569410359,replace
+561,MRN-100548,ملاحظات,PERSON_NAME,أحمد,replace
+562,MRN-100549,اسم_المريض,PERSON_NAME,سعود السهلي,replace
+562,MRN-100549,رقم_الهوية,SAUDI_ID,1801937911,replace
+562,MRN-100549,الجوال,MOBILE,0551292356,replace
+562,MRN-100549,ملاحظات,PERSON_NAME,سعود,replace
+563,MRN-100550,اسم_المريض,PERSON_NAME,وجدان القرني,replace
+563,MRN-100550,رقم_الهوية,SAUDI_ID,1419855893,replace
+563,MRN-100550,الجوال,MOBILE,0531084696,replace
+564,MRN-100551,اسم_المريض,PERSON_NAME,لمى السبيعي,replace
+564,MRN-100551,رقم_الهوية,SAUDI_ID,1882676297,replace
+564,MRN-100551,الجوال,MOBILE,966505913628,replace
+565,MRN-100552,اسم_المريض,PERSON_NAME,سعود الغامدي,replace
+565,MRN-100552,رقم_الهوية,SAUDI_ID,1846712691,replace
+565,MRN-100552,الجوال,MOBILE,0530315628,replace
+565,MRN-100552,آيبان_الاسترداد,IBAN,SA7310245147057845635012,replace
+565,MRN-100552,ملاحظات,MOBILE,053 031 5628,replace
+566,MRN-100553,اسم_المريض,PERSON_NAME,  لمى البقمي   ,replace
+566,MRN-100553,رقم_الهوية,SAUDI_ID,1186100432,replace
+566,MRN-100553,الجوال,MOBILE,050 281 0206,replace
+566,MRN-100553,ملاحظات,SAUDI_ID,١١٨٦١٠٠٤٣٢,replace
+567,MRN-100554,اسم_المريض,PERSON_NAME,خالد السبيعي,replace
+567,MRN-100554,رقم_الهوية,SAUDI_ID,1949847139,replace
+567,MRN-100554,الجوال,MOBILE,+966599335194,replace
+567,MRN-100554,آيبان_الاسترداد,IBAN,SA9210004674418167086847,replace
+568,MRN-100555,اسم_المريض,PERSON_NAME,يوسف اليامي,replace
+568,MRN-100555,رقم_الهوية,SAUDI_ID,1792242461,replace
+568,MRN-100555,الجوال,MOBILE,+966501932589,replace
+569,MRN-100556,اسم_المريض,PERSON_NAME,نايف العتيبي,replace
+569,MRN-100556,رقم_الهوية,SAUDI_ID,2767685668,replace
+569,MRN-100556,الجوال,MOBILE,966504878859,replace
+570,MRN-100557,اسم_المريض,PERSON_NAME,يوسف اليامي,replace
+570,MRN-100557,رقم_الهوية,SAUDI_ID,1473024634,replace
+570,MRN-100557,الجوال,MOBILE,0565367608,replace
+571,MRN-100558,اسم_المريض,PERSON_NAME,رهف الخالدي,replace
+571,MRN-100558,رقم_الهوية,SAUDI_ID,1482097795,replace
+571,MRN-100558,الجوال,MOBILE,0564109853,replace
+571,MRN-100558,آيبان_الاسترداد,IBAN,SA0905472911217297859935,replace
+572,MRN-100559,اسم_المريض,PERSON_NAME,أروى الجهني,replace
+572,MRN-100559,رقم_الهوية,SAUDI_ID,1471375046,replace
+572,MRN-100559,الجوال,MOBILE,0546522770,replace
+572,MRN-100559,ملاحظات,SAUDI_ID,1454068074,ignore
+573,MRN-100560,اسم_المريض,PERSON_NAME,ريم العمري,replace
+573,MRN-100560,رقم_الهوية,SAUDI_ID,2169413479,replace
+573,MRN-100560,الجوال,MOBILE,٠٥٣٨٢٣٥٦٢٥,replace
+573,MRN-100560,ملاحظات,SAUDI_ID,٢١٦٩٤١٣٤٧٩,replace
+574,MRN-100561,اسم_المريض,PERSON_NAME,  غادة العسيري   ,replace
+574,MRN-100561,رقم_الهوية,SAUDI_ID,1632579478,replace
+574,MRN-100561,الجوال,MOBILE,0540810860,replace
+575,MRN-100562,اسم_المريض,PERSON_NAME,رغد الجهني,replace
+575,MRN-100562,رقم_الهوية,SAUDI_ID,2324058631,replace
+575,MRN-100562,الجوال,MOBILE,0547030775,replace
+576,MRN-100563,اسم_المريض,PERSON_NAME,منى الرشيدي,replace
+576,MRN-100563,رقم_الهوية,SAUDI_ID,1008843326,replace
+576,MRN-100563,الجوال,MOBILE,0500380441,replace
+576,MRN-100563,ملاحظات,SAUDI_ID,1008 843 326,replace
+577,MRN-100564,اسم_المريض,PERSON_NAME,فيصل السبيعي,replace
+577,MRN-100564,رقم_الهوية,SAUDI_ID,1133265338,replace
+577,MRN-100564,الجوال,MOBILE,0535287447,replace
+577,MRN-100564,ملاحظات,SAUDI_ID,1431953232,ignore
+578,MRN-100565,اسم_المريض,PERSON_NAME,عادل ​العتيبي,replace
+578,MRN-100565,رقم_الهوية,SAUDI_ID,1801144823,replace
+578,MRN-100565,الجوال,MOBILE,0507818612,replace
+578,MRN-100565,آيبان_الاسترداد,IBAN,SA3820251605078220003160,replace
+579,MRN-100566,اسم_المريض,PERSON_NAME,فيصل الرشيدي,replace
+579,MRN-100566,رقم_الهوية,SAUDI_ID,2632385031,replace
+579,MRN-100566,الجوال,MOBILE,0556583241,replace
+579,MRN-100566,آيبان_الاسترداد,IBAN,SA8920317991886138708598,replace
+579,MRN-100566,ملاحظات,SAUDI_ID,1184528964,review
+580,MRN-100567,اسم_المريض,PERSON_NAME,شيماء الدوسري,replace
+580,MRN-100567,رقم_الهوية,SAUDI_ID,1250736657,replace
+580,MRN-100567,الجوال,MOBILE,0552018823,replace
+580,MRN-100567,ملاحظات,SAUDI_ID,1250 736 657,replace
+581,MRN-100568,اسم_المريض,PERSON_NAME,  رهف المطيري   ,replace
+581,MRN-100568,رقم_الهوية,SAUDI_ID,2722874662,replace
+581,MRN-100568,الجوال,MOBILE,+966590539120,replace
+582,MRN-100569,اسم_المريض,PERSON_NAME,فيصل المطيري,replace
+582,MRN-100569,رقم_الهوية,SAUDI_ID,1607768924,replace
+582,MRN-100569,الجوال,MOBILE,050 060 4326,replace
+582,MRN-100569,آيبان_الاسترداد,IBAN,SA0910850077654916077773,replace
+583,MRN-100570,اسم_المريض,PERSON_NAME,عبدالله القحطاني,replace
+583,MRN-100570,رقم_الهوية,SAUDI_ID,1267028163,replace
+583,MRN-100570,الجوال,MOBILE,0505318148,replace
+583,MRN-100570,آيبان_الاسترداد,IBAN,SA0805723079269719736737,replace
+584,MRN-100571,اسم_المريض,PERSON_NAME,سعود العنزي,replace
+584,MRN-100571,رقم_الهوية,SAUDI_ID,1806548812,replace
+584,MRN-100571,الجوال,MOBILE,0599816121,replace
+585,MRN-100572,اسم_المريض,PERSON_NAME,ريم الشهري,replace
+585,MRN-100572,رقم_الهوية,SAUDI_ID,2707651374,replace
+585,MRN-100572,الجوال,MOBILE,+966501373195,replace
+585,MRN-100572,آيبان_الاسترداد,IBAN,SA4260203125079762706316,replace
+585,MRN-100572,ملاحظات,SAUDI_ID,٢٧٠٧٦٥١٣٧٤,replace
+586,MRN-100573,اسم_المريض,PERSON_NAME,نورة الشهري,replace
+586,MRN-100573,رقم_الهوية,SAUDI_ID,1418448930,replace
+586,MRN-100573,الجوال,MOBILE,+966546859378,replace
+587,MRN-100574,اسم_المريض,PERSON_NAME,يوسف السبيعي,replace
+587,MRN-100574,رقم_الهوية,SAUDI_ID,1576295149,replace
+587,MRN-100574,الجوال,MOBILE,0545308670,replace
+587,MRN-100574,ملاحظات,SAUDI_ID,1188611618,review
+588,MRN-100575,اسم_المريض,PERSON_NAME,منى الخالدي,replace
+588,MRN-100575,رقم_الهوية,SAUDI_ID,1477230799,replace
+588,MRN-100575,الجوال,MOBILE,+966568858736,replace
+589,MRN-100576,اسم_المريض,PERSON_NAME,العنود اليامي,replace
+589,MRN-100576,رقم_الهوية,SAUDI_ID,1049937392,replace
+589,MRN-100576,الجوال,MOBILE,٠٥٤٤٥٢٢٨٨٨,replace
+589,MRN-100576,ملاحظات,SAUDI_ID,1837680816,review
+590,MRN-100577,اسم_المريض,PERSON_NAME,العنود السبيعي,replace
+590,MRN-100577,رقم_الهوية,SAUDI_ID,1106870510,replace
+590,MRN-100577,الجوال,MOBILE,0508935752,replace
+590,MRN-100577,ملاحظات,SAUDI_ID,1106 870 510,replace
+591,MRN-100578,اسم_المريض,PERSON_NAME,فهد القحطاني,replace
+591,MRN-100578,رقم_الهوية,SAUDI_ID,1107112953,replace
+591,MRN-100578,الجوال,MOBILE,0555807954,replace
+591,MRN-100578,ملاحظات,SAUDI_ID,١١٠٧١١٢٩٥٣,replace
+592,MRN-100579,اسم_المريض,PERSON_NAME,دانة الزهراني,replace
+592,MRN-100579,رقم_الهوية,SAUDI_ID,1603491596,replace
+592,MRN-100579,الجوال,MOBILE,+966507049496,replace
+592,MRN-100579,آيبان_الاسترداد,IBAN,SA7580583946720702806717,replace
+593,MRN-100580,اسم_المريض,PERSON_NAME,لمى الجهني,replace
+593,MRN-100580,رقم_الهوية,SAUDI_ID,1376284723,replace
+593,MRN-100580,الجوال,MOBILE,966598999822,replace
+593,MRN-100580,ملاحظات,IBAN,SA13 0574 2246 3684 1444 8683,replace
+594,MRN-100581,اسم_المريض,PERSON_NAME,ريان القرني,replace
+594,MRN-100581,رقم_الهوية,SAUDI_ID,1747187860,replace
+594,MRN-100581,الجوال,MOBILE,0547556958,replace
+594,MRN-100581,آيبان_الاسترداد,IBAN,SA6505228181314704581332,replace
+594,MRN-100581,ملاحظات,SAUDI_ID,1747187860,replace
+594,MRN-100581,ملاحظات,MOBILE,0547556958,replace
+595,MRN-100582,اسم_المريض,PERSON_NAME,ماجد العتيبي,replace
+595,MRN-100582,رقم_الهوية,SAUDI_ID,1336128465,replace
+595,MRN-100582,الجوال,MOBILE,0543723141,replace
+595,MRN-100582,آيبان_الاسترداد,IBAN,SA5860667926698456016461,replace
+596,MRN-100583,اسم_المريض,PERSON_NAME,سارة الشهري,replace
+596,MRN-100583,رقم_الهوية,SAUDI_ID,1493074684,replace
+596,MRN-100583,الجوال,MOBILE,966598263216,replace
+596,MRN-100583,آيبان_الاسترداد,IBAN,SA3905228986883466571310,replace
+597,MRN-100584,اسم_المريض,PERSON_NAME,  هند الغامدي   ,replace
+597,MRN-100584,رقم_الهوية,SAUDI_ID,1676829243,replace
+597,MRN-100584,الجوال,MOBILE,0531931980,replace
+597,MRN-100584,آيبان_الاسترداد,IBAN,SA9305875540407927175380,replace
+598,MRN-100585,اسم_المريض,PERSON_NAME,  زياد الزهراني   ,replace
+598,MRN-100585,رقم_الهوية,SAUDI_ID,2637702453,replace
+598,MRN-100585,الجوال,MOBILE,966596030376,replace
+598,MRN-100585,ملاحظات,PERSON_NAME,زياد القحطاني,replace
+598,MRN-100585,ملاحظات,MOBILE,+٩٦٦ ٥٥ ٥٥٧ ٢٥٥٨,replace
+599,MRN-100586,اسم_المريض,PERSON_NAME,دانة الحربي,replace
+599,MRN-100586,رقم_الهوية,SAUDI_ID,1392992978,replace
+599,MRN-100586,الجوال,MOBILE,0547144151,replace
+599,MRN-100586,ملاحظات,MOBILE,054 714 4151,replace
+600,MRN-100587,اسم_المريض,PERSON_NAME,عادل الخالدي,replace
+600,MRN-100587,رقم_الهوية,SAUDI_ID,1498912631,replace
+600,MRN-100587,الجوال,MOBILE,٠٥٠٢٢٠٣٠٥٢,replace
+601,MRN-100588,اسم_المريض,PERSON_NAME,  دانة الغامدي   ,replace
+601,MRN-100588,رقم_الهوية,SAUDI_ID,1724452964,replace
+601,MRN-100588,الجوال,MOBILE,966500710990,replace
+601,MRN-100588,ملاحظات,IBAN,SA85 2009 5214 1772 2216 2887,replace
+602,MRN-100589,اسم_المريض,PERSON_NAME,حمدان الدوسري,replace
+602,MRN-100589,رقم_الهوية,SAUDI_ID,2769968682,replace
+602,MRN-100589,الجوال,MOBILE,0507845433,replace
+602,MRN-100589,ملاحظات,SAUDI_ID,1970520951,review
+603,MRN-100590,اسم_المريض,PERSON_NAME,ماجد العتيبي,replace
+603,MRN-100590,رقم_الهوية,SAUDI_ID,1874705153,replace
+603,MRN-100590,الجوال,MOBILE,055 984 0888,replace
+603,MRN-100590,آيبان_الاسترداد,IBAN,SA8480242699148753006578,replace
+604,MRN-100591,اسم_المريض,PERSON_NAME,نايف البقمي,replace
+604,MRN-100591,رقم_الهوية,SAUDI_ID,1104873961,replace
+604,MRN-100591,الجوال,MOBILE,0508464192,replace
+604,MRN-100591,ملاحظات,SAUDI_ID,1104 873 961,replace
+605,MRN-100592,اسم_المريض,PERSON_NAME,أحمد الجهني,replace
+605,MRN-100592,رقم_الهوية,SAUDI_ID,1353722810,replace
+605,MRN-100592,الجوال,MOBILE,0562602283,replace
+606,MRN-100593,اسم_المريض,PERSON_NAME,عزام اليامي,replace
+606,MRN-100593,رقم_الهوية,SAUDI_ID,2182745766,replace
+606,MRN-100593,الجوال,MOBILE,966597861826,replace
+607,MRN-100594,اسم_المريض,PERSON_NAME,دانة القحطاني,replace
+607,MRN-100594,رقم_الهوية,SAUDI_ID,1600623993,replace
+607,MRN-100594,الجوال,MOBILE,966545299505,replace
+607,MRN-100594,ملاحظات,PERSON_NAME,دانة,replace
+608,MRN-100595,اسم_المريض,PERSON_NAME,أثير الغامدي,replace
+608,MRN-100595,رقم_الهوية,SAUDI_ID,1958738005,replace
+608,MRN-100595,الجوال,MOBILE,٠٥٠٥٢٦٦٤١٣,replace
+608,MRN-100595,آيبان_الاسترداد,IBAN,SA7160928294827035324363,replace
+608,MRN-100595,ملاحظات,IBAN,SA13 6043 1678 3180 6307 4913,replace
+609,MRN-100596,اسم_المريض,PERSON_NAME,العنود الشمري,replace
+609,MRN-100596,رقم_الهوية,SAUDI_ID,2076332754,replace
+609,MRN-100596,الجوال,MOBILE,0539207007,replace
+610,MRN-100597,اسم_المريض,PERSON_NAME,ماجد العنزي,replace
+610,MRN-100597,رقم_الهوية,SAUDI_ID,1099157339,replace
+610,MRN-100597,الجوال,MOBILE,0559441172,replace
+611,MRN-100598,اسم_المريض,PERSON_NAME,يوسف العتيبي,replace
+611,MRN-100598,رقم_الهوية,SAUDI_ID,1472840139,replace
+611,MRN-100598,الجوال,MOBILE,0558866949,replace
+612,MRN-100599,اسم_المريض,PERSON_NAME,منى الزهراني,replace
+612,MRN-100599,رقم_الهوية,SAUDI_ID,2373279260,replace
+612,MRN-100599,الجوال,MOBILE,٠٥٤٦٧٥٥٥٩٩,replace

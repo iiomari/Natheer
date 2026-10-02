@@ -54,6 +54,12 @@ class GazetteerNER:
             start, end, word = words[i]
             offset = _first_name_offset(word)
             if offset is None:
+                # An unknown first name followed by a known family name ("عمار الغامدي") is a name too.
+                if (i + 1 < len(words) and _could_be_first_name(word)
+                        and _only_space_between(text, end, words[i + 1][0]) and s.is_family_name(words[i + 1][2])):
+                    spans.append((start, words[i + 1][1], 0.75))
+                    i += 2
+                    continue
                 i += 1
                 continue
             first = s.normalize_name(word[offset:])
@@ -72,6 +78,20 @@ class GazetteerNER:
             spans.append((start + offset, span_end, confidence))
             i += 2 if has_family else 1
         return spans
+
+
+# Words that come before a family name without being a person ("مستشفى الحمادي", "شركة الراجحي").
+_NOT_FIRST_NAMES = frozenset(s.normalize_name(w) for w in (
+    "مستشفى", "مجمع", "شركة", "مؤسسة", "مكتب", "صيدلية", "عيادة", "عيادات", "مركز", "مدرسة", "جامعة", "بنك",
+    "مصرف", "فرع", "حي", "شارع", "طريق", "مدينة", "قبيلة", "عائلة", "أسرة", "آل", "بن", "بنت", "ابن", "أبو", "أم",
+    "مجموعة", "مصنع", "معهد", "سوق", "برج", "فندق", "مطعم", "جمعية", "وقف", "قصر", "مزرعة", "استراحة",
+))
+
+
+def _could_be_first_name(word: str) -> bool:
+    w = s.normalize_name(word)
+    return (len(w) >= 2 and w.isalpha() and not w.startswith("ال") and w not in STOPWORDS
+            and w not in _NOT_FIRST_NAMES and w not in PERSON_CUES and not s.is_family_name(word))
 
 
 def _first_name_offset(word: str) -> int | None:
@@ -98,7 +118,7 @@ def _cue_gap_ok(text: str, a: int, b: int, cue: str) -> bool:
         return False
     if cue in _ABBREVIATED_CUES:
         return set(gap) <= {" ", "."}
-    return gap.isspace()
+    return set(gap) <= {" ", "/", ":"} and gap.strip(" ") in ("", "/", ":")  # "السيد/ محمد", "العميل: محمد"
 
 
 NER_MODES = ("gazetteer", "union", "camel", "auto")

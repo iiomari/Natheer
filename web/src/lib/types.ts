@@ -102,6 +102,8 @@ export type Dataset = {
     entity: { table: string } | null
     ingest: { table: string; source: string; rows: number; columns: number; encoding: string | null; delimiter: string | null; header: string; dropped_empty_rows: number; dropped_empty_columns: number; renamed_columns: number }[]
     total_rows: number
+    review?: { by_type: Record<string, number>; total: number }
+    found_by_type?: Record<string, number>
     cleaning?: {
       report: {
         options: Record<CleanRule, boolean> & { merges: number }
@@ -127,18 +129,6 @@ export type Mark = [number, number, string, string]
 
 export type Note = { index: number; count: number; table: string; column: string; text: string; baseline: Mark[]; nazeer: Mark[] }
 
-export type KAnon = {
-  quasi_columns: string[]
-  k_min: number
-  k_before: number
-  k_after: number
-  passed_before: boolean
-  passed_after: boolean
-  rows_in_small_classes_before: number
-  suggestions: { name: string; description: string; k_before: number; k_after: number; rows_affected: number; reaches_k_min: boolean }[]
-  applied_fix: { name: string; k_before: number; k_after: number; rows_affected: number } | null
-}
-
 export type Twin = {
   id: string
   dataset_id: string
@@ -154,12 +144,17 @@ export type Twin = {
     leak: { status: string; leaks: number; cells: number }
     validity?: { status: string; share: number | null } | null
     links?: { status: string; orphans: number } | null
-    k?: (KAnon & { status: string }) | null
+    residual?: { status: string; found: number; by_kind: Record<string, number> } | null
+    review?: { pending: number; by_type: Record<string, number>; approved: boolean } | null
   }
-  checks: { name: string; status: string; blocking: boolean; detail: string }[]
+  checks: { name: string; status: string; blocking: boolean; detail: string; value?: unknown; threshold?: unknown }[]
   failed_checks: string[]
   limitations: string[]
-  k_anonymity: KAnon | null
+  limitations_ar: string[]
+  review: { pending_by_type: Record<string, number>; approved: boolean } | null
+  residual: { verdict: string; found: number; by_kind: Record<string, number>; locations: { table: string; column: string; row: number; kind: string }[] } | null
+  token: { column: string; length: number } | null
+  options: { approve_review: boolean | null; cleared_columns: string[] | null; overrides: Record<string, unknown> | null }
   utility: { max_auc_drop?: number | null; note?: string; models?: Record<string, { real: { auc: number }; twin: { auc: number } }> } | null
   privacy: { dcr?: { share_twin_closer_to_train_than_holdout: number; passed: boolean } } | null
 }
@@ -193,12 +188,24 @@ export type Received = {
   expires_at: string
   tables: { name: string; rows: number }[]
   cleaning: { rules: string[]; changed: Record<string, number> } | null
-  returns: { table: string; column: string; ref_column: string } | null
+  returns: { token_column: string; tables: string[] } | null
   proof?: Twin["proof"]
   preview?: { table: string; columns: string[]; rows: (string | null)[][] }[]
 }
 
-export type ReturnRejected = { ref_mismatch: number; unknown_key: number; missing_key: number; duplicate_key: number }
+export type ReturnCounts = { verified: number; invalid: number; missing: number; foreign: number; old_key: number; duplicate: number }
+
+export type ReturnReport = {
+  rows_returned: number
+  rows_shared: number
+  coverage: number | null
+  counts: ReturnCounts
+  integrity: number
+  rows_by_status: Partial<Record<keyof ReturnCounts, number[]>>
+  added_columns: Record<string, string[]>
+  rows_changed_in_twin_columns: number
+  tables: string[]
+}
 
 export type ReturnInfo = {
   id: string
@@ -207,13 +214,13 @@ export type ReturnInfo = {
   dataset_name: string
   file_name: string
   created_at: string
-  rows_total: number
-  rows_accepted: number
-  rejected: ReturnRejected
-  columns: string[]
+  report: ReturnReport
+  rows_returned: number
+  verified: number
+  added_columns: string[]
   available: boolean
+  relinkable: boolean
   recipient?: string
-  excel_repaired?: number
   relink?: {
     status: "none" | "running" | "ready" | "failed" | "expired"
     error_code: string | null
@@ -222,6 +229,5 @@ export type ReturnInfo = {
     downloads: number
     mine?: boolean
   }
-  link?: { table: string; column: string } | null
-  source_tables?: string[]
+  source_tables?: { name: string; key_column: string | null }[]
 }

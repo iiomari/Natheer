@@ -70,13 +70,6 @@ def overrides_from_edits(analysis, edited: pd.DataFrame) -> tuple[dict, list[str
     return overrides, problems
 
 
-def suggestion_frame(kanon_entry: dict) -> pd.DataFrame:
-    return pd.DataFrame([{
-        "fix": f["name"], "what it does": f["description"], "k before": f["k_before"], "k after": f["k_after"],
-        "rows affected": f["rows_affected"], "reaches k_min": "yes" if f["reaches_k_min"] else "no",
-    } for f in kanon_entry.get("suggestions", [])])
-
-
 # ---------------------------------------------------------------- following one entity across tables
 
 def entity_key(profile) -> tuple[str, str] | None:
@@ -377,14 +370,11 @@ def proof(analysis, result) -> dict:
         ri = referential_integrity(result, analysis.profile)
         out["links"] = {"status": "PASS" if sum(ri.values()) == 0 else "FAIL", "orphans": sum(ri.values()),
                         "links": ri}
-    k = next(iter(rep.get("k_anonymity", {}).items()), None)
-    if k:
-        table, e = k
-        name = f"k_anonymity[{table}]"
-        out["k"] = {"status": check[name]["status"] if name in check else ("PASS" if e["passed_after"] else "FAIL"),
-                    "table": table, **e}
-    else:
-        out["k"] = None
+    res = rep.get("residual_scan")
+    out["residual"] = None if res is None else {"status": res["verdict"], "found": res["found"], "by_kind": res["by_kind"]}
+    review = rep.get("free_text", {}).get("review", {})
+    out["review"] = {"pending": sum(review.get("pending_by_type", {}).values()),
+                     "by_type": review.get("pending_by_type", {}), "approved": review.get("approved", False)}
     return out
 
 

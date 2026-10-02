@@ -27,6 +27,9 @@ log = logging.getLogger(__name__)
 SAMPLE_SIZE = 500
 TAG_THRESHOLD = 0.7
 REVIEW_THRESHOLD = 0.4
+# Free-text spans below this confidence are left unchanged and listed for review unless an admin
+# approves replacing them (e.g. a checksum-valid number right after "رقم الطلب").
+SPAN_REVIEW_BELOW = 0.7
 IDENTIFIER_KINDS: tuple[s.Kind, ...] = ("SAUDI_ID", "MOBILE", "IBAN", "EMAIL", "PERSON_NAME")
 
 # Column-name hints, matched against lower-cased name tokens (split on non-letters).
@@ -48,6 +51,7 @@ _TOKEN = re.compile(r"[a-z]+|[؀-ۿ]+")
 _IBAN_RE = re.compile(r"(?<![A-Za-z0-9])SA\s?\d{22}(?!\d)", re.IGNORECASE)
 _EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}")
 _DIGIT_RUN = re.compile(r"\+?\d+")
+_IBAN_CONTEXT = re.compile(r"(آيبان|ايبان|الآيبان|الايبان|iban|حساب|الحساب|تحويل|حوالة|استرداد)", re.IGNORECASE)
 _INVOICE_CONTEXT = re.compile(r"(فاتور|طلب|مرجع|وثيق|عملي|إيصال|ايصال|invoice|order|ref)", re.IGNORECASE)
 
 # ---------------------------------------------------------------- column level
@@ -132,8 +136,14 @@ def find_spans(text: str, ner: NameDetector | None = None, names: bool = True,
             taken[i] = True
 
     for m in _IBAN_RE.finditer(norm):
-        if s.is_valid("IBAN", m.group()):
+        if s.is_valid("IBAN", m.group().upper().replace(" ", "")):
             claim(m.start(), m.end(), "IBAN", 0.99)
+    # Exact Saudi IBAN shape with a failing checksum: an account number with a typo is still an
+    # account number. Next to an account word it is replaced; on its own it goes to review.
+    for m in _IBAN_RE.finditer(norm):
+        if not any(taken[m.start():m.end()]):
+            ctx = norm[max(0, m.start() - 30):m.start()]
+            claim(m.start(), m.end(), "IBAN", 0.9 if _IBAN_CONTEXT.search(ctx) else 0.6)
     for m in _EMAIL_RE.finditer(norm):
         if not any(taken[m.start():m.end()]) and s.is_valid("EMAIL", m.group()):
             claim(m.start(), m.end(), "EMAIL", 0.99)

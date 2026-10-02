@@ -108,7 +108,31 @@ def detection_summary(an, ingest_notes: list[dict]) -> dict:
         "entity": entity,
         "ingest": ingest_notes,
         "total_rows": int(sum(len(df) for df in an.tables.values())),
+        "found_by_type": _found_by_type(an),
+        "review": _review_counts(an),
     }
+
+
+def _found_by_type(an) -> dict:
+    """Identifier values found, per type: values in identifier columns + values inside free text."""
+    from collections import Counter
+
+    out: Counter = Counter()
+    for d in an.detections:
+        if d.tag == "DIRECT_ID" and d.kind:
+            out[d.kind] += int(an.tables[d.table][d.column].notna().sum())
+    for sp in an.spans:
+        out[sp.type] += 1
+    return dict(out)
+
+
+def _review_counts(an) -> dict:
+    from collections import Counter
+
+    from nazeer.detect import SPAN_REVIEW_BELOW
+
+    c = Counter(sp.type for sp in an.spans if sp.confidence < SPAN_REVIEW_BELOW)
+    return {"by_type": dict(c), "total": int(sum(c.values()))}
 
 
 def process_upload(db: DbSession, settings: Settings, ds: Dataset, cleaning: dict | None = None) -> dict:
@@ -169,6 +193,25 @@ def _json_safe(obj):
     return json.loads(json.dumps(obj, default=str))
 
 
+def add_row_refs(twin: dict, an, key: bytes, dataset_id: str, key_version: int) -> dict:
+    """Seal each twin row's original reference (primary key value, else row position after cleaning)
+    under the organization key and keep it inside the (encrypted) twin. Exports turn it into the
+    share-bound verification token. Returns value-free information for the report."""
+    from nazeer_api.tokens import INTERNAL_COLUMN, TOKEN_COLUMN, seal_internal
+
+    tables = []
+    for idx, (name, df) in enumerate(twin.items()):
+        pk = an.profile.tables[name].primary_key if name in an.profile.tables else None
+        orig = an.tables[name]
+        if pk and pk in orig.columns and orig[pk].notna().all() and orig[pk].is_unique:
+            keys = [str(v).strip() for v in orig[pk].tolist()]
+        else:
+            pk, keys = None, [str(i + 1) for i in range(len(orig))]
+        df[INTERNAL_COLUMN] = [seal_internal(key, dataset_id, key_version, idx, k) for k in keys]
+        tables.append({"name": name, "key_column": pk, "rows": len(df)})
+    return {"column": TOKEN_COLUMN, "tables": tables, "length": "NZ- + 40-60"}
+
+
 def generate_twin(db: DbSession, settings: Settings, ds: Dataset, payload: dict, created_by: str | None) -> Twin:
     from nazeer import pipeline, ui_logic as ui
     from nazeer.policy import load_policy
@@ -183,7 +226,9 @@ def generate_twin(db: DbSession, settings: Settings, ds: Dataset, payload: dict,
     overrides = payload.get("overrides") or {}
     org = db.get(Organization, ds.org_id)
     if mode == "masked":
-        res = pipeline.run_masked(an, policy, org_key(settings, org), overrides, apply_fix=payload.get("apply_fix"))
+        res = pipeline.run_masked(an, policy, org_key(settings, org), overrides,
+                                  approve_review=bool(payload.get("approve_review")),
+                                  cleared_columns=payload.get("cleared_columns") or [])
         proof = ui.proof(an, res)
     else:
         try:
@@ -195,6 +240,9 @@ def generate_twin(db: DbSession, settings: Settings, ds: Dataset, payload: dict,
                           "leaks": sum(res.report["leak_scan"]["leaked_by_kind"].values()),
                           "cells": res.report["leak_scan"]["cells_scanned"]}}
     blob = None
+    token_info = None
+    if mode == "masked" and not res.twin_withheld:
+        token_info = add_row_refs(res.twin, an, org_key(settings, org), ds.id, org.key_version)
     if not res.twin_withheld:
         blob = put_blob(db, settings.master_key, ds.org_id, "twin", tables_to_zip(res.twin), dataset_id=ds.id)
         db.flush()
@@ -208,9 +256,11 @@ def generate_twin(db: DbSession, settings: Settings, ds: Dataset, payload: dict,
     opts = dict((cleaning.get("report") or {}).get("options") or {})
     opts["merges"] = [g["key"] for g in cleaning.get("suggestions", []) if g.get("approved")]
     report["generation"] = _json_safe({
-        "dataset_name": ds.name, "cleaning": opts, "overrides": overrides, "apply_fix": payload.get("apply_fix"),
+        "dataset_name": ds.name, "cleaning": opts, "overrides": overrides, "approve_review": bool(payload.get("approve_review")),
+        "cleared_columns": payload.get("cleared_columns") or [],
         "link": {"table": key[0], "column": key[1]} if key else None,
         "source": [{"table": n["table"], "rows": n["rows"]} for n in summary.get("ingest", [])],
+        "token": token_info,
     })
     twin = Twin(org_id=ds.org_id, dataset_id=ds.id, blob_id=blob.id if blob else None, mode=mode,
                 verdict=res.report["verdict"], report=report, proof=_json_safe(proof),

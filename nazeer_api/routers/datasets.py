@@ -218,10 +218,67 @@ def cleaning_suggestions(org_id: str, dataset_id: str, m: Membership = Depends(d
     return category_suggestions(_raw_tables(db, settings, ds))
 
 
+REVIEW_EXAMPLES = 12
+
+
+@router.get("/datasets/{dataset_id}/review")
+def review_examples(org_id: str, dataset_id: str, m: Membership = Depends(data_manager),
+                    db: DbSession = Depends(get_db), settings: Settings = Depends(get_settings_dep)) -> dict:
+    """Free-text values the detector is unsure of, in their sentence (original text: session only)."""
+    from nazeer import pipeline
+    from nazeer.detect import SPAN_REVIEW_BELOW
+
+    ds = _dataset(db, org_id, dataset_id)
+    try:
+        tables = load_tables(db, settings, ds)
+    except ProcessingError as e:
+        raise api_error(410, e.code) from None
+    an = pipeline.analyze(tables, ds.name)
+    pending = [sp for sp in an.spans if sp.confidence < SPAN_REVIEW_BELOW]
+    items = []
+    for sp in pending[:REVIEW_EXAMPLES]:
+        text = an.tables[sp.table][sp.column].iat[sp.row]
+        items.append({"table": sp.table, "column": sp.column, "row": sp.row + 1, "kind": sp.type,
+                      "text": text, "start": sp.start, "end": sp.end})
+    return {"total": len(pending), "items": items}
+
+
+@router.post("/datasets/{dataset_id}/answer-key")
+async def answer_key_check(org_id: str, dataset_id: str, file: UploadFile = File(...),
+                           m: Membership = Depends(data_manager), db: DbSession = Depends(get_db),
+                           settings: Settings = Depends(get_settings_dep)) -> dict:
+    """Optional, independent proof: compare detection with an answer key the user brings.
+    Counts only in the response; the key itself is never stored."""
+    from nazeer import pipeline
+    from nazeer.answer_key import AnswerKeyError, evaluate, load_key
+
+    ds = _dataset(db, org_id, dataset_id)
+    data = await file.read(5 * 1024 * 1024 + 1)
+    if len(data) > 5 * 1024 * 1024:
+        raise api_error(413, "answer_key_too_large")
+    try:
+        entries = load_key(data)
+    except AnswerKeyError as e:
+        raise api_error(422, e.code) from None
+    if (ds.summary or {}).get("total_rows", 0) > 50_000:
+        raise api_error(413, "answer_key_dataset_too_large")
+    try:
+        tables = load_tables(db, settings, ds)
+    except ProcessingError as e:
+        raise api_error(410, e.code) from None
+    an = pipeline.analyze(tables, ds.name)
+    out = evaluate(an.tables, an.detections, an.spans, entries)
+    audit.record(db, "dataset.answer_key_checked", org_id=org_id, actor_user_id=m.user_id, target_type="dataset",
+                 target_id=ds.id, entries=len(entries))
+    db.commit()
+    return out
+
+
 class GenerateIn(BaseModel):
     mode: Literal["masked", "synthetic"] = "masked"
     overrides: dict = Field(default_factory=dict)
-    apply_fix: str | None = Field(default=None, max_length=120)
+    approve_review: bool = False  # also replace the free-text values the detector is unsure of
+    cleared_columns: list[str] = Field(default_factory=list, max_length=200)  # "table.column": confirmed not identifiers
     target: str | None = Field(default=None, max_length=200)
 
 
@@ -238,7 +295,8 @@ def generate(org_id: str, dataset_id: str, body: GenerateIn, m: Membership = Dep
         raise api_error(422, "synthetic_too_large")
     j = jobs.enqueue(db, org_id, "generate", {"dataset_id": ds.id, **body.model_dump()}, created_by=m.user_id)
     audit.record(db, "twin.generate_requested", org_id=org_id, actor_user_id=m.user_id, target_type="dataset",
-                 target_id=ds.id, mode=body.mode, overrides=len(body.overrides), fix=bool(body.apply_fix))
+                 target_id=ds.id, mode=body.mode, overrides=len(body.overrides), approve_review=body.approve_review,
+                 cleared_columns=len(body.cleared_columns))
     db.commit()
     return {"job_id": j.id}
 
@@ -265,15 +323,25 @@ def delete_dataset(org_id: str, dataset_id: str, m: Membership = Depends(data_ma
 
 # ---------------------------------------------------------------- twins
 
+def _limitations_ar() -> list[str]:
+    from nazeer.report import LIMITATIONS_AR
+
+    return LIMITATIONS_AR
+
+
 def twin_payload(t: Twin) -> dict:
     rep = t.report
-    k = next(iter(rep.get("k_anonymity", {}).values()), None)
     return {"id": t.id, "dataset_id": t.dataset_id, "dataset_name": t.dataset.name, "mode": t.mode,
             "verdict": t.verdict, "created_at": t.created_at.isoformat(), "purged": t.purged_at is not None,
             "withheld": t.blob_id is None and t.purged_at is None, "proof": t.proof,
-            "checks": [{k_: c[k_] for k_ in ("name", "status", "blocking", "detail")} for c in rep.get("checks", [])],
+            "checks": [{k_: c.get(k_) for k_ in ("name", "status", "blocking", "detail", "value", "threshold")}
+                       for c in rep.get("checks", [])],
             "failed_checks": rep.get("failed_checks", []), "limitations": rep.get("limitations", []),
-            "k_anonymity": k, "utility": rep.get("utility"), "synthetic": rep.get("synthetic"),
+            "limitations_ar": rep.get("limitations_ar") or _limitations_ar(),
+            "token": (rep.get("generation") or {}).get("token"),
+            "options": {k_: (rep.get("generation") or {}).get(k_) for k_ in ("approve_review", "cleared_columns", "overrides")},
+            "review": (rep.get("free_text") or {}).get("review"), "residual": rep.get("residual_scan"),
+            "utility": rep.get("utility"), "synthetic": rep.get("synthetic"),
             "privacy": rep.get("privacy")}
 
 
@@ -314,7 +382,9 @@ def twin_preview(org_id: str, twin_id: str, m: Membership = Depends(admin), db: 
         original = load_tables(db, settings, t.dataset)
     except ProcessingError as e:
         raise api_error(410, e.code) from None
-    twin = zip_to_tables(read_blob(settings.master_key, db.get(Blob, t.blob_id)))
+    from nazeer_api.returns import strip_internal
+
+    twin = strip_internal(zip_to_tables(read_blob(settings.master_key, db.get(Blob, t.blob_id))))
     entity = (t.dataset.summary or {}).get("entity")
     out_tables = []
     rows_by_table = entity["rows"] if entity else {name: list(range(min(3, len(df)))) for name, df in original.items()}

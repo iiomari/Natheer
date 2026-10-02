@@ -76,7 +76,7 @@ def test_twin_report_and_recipient_see_what_was_cleaned(app, org_admin, demo_fil
     admin, org = org_admin
     emp, _ = invite_and_join(app, admin, org, "employee@alwaha.example.com")
     ds = ready_dataset(app, admin, org, demo_files)
-    twin = masked_twin(app, admin, org, ds["id"], apply_fix="auto")
+    twin = masked_twin(app, admin, org, ds["id"])
     assert twin["verdict"] == "PASS"
     rep = admin.get(f"/api/orgs/{org}/twins/{twin['id']}/report.json").json()
     assert rep["cleaning"]["options"]["trim"] is True and "applied" in rep["cleaning"]

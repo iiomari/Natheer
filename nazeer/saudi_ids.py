@@ -31,6 +31,7 @@ _SEPARATORS = frozenset(
     " \t   "  # spaces
     "-‐‑‒–−"  # hyphens and dashes
     ".٫٬"  # dot, Arabic decimal and thousands separators
+    "()"  # brackets around a group, e.g. "(054) 818 8763"
     "‎‏؜"  # LRM, RLM, Arabic letter mark
     "‪‫‬‭‮⁦⁧⁨⁩"  # bidi embeddings/isolates
 )

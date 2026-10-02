@@ -10,6 +10,7 @@ import { InlineError, Ltr, Notice, Spinner } from "@/components/nz"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { ApiError, api, messageFor } from "@/lib/api"
 import type { Me } from "@/lib/types"
+import { TOKEN_RULE } from "@/components/returns"
 import { formatDay } from "@/lib/use-api"
 
 type Preview = { org_name: string; dataset_name: string; status: "active" | "expired" | "revoked"; expires_at: string; accepted: boolean }
@@ -67,6 +68,7 @@ function ShareLink() {
       ) : (
         <div className="space-y-5">
           <Notice icon={Inbox}>هذه بيانات نظيرة لا تحتوي أي شخص حقيقي. يعمل الرابط لحساب واحد فقط.</Notice>
+          <p className="text-sm leading-7 text-muted-foreground">{TOKEN_RULE}</p>
           {error ? <InlineError>{error}</InlineError> : null}
           {me ? (
             <>

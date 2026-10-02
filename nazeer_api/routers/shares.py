@@ -197,10 +197,10 @@ def received_payload(s: Share) -> dict:
 
 
 def _return_info(t: Twin) -> dict | None:
-    from nazeer_api.returns import REF_COLUMN, link_of
+    from nazeer_api.returns import token_info
 
-    link = link_of(t)
-    return {**link, "ref_column": REF_COLUMN} if link else None
+    info = token_info(t)
+    return {"token_column": info["column"], "tables": [x["name"] for x in info["tables"]]} if info else None
 
 
 @router.get("/received")
@@ -214,10 +214,10 @@ def _active_share_tables(db: DbSession, settings: Settings, s: Share) -> dict:
         raise api_error(410, f"share_{share_status(s)}")
     if s.twin.blob_id is None:
         raise api_error(410, "share_expired")
-    from nazeer_api.returns import add_refs, link_of, ref_key
+    from nazeer_api.returns import sealer_for, tables_for_share
 
     tables = zip_to_tables(read_blob(settings.master_key, db.get(Blob, s.twin.blob_id)))
-    return add_refs(tables, link_of(s.twin), ref_key(settings.master_key, s.id))  # nazeer_ref next to the key
+    return tables_for_share(tables, sealer_for(settings, s))  # رمز_التحقق on every row
 
 
 @router.get("/received/{share_id}")

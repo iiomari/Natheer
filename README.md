@@ -35,7 +35,7 @@
 | السياسة | `config/policy.yaml`, `nazeer/policy.py` | ماذا نفعل بكل عمود، مع مراجعة بشرية تُسجَّل في التقرير |
 | التحويل | `nazeer/transform.py` | استبدال بمفتاح سري (HMAC) بلا جدول ربط محفوظ، يحافظ على شكل الرقم ويُبقي العلاقات بين الجداول |
 | التوليد الاصطناعي | `nazeer/synth.py` | نموذج Gaussian copula مقسّم حسب الفئة، يُدرَّب بعد فصل 20% من البيانات |
-| التقييم | `nazeer/evaluate.py`, `nazeer/kanon.py` | فحص التسرّب، والنسخ المطابقة، وk-anonymity، وDCR، والفائدة (TSTR) |
+| التقييم | `nazeer/evaluate.py` | فحص التسرّب، وفحص البقايا، والنسخ المطابقة، وDCR، والفائدة (TSTR) |
 | التقرير | `nazeer/report.py` | تقرير JSON بحكم PASS/FAIL |
 | الواجهة | `nazeer/app.py` | واجهة Streamlit محلية |
 
@@ -53,14 +53,14 @@ python scripts\download_models.py      # اختياري ومرة واحدة: ن�
 ```powershell
 $env:NAZEER_KEY = "<32 حرفًا عشوائيًا على الأقل>"
 python -m data_gen.make_demo_data --seed 42 --n 3000
-python -m nazeer.pipeline --csv data\demo --mode masked --apply-fix auto --out out\masked
+python -m nazeer.pipeline --csv data\demo --mode masked --out out\masked
 python -m nazeer.pipeline --csv data\demo --mode synthetic --target "is_large_claim=amount>p90" --out out\synthetic
 streamlit run nazeer\app.py
 ```
 قاعدة MySQL (من الإنتاج إلى التطوير): انسخ `.env.example` إلى `.env` وضع فيه بيانات الدخول، ثم:
 ```powershell
 python -m data_gen.load_mysql
-python -m nazeer.pipeline --mysql-db nazeer_prod_demo --mysql-target nazeer_dev --mode masked --apply-fix auto --out out\mysql_masked
+python -m nazeer.pipeline --mysql-db nazeer_prod_demo --mysql-target nazeer_dev --mode masked --out out\mysql_masked
 ```
 
 ### الواجهة خطوة بخطوة
@@ -73,9 +73,8 @@ python -m nazeer.pipeline --mysql-db nazeer_prod_demo --mysql-target nazeer_dev 
    الملاحظة جنبًا إلى جنب. كل تظليل له لون **ونص** معًا: هوية، جوال، آيبان، بريد، اسم، للمراجعة، رُفض.
 3. **النظير:** «ولّد النظير» ثم مقارنة قبل/بعد لنفس العميل ومطالباته، والخلايا التي تغيّرت معلَّمة،
    مع التحقق من أن الأعداد والمجاميع والروابط لم تتغير.
-4. **الإثبات:** النتيجة وأربع بطاقات: التسريب، صلاحية البدائل، سلامة الروابط، خطر التعرّف بالتركيب
-   (k). يظهر فشل k أولًا مع زر «طبّق الإصلاح المقترح». وزر «ازرع تسريبًا» يزرع هوية حقيقية في نسخة من
-   النظير ليُريك أن فحص التسريب يلتقطها.
+4. **الإثبات:** النتيجة وأربع بطاقات: التسريب، صلاحية البدائل، سلامة الروابط، فحص البقايا. وزر
+   «ازرع تسريبًا» يزرع هوية حقيقية في نسخة من النظير ليُريك أن فحص التسريب يلتقطها.
 5. **تبويب «ليش يشتغل؟»:** خمسة صفوف: السبب الجذري ← المكوّن ← رقم مقاس من تشغيلك.
 6. **تبويب «جرّب نصّك»:** اكتب ملاحظة وشاهد الأداة التقليدية ونظير والنص بعد الإخفاء.
 
@@ -89,7 +88,10 @@ python -m nazeer.pipeline --mysql-db nazeer_prod_demo --mysql-target nazeer_dev 
 - **فحص التسرّب:** يبحث عن كل معرّف أصلي في كل خلية من التوأم، بالمكتشِف وببحث شامل مستقل. أي
   وجود يعني FAIL ويُحجب التوأم.
 - **النسخ المطابقة:** صفوف في التوأم مطابقة لصف حقيقي، ويجب أن تكون 0.
-- **k-anonymity:** أصغر مجموعة من الأشخاص يتشاركون نفس (المدينة، العمر، الجنس). الحد الأدنى 5.
+- **فحص البقايا:** أي رقم هوية أو جوال أو آيبان صالح بقي في التوأم دون أن يولّده نظير يُعد تسريبًا ويُسقط
+  النتيجة، حتى لو فات المكتشِف.
+- **قيم للمراجعة:** رقم يجتاز التحقق لكنه في سياق لا يدل على شخص (مثل «رقم الطلب») يُترك كما هو ويُعرض
+  للمراجعة، ولا يُستبدل إلا بموافقة المدير.
 - **DCR:** المسافة لأقرب سجل حقيقي. يجب ألا يكون التوأم أقرب إلى بيانات التدريب من صفوف حقيقية
   لم يرها النموذج.
 - **TSTR:** ندرّب نفس النموذج مرة على البيانات الحقيقية ومرة على التوأم، ونختبر الاثنين على بيانات
@@ -104,7 +106,6 @@ python -m nazeer.pipeline --mysql-db nazeer_prod_demo --mysql-target nazeer_dev 
 | اكتشاف المعرّفات في النص الحر | نظير **99.2%** بدقة **100%**، مقابل **18.7%** للأداة البسيطة بدقة 80.9% |
 | أرقام تشبه الهوية (فواتير وطلبات) عُلِّمت خطأً | نظير **0** من 6,756، والأداة البسيطة 707 |
 | التوأم المقنّع | **0** تسرّب في 63,960 خلية، و**0** نسخ مطابقة، و**100%** من الهويات والجوالات الوهمية صالحة، و**0** مفاتيح أجنبية يتيمة |
-| k-anonymity | **1 (FAIL)** قبل الإصلاح، ثم **5** بعد الإصلاح المقترح (43 صفًا من 3,000 أُخفيت قيمها) |
 | التوأم الاصطناعي (TSTR) | AUC من **0.984 إلى 0.983** (انحدار لوجستي)، ومن **0.984 إلى 0.981** (غابة عشوائية)، وجودة SDMetrics **94.2%** |
 | DCR | ناجح في التشغيل الرئيسي، و**1 من 5** في اختبار المتانة (انظر القيود) |
 
@@ -119,14 +120,20 @@ python -m nazeer.pipeline --mysql-db nazeer_prod_demo --mysql-target nazeer_dev 
 الخادم بالكامل أمكن فك المفاتيح وإعادة التعرّف على النظائر المقنّعة. هذا مقبول لنسخة العرض، وهو سبب أن
 النشر الحقيقي داخل المنشأة.
 
-**إعادة النتائج وإعادة الربط:** كل ملف نظير مقنّع يُنزَّل ومعه عمود `nazeer_ref` بجانب مفتاح السجل. يعيد
-المستلم ملف نتائجه محتفظاً بالعمودين، فيرفض نَظير الملف إن لم يطابق المفتاح مرجعه في أكثر من 1% من الصفوف
-(أو إن كانت أكثر من 5% من الصفوف بمفاتيح غير موجودة أو فارغة أو مكررة). **`nazeer_ref` يكشف التلاعب
-بالمفاتيح، لا التعديل على قيم النتائج نفسها.** إعادة الربط لمدير المنشأة فقط: يرفع الملفات الأصلية نفسها
-بأسمائها وصفوفها، فيعيد نَظير الحساب بمفتاح المنشأة في الذاكرة ويتحقق أنه يطابق النظير المشارَك تماماً، ثم
-يربط. لا يُخزَّن أي جدول ربط؛ والملف الناتج متاح لذلك المدير 30 دقيقة ثم يُحذف.
+**رمز التحقق وإعادة الربط:** كل صف في النظير المقنّع المشارَك يحمل عمود `رمز_التحقق`: رمزًا مشفّرًا
+(AES-SIV بمفتاح المنشأة، مربوطًا بالمشاركة والبيانات وإصدار المفتاح) يبدأ بـ `NZ-` ويليه 40 إلى 60 حرفًا
+(حروف إنجليزية كبيرة وأرقام 2–7 فقط، فلا يغيّره Excel). لا يستطيع المستلم قراءته ولا تزويره. يعيد المستلم
+**أي جزء** من الصفوف مع أعمدة نتائجه، فيتحقق نَظير من كل صف: مُتحقَّق، غير صالح، بلا رمز، غريب (من مشاركة
+أو منشأة أخرى)، مكرر، أو صُنع بمفتاح سابق، ويعرض النسب والتغطية وأرقام الصفوف فقط. **لا يثق نَظير بنسخة
+المستلم من الأعمدة الأصلية**: يقرأ من كل صف الرمز والأعمدة المضافة فقط، وكل قيمة أصلية في النتيجة تأتي من
+ملف المنشأة نفسه. إعادة الربط لمدير المنشأة فقط: يفكّ الرموز المُتحقَّقة في الذاكرة ويطابقها مع الملف الأصلي
+الذي يرفعه (قد يكون أكبر أو أصغر من الجزء المُعاد)، والنتيجة متاحة له 30 دقيقة ثم تُحذف. لا يُخزَّن أي جدول
+ربط. إن كانت السلامة أقل من 100% يجب أن يؤكد المدير المتابعة بالصفوف المُتحقَّقة فقط، ويُسجَّل ذلك.
 
 ### القيود المعروفة (بصراحة)
+- نَظير يستبدل المعرّفات المباشرة، ولا يقيس خطر التعرّف على الأشخاص عبر تركيب الأعمدة المتبقية (مثل العمر
+  والمدينة والتشخيص) في النظير المُقنَّع. للبيانات التي تحتاج هذه الحماية، يُستخدم النظير الاصطناعي.
+- الجدول الذي ليس له عمود مفتاح يُربط بموقع الصف بعد التنظيف، فتحتاج إعادة ربطه إلى الملف الأصلي نفسه.
 - الاكتشاف ليس كاملًا أبدًا. ما يفوت المكتشِف في النص الحر لا يُستبدل ولا يستطيع فحص التسرّب العثور
   عليه.
 - أرقام الاكتشاف على البيانات المولَّدة تقيس الصيغ التي زرعناها، ولا تتنبأ بالأداء على بيانات
@@ -178,7 +185,7 @@ machine. It takes tables (a CSV folder or a MySQL database) and produces two thi
 | Policy | `config/policy.yaml`, `nazeer/policy.py` | What happens to each column; human overrides are recorded |
 | Transform | `nazeer/transform.py` | Keyed HMAC pseudonyms with no stored mapping table; format-preserving; joins kept |
 | Synthesis | `nazeer/synth.py` | Stratified Gaussian copula trained after a 20% holdout split |
-| Evaluation | `nazeer/evaluate.py`, `nazeer/kanon.py` | Leak scan, exact copies, k-anonymity, DCR, TSTR utility |
+| Evaluation | `nazeer/evaluate.py` | Leak scan, residual scan, exact copies, DCR, TSTR utility |
 | Report | `nazeer/report.py` | JSON report with a PASS/FAIL verdict |
 | UI | `nazeer/app.py` | Local Streamlit app |
 
@@ -196,14 +203,14 @@ python scripts\download_models.py      # optional, once: Arabic NER model (Camel
 ```powershell
 $env:NAZEER_KEY = "<at least 32 random characters>"
 python -m data_gen.make_demo_data --seed 42 --n 3000
-python -m nazeer.pipeline --csv data\demo --mode masked --apply-fix auto --out out\masked
+python -m nazeer.pipeline --csv data\demo --mode masked --out out\masked
 python -m nazeer.pipeline --csv data\demo --mode synthetic --target "is_large_claim=amount>p90" --out out\synthetic
 streamlit run nazeer\app.py
 ```
 For MySQL (production → development), copy `.env.example` to `.env`, fill in the credentials, then:
 ```powershell
 python -m data_gen.load_mysql
-python -m nazeer.pipeline --mysql-db nazeer_prod_demo --mysql-target nazeer_dev --mode masked --apply-fix auto --out out\mysql_masked
+python -m nazeer.pipeline --mysql-db nazeer_prod_demo --mysql-target nazeer_dev --mode masked --out out\mysql_masked
 ```
 Independent check on hand-written notes: see `docs\HOW_TO_WRITE_NOTES.md`, then run
 `python -m nazeer.eval_human`.
@@ -220,9 +227,8 @@ network requests (the font is bundled in `nazeer/static/`). A progress bar shows
    rejected).
 3. **Twin:** "Generate the twin", then a before/after view of the tracked customer and their claims with
    changed cells marked, and a check that counts, totals and links are unchanged.
-4. **Proof:** the verdict and four cards: leaks, validity of the fakes, link integrity, and re-identification
-   risk (k). k-anonymity first shows its FAIL with an "Apply the suggested fix" button. "Plant a leak" puts a
-   real ID into a copy of the twin to show that the leak scan catches it.
+4. **Proof:** the verdict and four cards: leaks, validity of the fakes, link integrity, and the residual
+   scan. "Plant a leak" puts a real ID into a copy of the twin to show that the leak scan catches it.
 5. **"Why it works" tab:** five rows: root cause → component → live metric from your run.
 6. **"Try your text" tab:** type a note and compare the generic tool, Nazeer, and the masked result.
 
@@ -235,7 +241,10 @@ key is used only with the generated demo dataset; your own data needs `NAZEER_KE
 - **Leak scan:** every original identifier is searched for in every twin cell, by the detector and by
   an independent exhaustive search. Any hit means FAIL, and the twin is withheld.
 - **Exact copies:** twin rows identical to a real row. Must be 0.
-- **k-anonymity:** the smallest group of people sharing the same (city, age band, gender). Minimum 5.
+- **Residual scan:** any valid national ID, mobile or IBAN left in the twin that Nazeer did not generate is
+  a leak and fails the verdict, even if the detector missed it.
+- **Values for review:** a checksum-valid number in a context that does not point to a person (such as
+  "رقم الطلب", order number) is left unchanged and listed for review; it is replaced only if an admin approves.
 - **DCR:** distance to the closest real record. The twin must not be closer to the training data than
   real rows the model never saw.
 - **TSTR:** the same model is trained on real data and on the twin, and both are tested on held-out
@@ -249,7 +258,6 @@ From `out\METRICS_SUMMARY.md`: 3,000 customers, 7,160 claims, and 15,989 identif
 | Identifiers found in free text | Nazeer **99.2%** recall, **100%** precision; baseline **18.7%**, 80.9% |
 | Look-alike invoice/order numbers wrongly flagged | Nazeer **0** of 6,756; baseline 707 |
 | Masked twin | **0** leaks in 63,960 cells, **0** exact copies, **100%** of fake IDs and mobiles valid, **0** orphan foreign keys |
-| k-anonymity | **1 (FAIL)** before the fix → **5** after the suggested fix (43 of 3,000 rows suppressed) |
 | Synthetic twin (TSTR) | AUC **0.984 → 0.983** (logistic regression), **0.984 → 0.981** (random forest); SDMetrics quality **94.2%** |
 | DCR | passes on the main run; **1 of 5** in the robustness check (see limitations) |
 
@@ -265,15 +273,19 @@ organization**; the hosted version is for demonstration.
 environment, so a full backend compromise could decrypt the keys and re-identify masked twins. This is
 acceptable for the hosted demo, and it is why the real deployment is on-premise.
 
-**Returns and re-linking:** every masked twin export carries a `nazeer_ref` column next to the record key.
-A recipient returns results keeping both columns. Nazeer refuses the file if the key does not match its
-reference in more than 1% of rows (or if more than 5% of rows have unknown, empty or duplicate keys).
-**`nazeer_ref` detects tampering with keys, not edits to the result values themselves.** Re-linking is for
-organization admins only: the admin uploads the very same original files (same names, same rows); Nazeer
-recomputes the twin with the organization key in memory, checks it reproduces the shared twin exactly,
-then joins. No mapping table is stored; the output is available to that admin for 30 minutes, then deleted.
-Python cannot guarantee that freed memory is wiped: the key and the in-memory dictionary are released when
-the job ends, not overwritten.
+**Verification token and re-linking:** every row of a shared masked twin carries a `رمز_التحقق`
+(verification token) column: `NZ-` followed by 40-60 characters (uppercase letters and digits 2-7 only, so
+Excel never changes it). It is the row's original key sealed with AES-SIV under the organization key and
+bound to the share, the dataset and the key version; a recipient can neither read nor forge it. A recipient
+returns **any subset** of rows with added result columns. Nazeer verifies every row (verified, invalid,
+missing token, foreign: from another share or organization, duplicate, or made with an earlier key) and
+reports counts, percentages, coverage and row numbers only. **Nazeer never trusts the recipient's copy of
+the original columns:** from each row it reads only the token and the added columns, and every original
+value in the result comes from the organization's own file. Re-linking is for organization admins only:
+verified tokens are decrypted in memory and joined with the original file the admin uploads (a superset or a
+subset is fine); the output is available to that admin for 30 minutes, then deleted. No mapping table is
+stored. Below 100% integrity the admin must confirm proceeding with the verified rows; this is audited.
+Python cannot guarantee that freed memory is wiped: the key is released when the job ends, not overwritten.
 
 Run the API locally (PowerShell; SQLite is enough for a first try):
 ```powershell
@@ -288,6 +300,12 @@ cd web; npm install; npm run dev             # the website on http://localhost:3
 Hosted deployment (Vercel + Railway + managed MySQL + Resend): see `docs/DEPLOY.md`.
 
 ### Known limitations (stated plainly)
+- Nazeer replaces direct identifiers. It does not measure the risk of recognising people from a combination
+  of the remaining columns (such as age, city and diagnosis) in the masked twin. For data that needs that
+  protection, use the synthetic twin. (In Arabic: "نَظير يستبدل المعرّفات المباشرة، ولا يقيس خطر التعرّف على
+  الأشخاص عبر تركيب الأعمدة المتبقية (مثل العمر والمدينة والتشخيص) في النظير المُقنَّع. للبيانات التي تحتاج
+  هذه الحماية، يُستخدم النظير الاصطناعي.")
+- A table with no key column is re-linked by row position after cleaning, so it needs the same original file.
 - Detection is never complete. What the detector misses in free text is not replaced, and the leak
   scan cannot find it.
 - Detection numbers on generated data measure the formats we planted, not real-data performance.

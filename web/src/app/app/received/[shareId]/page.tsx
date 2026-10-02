@@ -7,7 +7,7 @@ import { ArrowRight, Download, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 
 import { CleaningNote } from "@/components/cleaning"
-import { ReturnResults } from "@/components/returns"
+import { ReturnResults, TOKEN_RULE } from "@/components/returns"
 import { DataTable } from "@/components/data"
 import { LoadError, Loading } from "@/components/org"
 import { Chip, EmptyState, Notice, Num, PageHeader, Section, Spinner, VerdictChip } from "@/components/nz"
@@ -47,14 +47,14 @@ export default function ReceivedDetail() {
         actions={
           d.status === "active" ? (
             <>
-              {d.formats.includes("csv") ? (
-                <Button onClick={() => download("csv")} disabled={busy !== null}>
-                  {busy === "csv" ? <Spinner className="size-4" /> : <Download data-icon="inline-start" />} تحميل CSV
+              {d.formats.includes("xlsx") ? (
+                <Button onClick={() => download("xlsx")} disabled={busy !== null}>
+                  {busy === "xlsx" ? <Spinner className="size-4" /> : <Download data-icon="inline-start" />} تحميل Excel (موصى به)
                 </Button>
               ) : null}
-              {d.formats.includes("xlsx") ? (
-                <Button variant="outline" onClick={() => download("xlsx")} disabled={busy !== null}>
-                  {busy === "xlsx" ? <Spinner className="size-4" /> : <Download data-icon="inline-start" />} تحميل Excel
+              {d.formats.includes("csv") ? (
+                <Button variant="outline" onClick={() => download("csv")} disabled={busy !== null}>
+                  {busy === "csv" ? <Spinner className="size-4" /> : <Download data-icon="inline-start" />} تحميل CSV
                 </Button>
               ) : null}
             </>
@@ -63,6 +63,7 @@ export default function ReceivedDetail() {
       />
       <div className="mb-8">
         <Notice tone="twin" icon={ShieldCheck}>هذه بيانات نظيرة لا تحتوي أي شخص حقيقي.</Notice>
+        {d.returns ? <p className="mt-3 text-sm leading-7 text-muted-foreground">{TOKEN_RULE}</p> : null}
       </div>
       {d.status !== "active" ? (
         <EmptyState

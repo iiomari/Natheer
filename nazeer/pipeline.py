@@ -1,7 +1,7 @@
 """Orchestration and CLI.
 
     $env:NAZEER_KEY = "<at least 32 random characters>"
-    python -m nazeer.pipeline --csv data\\demo --mode masked --out out\\masked --apply-fix auto
+    python -m nazeer.pipeline --csv data\\demo --mode masked --out out\\masked
 
 Steps (also used by the Streamlit app): analyze() -> run_masked() / run_synthetic()
 -> write_outputs(). If the leak scan fails, the twin is withheld: only the report
@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from nazeer import __version__, detect, evaluate, kanon, transform
+from nazeer import __version__, detect, evaluate, transform
 from nazeer import report as rpt
 from nazeer.config import load_key
 from nazeer.models import ColumnDetection, DatasetProfile, Span
@@ -141,53 +141,6 @@ def _review_check(builder: rpt.ReportBuilder, dets: list[ColumnDetection]) -> No
                 if pending else "no borderline columns pending review", value=pending)
 
 
-# ---------------------------------------------------------------- k-anonymity step
-
-def kanon_step(twin: dict[str, pd.DataFrame], dets: list[ColumnDetection], k_min: int,
-               apply_fix: str | None) -> dict:
-    quasi: dict[str, list[str]] = defaultdict(list)
-    for d in dets:
-        if d.tag == "QUASI_ID" and d.column in twin[d.table].columns:
-            quasi[d.table].append(d.column)
-    result = {}
-    for t, cols in quasi.items():
-        before = kanon.k_anonymity(twin[t], cols, k_min)
-        entry = {"quasi_columns": cols, "k_min": k_min, "k_before": before.k, "classes_before": before.n_classes,
-                 "rows_in_small_classes_before": before.rows_in_small_classes, "passed_before": before.passed,
-                 "suggestions": [], "applied_fix": None, "k_after": before.k, "passed_after": before.passed}
-        if not before.passed:
-            fixes = kanon.suggest_fixes(twin[t], cols, k_min)
-            entry["suggestions"] = [f.to_dict() for f in fixes[:8]]
-            chosen = None
-            if apply_fix == "auto":
-                chosen = next((f for f in fixes if f.reaches_k_min), None)
-            elif apply_fix:
-                chosen = next((f for f in fixes if f.name == apply_fix), None)
-                if chosen is None:
-                    entry["fix_error"] = f"no suggested fix named {apply_fix!r} for table {t}"
-            if chosen is not None:
-                twin[t] = kanon.apply_fix(twin[t], chosen, cols, k_min)
-                after = kanon.k_anonymity(twin[t], cols, k_min)
-                entry.update(applied_fix=chosen.to_dict(), k_after=after.k, passed_after=after.passed,
-                             classes_after=after.n_classes, rows_in_small_classes_after=after.rows_in_small_classes)
-        result[t] = entry
-        log.info("k-anonymity %s: k_before=%d k_after=%d", t, entry["k_before"], entry["k_after"])
-    return result
-
-
-def _kanon_checks(builder: rpt.ReportBuilder, kan: dict) -> None:
-    for t, e in kan.items():
-        if not e["passed_before"]:
-            builder.add(f"k_anonymity_before_fix[{t}]", "FAIL", False,
-                        f"k={e['k_before']} < {e['k_min']} over {', '.join(e['quasi_columns'])}; "
-                        f"{e['rows_in_small_classes_before']} rows in small classes",
-                        value=e["k_before"], threshold=e["k_min"])
-        fix = e["applied_fix"]["name"] if e["applied_fix"] else None
-        builder.add(f"k_anonymity[{t}]", "PASS" if e["passed_after"] else "FAIL", True,
-                    (f"after fix '{fix}': " if fix else "no fix applied: ") + f"k={e['k_after']} (min {e['k_min']})",
-                    value=e["k_after"], threshold=e["k_min"])
-
-
 def _leak_check(builder: rpt.ReportBuilder, leak: dict) -> None:
     total = sum(leak["leaked_by_kind"].values())
     names = leak["names"].get("rows_keeping_original_full_name")
@@ -211,42 +164,65 @@ def spans_for(analysis: Analysis, dets: list[ColumnDetection]) -> tuple[list[Spa
 # ---------------------------------------------------------------- masked mode (5a)
 
 def run_masked(analysis: Analysis, policy: Policy, key: bytes, overrides: dict | None = None,
-               apply_fix: str | None = None, golden_dir: Path | None = None) -> RunResult:
+               approve_review: bool = False, golden_dir: Path | None = None,
+               cleared_columns: list[str] | tuple[str, ...] = ()) -> RunResult:
+    """Masked twin. Free-text spans the detector is unsure of (confidence below
+    detect.SPAN_REVIEW_BELOW, e.g. a checksum-valid number after "رقم الطلب") are left unchanged
+    and listed for review unless `approve_review` is set. `cleared_columns` ("table.column") are
+    columns a reviewer confirmed hold no identifiers: the residual scan does not flag them."""
     run_id = new_run_id()
     overrides = overrides or {}
     dets = apply_overrides(analysis.detections, overrides)
     decisions = resolve(policy, analysis.profile, analysis.detections, overrides)
     spans, all_spans = spans_for(analysis, dets)
+    min_conf = policy.thresholds["min_span_confidence"]
+    cut = min_conf if approve_review else max(min_conf, detect.SPAN_REVIEW_BELOW)
+    pending = [sp for sp in spans if min_conf <= sp.confidence < cut]
     pseudo = transform.Pseudonymizer(key, keep_first_digit=policy.rules.get("SAUDI_ID", {}).get("keep_first_digit", True))
-    twin, tstats = transform.apply(analysis.tables, analysis.profile, decisions, spans, pseudo,
-                                   policy.thresholds["min_span_confidence"])
+    twin, tstats = transform.apply(analysis.tables, analysis.profile, decisions, spans, pseudo, cut)
 
-    kan = kanon_step(twin, dets, int(policy.thresholds["k_anonymity_min"]), apply_fix)
     # The leak scan looks for EVERY identifier ever detected, including in columns a reviewer
-    # un-tagged: an override can never hide an identifier from the scan.
-    originals = evaluate.original_identifier_values(analysis.tables, dets, all_spans)
+    # un-tagged: an override can never hide an identifier from the scan. Values left for review
+    # (not approved) are the reviewer's call and are reported, not counted as leaks.
+    pending_keys = {(sp.table, sp.column, sp.row, sp.start, sp.end) for sp in pending}
+    known = [sp for sp in all_spans if (sp.table, sp.column, sp.row, sp.start, sp.end) not in pending_keys]
+    originals = evaluate.original_identifier_values(analysis.tables, dets, known)
     name_cols = [(d.table, d.column) for d in dets if d.tag == "DIRECT_ID" and d.kind == "PERSON_NAME"]
     leak = evaluate.leak_scan(originals, twin, "masked", analysis.tables, name_cols)
+    allowed = {(sp.table, sp.column, sp.row): set() for sp in pending}
+    for sp in pending:
+        allowed[(sp.table, sp.column, sp.row)].add(
+            evaluate.canonical_or_none(sp.type, analysis.tables[sp.table][sp.column].iat[sp.row][sp.start:sp.end]))
+    residual = evaluate.residual_scan(twin, pseudo.generated(), allowed, set(cleared_columns))
     copies = {t: evaluate.exact_copies(analysis.tables[t], twin[t]) for t in twin}
 
     base = _base_report(analysis, run_id, "masked", policy, decisions, dets)
     base["free_text"]["spans_replaced_by_type"] = tstats["spans_replaced"]
+    base["free_text"]["review"] = {"pending_by_type": dict(Counter(sp.type for sp in pending)),
+                                   "approved": bool(approve_review),
+                                   "threshold": detect.SPAN_REVIEW_BELOW}
     base["transform"] = {"pseudonym_collisions_resolved": tstats["collisions"]}
-    base["k_anonymity"] = kan
     base["privacy"] = {"exact_copies": copies,
                        "note": "masked twin: rows correspond to real people; DCR is not meaningful in this mode"}
     base["leak_scan"] = leak
+    base["residual_scan"] = residual
     golden = _golden_scores(analysis, golden_dir)
     if golden:
         base["detection_vs_golden"] = golden
 
     b = rpt.ReportBuilder(base)
     _leak_check(b, leak)
+    b.add("residual_identifiers", residual["verdict"], True,
+          f"{residual['found']} valid identifier(s) in the twin that Nazeer did not generate",
+          value=residual["by_kind"], threshold=0)
     n_copies = sum(copies.values())
     b.add("exact_copies", "PASS" if n_copies == 0 else "FAIL", True,
           f"{n_copies} twin row(s) identical to an original row", value=copies, threshold=0)
-    _kanon_checks(b, kan)
     _review_check(b, dets)
+    b.add("free_text_review", "INFO", False,
+          (f"{len(pending)} uncertain value(s) left unchanged for review" if pending and not approve_review
+           else ("uncertain values replaced after approval" if approve_review else "no uncertain values")),
+          value=dict(Counter(sp.type for sp in pending)))
     b.add("free_text_replacement", "INFO", False,
           f"{sum(tstats['spans_replaced'].values())} identifier spans replaced in free text",
           value=tstats["spans_replaced"])
@@ -257,7 +233,7 @@ def run_masked(analysis: Analysis, policy: Policy, key: bytes, overrides: dict |
                                           "baseline": golden["baseline"]["overall_recall"]})
     report = b.build()
     return RunResult(run_id, "masked", report, twin, twin_withheld=leak["hard_fail"], decisions=decisions,
-                     extras={"kanon": kan, "transform": tstats})
+                     extras={"transform": tstats, "pending_review": pending})
 
 
 # ---------------------------------------------------------------- synthetic mode (5b)
@@ -491,7 +467,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--policy", type=Path, default=DEFAULT_POLICY)
     ap.add_argument("--overrides", type=Path, help='JSON: {"table.column": {"tag": ..., "kind": ..., "action": {...}}}')
-    ap.add_argument("--apply-fix", default=None, help='k-anonymity fix to apply: a suggested fix name, or "auto"')
+    ap.add_argument("--approve-review", action="store_true",
+                    help="also replace free-text values the detector is unsure of (default: leave them for review)")
     ap.add_argument("--target", default=None, help='synthetic mode: utility target, e.g. "is_large_claim=amount>p90"')
     ap.add_argument("--dcr-seeds", type=int, default=5, help="synthetic mode: DCR robustness repeats (0 = off)")
     ap.add_argument("--ner", choices=["gazetteer", "union", "camel", "auto"], default="gazetteer",
@@ -528,7 +505,7 @@ def main(argv: list[str] | None = None) -> int:
     golden = args.golden or (args.csv / "_golden" if args.csv else None)
 
     if args.mode == "masked":
-        result = run_masked(analysis, policy, load_key(), overrides, args.apply_fix, golden)
+        result = run_masked(analysis, policy, load_key(), overrides, args.approve_review, golden)
     else:
         result = run_synthetic(analysis, policy, overrides, target=args.target, golden_dir=golden,
                                method=args.synthesizer, robustness_seeds=args.dcr_seeds)

@@ -27,7 +27,7 @@ def analysis(demo_dir):
 
 @pytest.fixture(scope="module")
 def masked(analysis):
-    return pipeline.run_masked(analysis, load_policy(pipeline.DEFAULT_POLICY), KEY, apply_fix="auto")
+    return pipeline.run_masked(analysis, load_policy(pipeline.DEFAULT_POLICY), KEY)
 
 
 def _scan(analysis, twin):
@@ -82,7 +82,7 @@ def test_kept_full_name_fails(analysis, masked):
 
 def test_human_keep_override_on_identifier_fails_and_withholds_twin(analysis):
     res = pipeline.run_masked(analysis, load_policy(pipeline.DEFAULT_POLICY), KEY,
-                              overrides={"customers.mobile": {"action": {"action": "keep"}}}, apply_fix="auto")
+                              overrides={"customers.mobile": {"action": {"action": "keep"}}})
     assert res.report["verdict"] == "FAIL"
     assert "leak_scan" in res.report["failed_checks"]
     assert res.twin_withheld
@@ -90,15 +90,12 @@ def test_human_keep_override_on_identifier_fails_and_withholds_twin(analysis):
     assert col["human_reviewed"] and col["action"] == "keep"
 
 
-def test_report_schema_and_honest_kanon(masked):
+def test_report_schema_without_k_anonymity(masked):
     rep = masked.report
     validate(rep)
     names = {c["name"]: c for c in rep["checks"]}
-    k = rep["k_anonymity"]["customers"]
-    if not k["passed_before"]:  # the original FAIL must stay visible even after the fix
-        assert names["k_anonymity_before_fix[customers]"]["status"] == "FAIL"
-        assert names["k_anonymity_before_fix[customers]"]["blocking"] is False
-    assert names["k_anonymity[customers]"]["status"] == ("PASS" if k["passed_after"] else "FAIL")
+    assert "k_anonymity" not in rep and not any(n.startswith("k_anonymity") for n in names)
+    assert names["residual_identifiers"]["blocking"] is True and names["residual_identifiers"]["status"] == "PASS"
     assert rep["limitations"]
     assert "NAZEER_KEY" in rep["key"]["source"]
 
@@ -111,7 +108,7 @@ def test_exact_copies_counts_identical_rows(analysis):
 
 def test_cli_end_to_end_without_raw_values_in_logs(demo_dir, tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("NAZEER_KEY", KEY.decode())
-    code = pipeline.main(["--csv", str(demo_dir), "--mode", "masked", "--out", str(tmp_path), "--apply-fix", "auto"])
+    code = pipeline.main(["--csv", str(demo_dir), "--mode", "masked", "--out", str(tmp_path)])
     out = capsys.readouterr()
     assert code == 0
     report = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))

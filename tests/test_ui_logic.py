@@ -45,8 +45,7 @@ def test_direct_id_without_type_is_rejected(analysis):
 
 def test_overrides_are_recorded_and_untagging_text_cannot_hide_leaks(analysis):
     policy = load_policy(pipeline.DEFAULT_POLICY)
-    res = pipeline.run_masked(analysis, policy, KEY, {"claims.notes": {"tag": "NORMAL", "kind": None}},
-                              apply_fix="auto")
+    res = pipeline.run_masked(analysis, policy, KEY, {"claims.notes": {"tag": "NORMAL", "kind": None}})
     col = next(c for c in res.report["columns"] if c["column"] == "notes")
     assert col["human_reviewed"] and col["tag"] == "NORMAL" and col["action"] == "keep"
     assert res.report["leak_scan"]["hard_fail"]  # notes kept raw -> identifiers found -> FAIL
@@ -60,17 +59,9 @@ def test_newly_tagged_free_text_column_is_scanned(analysis):
     tables["customers"]["remark"] = "اتصل على 0503318842 للمتابعة"
     an = pipeline.analyze(tables)
     res = pipeline.run_masked(an, load_policy(pipeline.DEFAULT_POLICY), KEY,
-                              {"customers.remark": {"tag": "FREE_TEXT", "kind": None}}, apply_fix="auto")
+                              {"customers.remark": {"tag": "FREE_TEXT", "kind": None}})
     assert "0503318842" not in " ".join(res.twin["customers"]["remark"].astype(str))
     assert isinstance(res.twin["customers"], pd.DataFrame)
-
-
-def test_suggestion_frame(analysis):
-    res = pipeline.run_masked(analysis, load_policy(pipeline.DEFAULT_POLICY), KEY)
-    k = res.report["k_anonymity"]["customers"]
-    frame = ui_logic.suggestion_frame(k)
-    if not k["passed_before"]:
-        assert len(frame) == len(k["suggestions"]) and {"k before", "k after", "rows affected"} <= set(frame.columns)
 
 
 # ---------------------------------------------------------------- redesigned UI helpers
@@ -117,8 +108,8 @@ def test_twin_totals_and_proof_cards(analysis, masked):
     assert all(s["column"] not in ("mobile", "national_id") for t in tot["tables"] for s in t["sums"])
     p = ui_logic.proof(analysis, masked)
     assert p["leak"]["status"] == "PASS" and p["validity"]["status"] == "PASS" and p["links"]["status"] == "PASS"
-    assert p["k"]["status"] == masked.report["checks"][[c["name"] for c in masked.report["checks"]].index(
-        "k_anonymity[customers]")]["status"]
+    assert "k" not in p and p["residual"]["status"] == "PASS" and p["residual"]["found"] == 0
+    assert p["review"]["pending"] >= 0
 
 
 def test_plant_leak_is_caught_and_leaves_the_twin_untouched(analysis, masked):

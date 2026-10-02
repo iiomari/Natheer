@@ -124,7 +124,7 @@ def test_each_messy_file_loads(samples):
 def test_masked_twin_always_works(samples, name):
     tables = read_files(samples[name]).tables
     an = pipeline.analyze(tables, name)
-    res = pipeline.run_masked(an, load_policy(pipeline.DEFAULT_POLICY), KEY, apply_fix="auto")
+    res = pipeline.run_masked(an, load_policy(pipeline.DEFAULT_POLICY), KEY)
     assert res.report["leak_scan"]["verdict"] == "PASS", name
     assert not res.twin_withheld
     assert {t: len(d) for t, d in res.twin.items()} == {t: len(d) for t, d in tables.items()}

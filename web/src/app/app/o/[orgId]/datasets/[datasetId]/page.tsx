@@ -7,6 +7,8 @@ import { ChevronLeft, ChevronRight, FileCheck2, Link2, ScanSearch, Table2, Trash
 import { toast } from "sonner"
 
 import { CleaningPanel } from "@/components/cleaning"
+import { AnswerKeyCheck, FoundByType, ReviewQueue } from "@/components/detection-extras"
+import { reasonAr } from "@/lib/labels"
 import { HighlightedText, MarkLegend, useNow } from "@/components/data"
 import { DTYPE_LABEL, DatasetStatus, KIND_LABEL, STAGE_LABEL, TAG_LABEL } from "@/components/dataset"
 import { NativeSelect } from "@/components/form"
@@ -138,6 +140,7 @@ export default function DatasetPage() {
   const [choices, setChoices] = useState<Record<string, Choice>>({})
   const [mode, setMode] = useState<"masked" | "synthetic">("masked")
   const [target, setTarget] = useState("")
+  const [approveReview, setApproveReview] = useState(false)
   const [busy, setBusy] = useState(false)
   const d = ds.data
 
@@ -191,7 +194,7 @@ export default function DatasetPage() {
     try {
       const r = await api<{ job_id: string }>(`/orgs/${orgId}/datasets/${datasetId}/generate`, {
         method: "POST",
-        body: { mode, overrides, target: mode === "synthetic" && target ? target : null },
+        body: { mode, overrides, approve_review: approveReview, target: mode === "synthetic" && target ? target : null },
       })
       setWatching(r.job_id)
       await ds.reload()
@@ -246,6 +249,8 @@ export default function DatasetPage() {
               hint={s.relationships.length ? undefined : "تُعامل الجداول باستقلال"} />
           </div>
 
+          <FoundByType ds={d} />
+
           <CleaningPanel orgId={orgId} ds={d} onApplied={() => void ds.reload()} />
 
           <Section title="مراجعة الكشف" description="ما اكتشفه نَظير في كل عمود، ولماذا. غيّر الإجراء إن لزم؛ كل تعديل يُسجَّل في التقرير.">
@@ -282,7 +287,7 @@ export default function DatasetPage() {
                             </span>
                           </TableCell>
                           <TableCell className="px-5 py-3"><Num>{Math.round(c.confidence * 100)}%</Num></TableCell>
-                          <TableCell className="max-w-72 px-5 py-3 text-sm whitespace-normal text-muted-foreground"><Ltr>{c.reason}</Ltr></TableCell>
+                          <TableCell className="max-w-72 px-5 py-3 text-sm whitespace-normal text-muted-foreground">{reasonAr(c.reason)}</TableCell>
                           <TableCell className="px-5 py-3">
                             <NativeSelect
                               aria-label={`إجراء العمود ${c.name}`}
@@ -313,12 +318,13 @@ export default function DatasetPage() {
                 ))}
               </p>
             ) : null}
-            {s.ingest.some((n) => n.header === "generated" || n.dropped_empty_columns || n.encoding === "windows-1256") ? (
+            {s.ingest.some((n) => n.header === "generated" || n.dropped_empty_columns || n.encoding === "windows-1256" || (n as { skipped_title_rows?: number }).skipped_title_rows) ? (
               <Notice>
                 {s.ingest.map((n) => (
                   <span key={n.table} className="block">
                     <Ltr>{n.source}</Ltr>:{" "}
-                    {n.encoding === "windows-1256" ? "ترميز Windows-1256 · " : null}
+                    {n.encoding === "windows-1256" ? "ترميز ويندوز العربي (1256) · " : null}
+                    {(n as { skipped_title_rows?: number }).skipped_title_rows ? <>تُجوهل <Num>{(n as { skipped_title_rows?: number }).skipped_title_rows}</Num> سطر عنوان فوق الجدول · </> : null}
                     {n.header === "generated" ? "بلا صف عناوين (سُمّيت الأعمدة col_1…) · " : null}
                     {n.dropped_empty_columns ? <>حُذف <Num>{n.dropped_empty_columns}</Num> عمود فارغ · </> : null}
                     {n.dropped_empty_rows ? <>حُذف <Num>{n.dropped_empty_rows}</Num> صف فارغ</> : null}
@@ -329,6 +335,10 @@ export default function DatasetPage() {
           </Section>
 
           <NoteViewer orgId={orgId} ds={d} />
+
+          <ReviewQueue orgId={orgId} ds={d} />
+
+          <AnswerKeyCheck orgId={orgId} ds={d} />
 
           <Section title="توليد النظير">
             {generating ? (
@@ -376,6 +386,13 @@ export default function DatasetPage() {
                     </NativeSelect>
                     <p className="text-xs text-muted-foreground">بدونه يعمل التقرير كاملاً، ويُذكر أن الفائدة لم تُقس.</p>
                   </div>
+                ) : null}
+                {mode === "masked" && s.review?.total ? (
+                  <label className="flex items-start gap-3 text-sm">
+                    <input type="checkbox" className="mt-1 size-4 accent-[var(--color-primary)]" checked={approveReview}
+                      onChange={(e) => setApproveReview(e.target.checked)} />
+                    <span>استبدل أيضاً القيم المعلّقة للمراجعة (<Num>{s.review.total}</Num>). بدون ذلك تُترك كما هي.</span>
+                  </label>
                 ) : null}
                 {Object.keys(overrides).length ? (
                   <p className="text-sm text-muted-foreground">سيُطبَّق <Num>{Object.keys(overrides).length}</Num> تعديل يدوي ويُسجَّل في التقرير.</p>

@@ -63,6 +63,7 @@ class TableNote:
     dropped_empty_rows: int = 0
     dropped_empty_columns: int = 0
     renamed_columns: int = 0
+    skipped_title_rows: int = 0
 
 
 @dataclass
@@ -132,6 +133,22 @@ def _looks_like_header(first: list[str], rest: list[list[str]]) -> bool:
     return not (set(filled) & later)
 
 
+def _skip_title_rows(rows: list[list[str]]) -> tuple[list[list[str]], int]:
+    """Drop report titles above the table: leading rows that fill far fewer cells than the rows below."""
+    from collections import Counter
+
+    filled = [sum(bool(clean_name(c)) for c in r) for r in rows[:60]]
+    if len(filled) < 3:
+        return rows, 0
+    typical = Counter(filled[1:]).most_common(1)[0][0]
+    if typical < 3:
+        return rows, 0
+    skip = 0
+    while skip < min(5, len(rows) - 2) and filled[skip] <= max(1, typical // 3):
+        skip += 1
+    return rows[skip:], skip
+
+
 def _frame(rows: list[list[str]], note: TableNote) -> pd.DataFrame:
     width = max((len(r) for r in rows), default=0)
     if width == 0:
@@ -139,6 +156,7 @@ def _frame(rows: list[list[str]], note: TableNote) -> pd.DataFrame:
     if width > LIMITS["max_columns"]:
         raise IngestError("too_many_columns", note.source)
     rows = [list(r) + [""] * (width - len(r)) for r in rows]
+    rows, note.skipped_title_rows = _skip_title_rows(rows)
     if _looks_like_header(rows[0], rows[1:]):
         headers, data = rows[0], rows[1:]
     else:
@@ -179,20 +197,20 @@ def decode(data: bytes) -> tuple[str, str]:
 
 
 def sniff_delimiter(text: str) -> str:
-    lines = [ln for ln in text.splitlines()[:50] if ln.strip()]
+    """The delimiter that splits most lines into the same number of fields (a title line or two
+    above the table does not change the answer). Ties prefer the larger field count."""
+    from collections import Counter
+
+    lines = [ln for ln in text.splitlines()[:200] if ln.strip()]
     if not lines:
         return ","
-    try:
-        return csv.Sniffer().sniff("\n".join(lines[:20]), delimiters=",;\t|").delimiter
-    except csv.Error:
-        pass
-    best, best_score = ",", -1.0
-    for d in (",", ";", "\t", "|"):
-        counts = [ln.count(d) for ln in lines]
-        if not max(counts):
+    best, best_score = ",", (-1.0, 0)
+    for d in (",", ";", "	", "|"):
+        counts = [len(next(csv.reader([ln], delimiter=d))) - 1 for ln in lines]
+        mode, hits = Counter(c for c in counts if c > 0).most_common(1)[0] if any(counts) else (0, 0)
+        if not mode:
             continue
-        consistent = sum(c == counts[0] for c in counts) / len(counts)
-        score = consistent * 10 + min(counts)
+        score = (hits / len(lines), mode)
         if score > best_score:
             best, best_score = d, score
     return best

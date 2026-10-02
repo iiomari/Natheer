@@ -1,20 +1,17 @@
-"""P5: results returned by recipients, and admin-only re-linking to the real records.
+"""Results returned by recipients, verified per row by the verification token, and admin-only
+re-linking to the organization's own original data.
 
-No mapping table, ever. Re-linking needs the organization's original files again: the worker
-re-runs the exact steps that made the twin (same ingest, same cleaning options, same detection,
-the organization's key, the same overrides and fix), checks that this reproduces the stored twin's
-key column value for value, and only then joins the returned results to the real keys, in memory.
-The organization key and the pseudonym -> real key dictionary live only inside that one job.
+Principle: from a returned row Nazeer trusts only two things, the token (رمز_التحقق) and the columns
+the recipient ADDED. Every original value in the re-linked output comes from the original file the
+admin uploads at re-link time; the recipient's copy of the twin columns is ignored (it is only
+compared, for information, to count rows the recipient changed).
 
-nazeer_ref: every masked twin export carries, next to the entity key, a reference
-"NZ-" + base32(HMAC(share secret, pseudonym)). It detects edited or swapped KEYS (and files from
-another share); it does not detect edits to the recipient's result values.
+No mapping table, ever: a verified token decrypts (org key, in memory) to its original row key,
+which is joined with the uploaded original and then discarded. Reports hold row numbers, counts,
+percentages and column names only.
 """
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
 import logging
 import re
 from datetime import timedelta
@@ -23,17 +20,16 @@ import pandas as pd
 
 from nazeer_api.config import Settings
 from nazeer_api.db import utcnow
+from nazeer_api.tokens import INTERNAL_COLUMN, STATUSES, TOKEN_COLUMN, Sealer, unpack
 
 log = logging.getLogger("nazeer_api.returns")
 
-REF_COLUMN = "nazeer_ref"
-REF_PREFIX = "NZ-"
-REF_LEN = 12                 # base32 characters: 60 bits
-MAX_REF_MISMATCH = 0.01      # more than 1% of rows with a wrong reference: tampering or corruption
-MAX_OTHER_ERRORS = 0.05      # more than 5% of rows unusable for any other reason
+ROW_LIST_CAP = 200          # row numbers listed per status in a report
+STATUS_COLUMN = "حالة_الربط"
+LINKED = "مرتبط"
+NOT_IN_UPLOAD = "غير موجود في الملف الأصلي المرفوع"
 RELINK_KINDS = ("relink_upload", "relinked")
-_EXCEL_INT = re.compile(r"^(\d+)\.0+$")
-_EXCEL_SCI = re.compile(r"^\d(\.\d+)?[eE]\+?\d+$")
+_AR_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
 
 
 class ReturnError(Exception):
@@ -45,216 +41,243 @@ class ReturnError(Exception):
         self.counts = counts
 
 
-# ---------------------------------------------------------------- references
+# ---------------------------------------------------------------- tokens on the shared twin
 
-def ref_key(master_key: bytes, share_id: str) -> bytes:
-    return hmac.new(master_key, b"nazeer-ref:" + share_id.encode(), hashlib.sha256).digest()
-
-
-def make_ref(key: bytes, pseudonym: str) -> str:
-    """Letters and digits 2-7 after a letter prefix: never read as a number or a date by Excel."""
-    digest = hmac.new(key, str(pseudonym).encode("utf-8"), hashlib.sha256).digest()
-    return REF_PREFIX + base64.b32encode(digest).decode("ascii")[:REF_LEN]
-
-
-def link_of(twin) -> dict | None:
-    """The entity key of a masked twin that results can be returned against, or None."""
+def token_info(twin) -> dict | None:
+    """Value-free token description of a masked twin (None for synthetic or pre-token twins)."""
     if twin.mode != "masked":
         return None
-    return ((twin.report or {}).get("generation") or {}).get("link")
+    return ((twin.report or {}).get("generation") or {}).get("token")
 
 
-def add_refs(tables: dict[str, pd.DataFrame], link: dict | None, key: bytes) -> dict[str, pd.DataFrame]:
-    if not link or link["table"] not in tables or link["column"] not in tables[link["table"]].columns:
-        return tables
-    out = dict(tables)
-    df = tables[link["table"]].copy()
-    if REF_COLUMN in df.columns:
-        return tables
-    refs = [make_ref(key, v) if isinstance(v, str) and v else None for v in df[link["column"]].tolist()]
-    df.insert(df.columns.get_loc(link["column"]) + 1, REF_COLUMN, refs)
-    out[link["table"]] = df
+def sealer_for(settings: Settings, share) -> Sealer:
+    from nazeer_api.processing import org_key
+
+    twin, org = share.twin, share.org
+    key = org_key(settings, org) if twin.key_version == org.key_version else None
+    return Sealer(key, settings.master_key, twin.dataset_id, twin.key_version, share.id)
+
+
+def strip_internal(tables: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+    return {n: (df.drop(columns=[INTERNAL_COLUMN]) if INTERNAL_COLUMN in df.columns else df) for n, df in tables.items()}
+
+
+def tables_for_share(tables: dict[str, pd.DataFrame], sealer: Sealer) -> dict[str, pd.DataFrame]:
+    """The twin as a recipient gets it: the internal reference becomes the share-bound token, first column."""
+    out = {}
+    for name, df in tables.items():
+        if INTERNAL_COLUMN not in df.columns:
+            out[name] = df
+            continue
+        df = df.copy()
+        refs = df.pop(INTERNAL_COLUMN).tolist()
+        if sealer.siv is not None:
+            df.insert(0, TOKEN_COLUMN, [sealer.token_from_internal(r) for r in refs])
+        out[name] = df
     return out
 
 
-# ---------------------------------------------------------------- checking a returned file
+# ---------------------------------------------------------------- verifying a returned file
 
-def _cell(v) -> str:
+def _norm_name(c) -> str:
+    return re.sub(r"[\s_]+", "_", str(c).strip())
+
+
+def _token_col(df: pd.DataFrame) -> str | None:
+    want = _norm_name(TOKEN_COLUMN)
+    return next((c for c in df.columns if _norm_name(c) == want), None)
+
+
+def _cell_text(v) -> str:
     if v is None or (isinstance(v, float) and pd.isna(v)):
         return ""
-    return str(v).strip()
+    t = str(v).strip().translate(_AR_DIGITS)
+    m = re.fullmatch(r"(-?\d+)\.0+", t)
+    return m.group(1) if m else t
 
 
-class _KeyIndex:
-    """Find twin keys from a returned cell, tolerating what Excel does to number-like keys:
-    "751233.0", dropped leading zeros, and 1.23457E+11 (matched only together with the reference)."""
-
-    def __init__(self, keys: list[str]):
-        self.keys = set(keys)
-        self.no_zeros: dict[str, set[str]] = {}
-        for k in self.keys:
-            if k.isdigit():
-                self.no_zeros.setdefault(k.lstrip("0") or "0", set()).add(k)
-
-    def candidates(self, cell: str) -> tuple[set[str], bool]:
-        """(matching twin keys, repaired?)."""
-        if cell in self.keys:
-            return {cell}, False
-        m = _EXCEL_INT.match(cell)
-        text = m.group(1) if m else cell
-        if text in self.keys:
-            return {text}, True
-        if text.isdigit() and (text.lstrip("0") or "0") in self.no_zeros:
-            return set(self.no_zeros[text.lstrip("0") or "0"]), True
-        if _EXCEL_SCI.match(cell):
-            x = float(cell)
-            return {k for k in self.keys if k.isdigit() and abs(float(k) - x) <= abs(x) * 5e-6}, True
-        return set(), False
-
-
-def _find_column(df: pd.DataFrame, name: str) -> str | None:
-    want = name.strip().lower()
-    return next((c for c in df.columns if str(c).strip().lower() == want), None)
-
-
-def check_return(twin_tables: dict[str, pd.DataFrame], link: dict, key: bytes,
-                 files: list[tuple[str, bytes]]) -> tuple[pd.DataFrame, dict]:
-    """Validate a returned results file against the shared twin. Returns (accepted rows with the
-    twin key restored exactly, value-free stats) or raises ReturnError."""
+def verify_return(settings: Settings, share, twin_tables: dict[str, pd.DataFrame],
+                  files: list[tuple[str, bytes]]) -> tuple[dict[str, pd.DataFrame], dict]:
+    """Classify every returned row. Returns (verified rows to keep: token + added columns, per
+    twin table; value-free report). Raises ReturnError when nothing can be verified at all."""
     from nazeer.ingest import IngestError, read_files
 
     try:
-        tables = read_files(files).tables
+        returned = read_files(files).tables
     except IngestError as e:
         raise ReturnError(f"ingest:{e.code}") from None
-    table = next((df for df in tables.values() if _find_column(df, REF_COLUMN)), None)
-    if table is None:
-        raise ReturnError("return_missing_ref_column")
-    key_col = _find_column(table, link["column"])
-    if key_col is None:
-        raise ReturnError("return_missing_key_column")
-    ref_col = _find_column(table, REF_COLUMN)
+    sheets = [(n, df, _token_col(df)) for n, df in returned.items()]
+    total_rows = int(sum(len(df) for _, df, _ in sheets))
+    if not any(tc for _, _, tc in sheets):
+        raise ReturnError("token_column_missing", rows_returned=total_rows)
 
-    twin_keys = [k for k in twin_tables[link["table"]][link["column"]].tolist() if isinstance(k, str) and k]
-    by_ref = {make_ref(key, k): k for k in twin_keys}
-    index = _KeyIndex(twin_keys)
+    info = token_info(share.twin) or {}
+    names = [t["name"] for t in info.get("tables", [])]
+    sealer = sealer_for(settings, share)
+    counts = {s: 0 for s in STATUSES}
+    rows_by_status: dict[str, list[int]] = {s: [] for s in STATUSES if s != "verified"}
+    seen: set[bytes] = set()
+    kept: dict[str, list[dict]] = {}
+    added: dict[str, list[str]] = {}
+    verified_pts: dict[int, list[tuple[bytes, dict]]] = {}
+    row_no = 0
+    for _, df, tc in sheets:
+        if tc is None:  # a sheet without tokens: all its rows count as missing
+            for _ in range(len(df)):
+                row_no += 1
+                counts["missing"] += 1
+                if len(rows_by_status["missing"]) < ROW_LIST_CAP:
+                    rows_by_status["missing"].append(row_no)
+            continue
+        records = df.to_dict("records")
+        for rec in records:
+            row_no += 1
+            status, pt = sealer.classify(rec.get(tc), seen)
+            if status != "verified":
+                counts[status] += 1
+                if len(rows_by_status[status]) < ROW_LIST_CAP:
+                    rows_by_status[status].append(row_no)
+                continue
+            idx, _ = unpack(pt)
+            if idx >= len(names):
+                counts["invalid"] += 1
+                if len(rows_by_status["invalid"]) < ROW_LIST_CAP:
+                    rows_by_status["invalid"].append(row_no)
+                continue
+            counts["verified"] += 1
+            verified_pts.setdefault(idx, []).append((pt, {"__row": row_no, "__token": str(rec.get(tc)).strip().upper(), **rec}))
 
-    rows = [(_cell(k), _cell(r)) for k, r in zip(table[key_col].tolist(), table[ref_col].tolist())]
-    counts = {"ref_mismatch": 0, "unknown_key": 0, "missing_key": 0, "duplicate_key": 0}
-    keep, restored, seen, repaired = [], [], set(), 0
-    for i, (cell, ref) in enumerate(rows):
-        if not cell:
-            counts["missing_key"] += 1
-            continue
-        cands, fixed = index.candidates(cell)
-        if not cands:
-            counts["unknown_key"] += 1
-            continue
-        pseudonym = by_ref.get(ref.upper())
-        if pseudonym is None or pseudonym not in cands:
-            counts["ref_mismatch"] += 1
-            continue
-        if pseudonym in seen:
-            counts["duplicate_key"] += 1
-            continue
-        seen.add(pseudonym)
-        repaired += fixed
-        keep.append(i)
-        restored.append(pseudonym)
-    total = len(rows)
-    other = counts["unknown_key"] + counts["missing_key"] + counts["duplicate_key"]
-    stats = {"rows_total": total, "rows_accepted": len(keep), "rejected": counts, "excel_repaired": repaired}
-    if total == 0:
-        raise ReturnError("return_empty", **stats)
-    if counts["ref_mismatch"] > total * MAX_REF_MISMATCH:
-        raise ReturnError("return_tampered", **stats)
-    if other > total * MAX_OTHER_ERRORS:
-        raise ReturnError("return_too_many_errors", **stats)
-    if not keep:
-        raise ReturnError("return_no_valid_rows", **stats)
-    out = table.iloc[keep].drop(columns=[ref_col]).reset_index(drop=True)
-    out[key_col] = restored
-    if key_col != link["column"]:
-        out = out.rename(columns={key_col: link["column"]})
-    stats["columns"] = [str(c) for c in out.columns]
-    return out, stats
+    differs = 0
+    for idx, items in verified_pts.items():
+        name = names[idx]
+        twin_df = twin_tables.get(name)
+        twin_cols = set(twin_df.columns) - {INTERNAL_COLUMN} if twin_df is not None else set()
+        sample = items[0][1]
+        extra = [c for c in sample if c not in ("__row", "__token") and _norm_name(c) != _norm_name(TOKEN_COLUMN)
+                 and c not in twin_cols]
+        added[name] = [str(c) for c in extra]
+        # informational: rows whose copy of the twin columns differs from what was shared
+        pos = {}
+        if twin_df is not None and sealer.siv is not None and INTERNAL_COLUMN in twin_df.columns:
+            for i, ref in enumerate(twin_df[INTERNAL_COLUMN].tolist()):
+                try:
+                    pos[sealer.open_internal(ref)] = i
+                except Exception:  # noqa: BLE001
+                    continue
+        common = [c for c in sample if c in twin_cols]
+        for pt, rec in items:
+            i = pos.get(pt)
+            if i is not None and any(_cell_text(rec.get(c)) != _cell_text(twin_df[c].iat[i]) for c in common):
+                differs += 1
+            kept.setdefault(name, []).append({"__row": rec["__row"], "__token": rec["__token"],
+                                              **{c: rec.get(c) for c in extra}})
+        del pos
+
+    shared = sum(int(len(twin_tables[names[i]])) for i in verified_pts if names[i] in twin_tables) or \
+        sum(int(t.get("rows", 0)) for t in info.get("tables", []))
+    report = {
+        "rows_returned": row_no,
+        "rows_shared": shared,
+        "coverage": round(row_no / shared, 4) if shared else None,
+        "counts": counts,
+        "integrity": round(counts["verified"] / row_no, 4) if row_no else 0.0,
+        "rows_by_status": rows_by_status,
+        "added_columns": added,
+        "rows_changed_in_twin_columns": differs,
+        "tables": [names[i] for i in sorted(verified_pts)],
+    }
+    tables = {n: pd.DataFrame(rows).astype(object) for n, rows in kept.items()}
+    return tables, report
 
 
 # ---------------------------------------------------------------- re-linking (worker only)
 
+def _norm_key(v) -> str:
+    t = _cell_text(v)
+    t = re.sub(r"\s+", " ", t)
+    if re.fullmatch(r"[\d,٬ ]+", t):
+        t = re.sub(r"[,٬ ]", "", t)
+    return t
+
+
 def relink(db, settings: Settings, ret) -> dict:
-    """Recompute the twin from the admin's original files, verify it, join, store the output for
-    the session window. Raises ReturnError with a stable code on any mismatch."""
-    from nazeer import pipeline
+    """Verified tokens -> original row keys (in memory) -> join with the uploaded original rows."""
     from nazeer.cleaning import CleanOptions, clean
     from nazeer.ingest import IngestError, read_files
-    from nazeer.policy import load_policy
-    from nazeer_api.models import Blob, Organization
-    from nazeer_api.processing import _upload_files, org_key
+    from nazeer_api.models import Blob
+    from nazeer_api.processing import _upload_files
     from nazeer_api.storage import put_blob, read_blob, tables_to_zip, zip_to_tables
 
-    twin = ret.twin
-    gen = (twin.report or {}).get("generation") or {}
-    link = gen.get("link")
-    org = db.get(Organization, ret.org_id)
-    if not link:
+    share = ret.share
+    info = token_info(share.twin)
+    if not info:
         raise ReturnError("relink_not_supported")
-    if twin.key_version != org.key_version:
+    sealer = sealer_for(settings, share)
+    if sealer.siv is None:
         raise ReturnError("relink_key_rotated")
-    if twin.blob_id is None:
-        raise ReturnError("relink_twin_purged")
+    if not (ret.report or {}).get("counts", {}).get("verified"):
+        raise ReturnError("relink_no_verified")
     upload = db.get(Blob, ret.relink_upload_id) if ret.relink_upload_id else None
     if upload is None or upload.expires_at <= utcnow():
         raise ReturnError("relink_upload_expired")
-
     try:
-        parsed = read_files(_upload_files(read_blob(settings.master_key, upload)))
+        originals = read_files(_upload_files(read_blob(settings.master_key, upload))).tables
     except IngestError as e:
         raise ReturnError(f"ingest:{e.code}") from None
-    # Same files, same names, same rows: any other set changes detection and pseudonyms.
-    expected = {s["table"]: s["rows"] for s in gen.get("source", [])}
-    got = {n["table"]: n["rows"] for n in parsed.report()}
-    if set(got) != set(expected):
-        raise ReturnError("relink_tables_differ", tables_expected=len(expected), tables_uploaded=len(got))
-    if got != expected:
-        raise ReturnError("relink_rows_differ", rows_expected=sum(expected.values()), rows_uploaded=sum(got.values()))
+    kept = zip_to_tables(read_blob(settings.master_key, db.get(Blob, ret.blob_id)))
+    gen = (share.twin.report or {}).get("generation") or {}
+    by_name = {t["name"]: t for t in info["tables"]}
 
-    cleaned, _ = clean(parsed.tables, CleanOptions.from_dict(gen.get("cleaning")))
-    del parsed
-    an = pipeline.analyze(cleaned, gen.get("dataset_name", ""))
-    key = org_key(settings, org)
-    try:
-        res = pipeline.run_masked(an, load_policy(pipeline.DEFAULT_POLICY), key, gen.get("overrides") or {},
-                                  apply_fix=gen.get("apply_fix"))
-    finally:
-        del key
-    t, c = link["table"], link["column"]
-    stored = zip_to_tables(read_blob(settings.master_key, db.get(Blob, twin.blob_id)))
-    if t not in res.twin or c not in res.twin[t].columns or t not in stored:
-        raise ReturnError("relink_mismatch")
-    recomputed = [_cell(v) for v in res.twin[t][c].tolist()]
-    if recomputed != [_cell(v) for v in stored[t][c].tolist()]:
-        raise ReturnError("relink_mismatch")
-
-    real = an.tables[t][c].tolist()
-    mapping = {p: r for p, r in zip(recomputed, real) if p}
-    del an, res, cleaned, stored, recomputed, real
-
-    returned = zip_to_tables(read_blob(settings.master_key, db.get(Blob, ret.blob_id)))["results"]
-    linked = returned[c].map(mapping)
-    matched = int(linked.notna().sum())
-    out = returned.drop(columns=[c])
-    out.insert(0, c, linked)
-    del mapping, returned, linked
+    out_tables, matched, missing = {}, 0, 0
+    for name, rows in kept.items():
+        meta = by_name.get(name)
+        if meta is None:
+            continue
+        org_df = originals.get(name)
+        if org_df is None and len(originals) == 1:
+            org_df = next(iter(originals.values()))
+        if org_df is None:
+            raise ReturnError("relink_table_missing", tables_expected=len(kept))
+        key_col = meta.get("key_column")
+        if key_col:
+            col = next((c for c in org_df.columns if _norm_name(c) == _norm_name(key_col)), None)
+            if col is None:
+                raise ReturnError("relink_key_column_missing")
+            index: dict[str, int] = {}
+            for i, v in enumerate(org_df[col].tolist()):
+                index.setdefault(_norm_key(v), i)
+        else:
+            # no key column: the reference is the row position after the twin's own cleaning
+            cleaned, _ = clean({name: org_df}, CleanOptions.from_dict(gen.get("cleaning")))
+            org_df = cleaned[name]
+            index = {str(i + 1): i for i in range(len(org_df))}
+        added = [c for c in rows.columns if c not in ("__row", "__token")]
+        out_rows = []
+        for rec in rows.to_dict("records"):
+            try:
+                _, key = unpack(sealer.open_token(rec["__token"]))
+            except Exception:  # noqa: BLE001 - verified at return time; a later failure is excluded
+                continue
+            i = index.get(_norm_key(key) if key_col else key)
+            row = {c: (org_df[c].iat[i] if i is not None else None) for c in org_df.columns}
+            for c in added:
+                row[c if c not in row else f"{c} (المستلم)"] = rec[c]
+            row[STATUS_COLUMN] = LINKED if i is not None else NOT_IN_UPLOAD
+            matched += i is not None
+            missing += i is None
+            out_rows.append(row)
+        out_tables[name] = pd.DataFrame(out_rows).astype(object)
+        del index
+    del originals, kept
 
     old = db.get(Blob, ret.relinked_blob_id) if ret.relinked_blob_id else None
     if old is not None:
         db.delete(old)
     expires = utcnow() + timedelta(minutes=settings.session_minutes)
-    blob = put_blob(db, settings.master_key, ret.org_id, "relinked", tables_to_zip({"results": out}), expires_at=expires)
+    blob = put_blob(db, settings.master_key, ret.org_id, "relinked", tables_to_zip(out_tables), expires_at=expires)
     db.delete(upload)
     db.flush()
     ret.relink_upload_id, ret.relinked_blob_id, ret.relink_expires_at = None, blob.id, expires
     ret.relink_status, ret.relink_error, ret.relink_matched = "ready", None, matched
     ret.relink_downloads = 0
-    return {"rows": len(out), "matched": matched, "unmatched": len(out) - matched}
+    return {"rows": matched + missing, "matched": matched, "not_in_upload": missing}

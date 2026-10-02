@@ -161,19 +161,6 @@ def test_prepare_is_order_independent():
     assert [p1.fake("SAUDI_ID", v) for v in vals] == [p2.fake("SAUDI_ID", v) for v in vals]
 
 
-# ------------------------------------------------------------------ generalization
-
-def test_age_bins_width_10():
-    out = transform.generalize(pd.Series(["18", "29", "30", "80", None]), {"bins": 10})
-    assert out.tolist()[:4] == ["10-19", "20-29", "30-39", "80-89"]
-    assert out.iloc[4] is None
-
-
-def test_date_to_month():
-    out = transform.generalize(pd.Series(["2024-03-15", "2025-12-01"]), {"to": "month"})
-    assert out.tolist() == ["2024-03", "2025-12"]
-
-
 # ------------------------------------------------------------------ whole dataset
 
 @pytest.fixture(scope="module")

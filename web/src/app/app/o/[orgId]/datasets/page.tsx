@@ -18,6 +18,12 @@ import { formatDateTime, useApi } from "@/lib/use-api"
 
 const ACCEPT = ".csv,.tsv,.txt,.xlsx,.xlsm,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
+const SAMPLES: [string, string, string][] = [
+  ["مرضى مستشفى (600 سجل)", "hospital_patients_test.csv", "hospital_patients_answer_key.csv"],
+  ["عملاء بنك (450 سجلاً)", "bank_customers_test.csv", "bank_customers_answer_key.csv"],
+  ["مطالبات تأمين (ملف Excel بورقتين)", "insurance_claims_test.xlsx", "insurance_claims_answer_key.csv"],
+]
+
 function UploadDialog({ orgId, open, onOpenChange }: { orgId: string; open: boolean; onOpenChange: (v: boolean) => void }) {
   const router = useRouter()
   const [files, setFiles] = useState<File[]>([])
@@ -50,6 +56,17 @@ function UploadDialog({ orgId, open, onOpenChange }: { orgId: string; open: bool
         </DialogHeader>
         <form id="upload-form" onSubmit={onSubmit} className="space-y-5" noValidate>
           <Notice icon={Info}>يُرجى استخدام بيانات تجريبية في هذه النسخة.</Notice>
+          <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm leading-7">
+            <p className="font-semibold">ملفات تجريبية جاهزة (مع مفاتيح الإجابة):</p>
+            <ul className="mt-1 space-y-0.5">
+              {SAMPLES.map(([label, file, key]) => (
+                <li key={file}>
+                  {label}: <a className="font-semibold text-primary hover:underline" href={`/samples/${file}`} download>الملف</a>
+                  {" · "}<a className="text-primary hover:underline" href={`/samples/${key}`} download>مفتاح الإجابة</a>
+                </li>
+              ))}
+            </ul>
+          </div>
           {error ? <InlineError>{error}</InlineError> : null}
           <TextField name="name" label="اسم مجموعة البيانات (اختياري)" placeholder="مثال: مطالبات الربع الأول" />
           <FileDropzone files={files} onChange={setFiles} accept={ACCEPT} />

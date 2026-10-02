@@ -4,15 +4,14 @@ import { useState } from "react"
 import { Link2, Undo2 } from "lucide-react"
 
 import { LoadError, Loading, useCurrentMembership } from "@/components/org"
-import { Chip, EmptyState, Notice, Num, PageHeader } from "@/components/nz"
-import { RejectedCounts, RelinkDialog } from "@/components/returns"
+import { Chip, EmptyState, Notice, PageHeader } from "@/components/nz"
+import { RelinkDialog, VerificationReport } from "@/components/returns"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { ReturnInfo } from "@/lib/types"
 import { formatDateTime, useApi } from "@/lib/use-api"
 
 const STATUS: Record<string, { label: string; tone: "neutral" | "primary" | "twin" | "sensitive" }> = {
-  none: { label: "لم يُربط", tone: "neutral" },
+  none: { label: "لم يُربط بعد", tone: "neutral" },
   running: { label: "جارٍ الربط", tone: "primary" },
   ready: { label: "جاهز للتنزيل", tone: "twin" },
   failed: { label: "تعذّر الربط", tone: "sensitive" },
@@ -27,7 +26,7 @@ export default function ReturnsPage() {
 
   return (
     <>
-      <PageHeader title="المرتجعات" description="النتائج التي أعادها المستلمون بعد العمل على النظير، بعد التحقق منها." />
+      <PageHeader title="المرتجعات" description="النتائج التي أعادها المستلمون، وتحقق نَظير من كل صف فيها برمز التحقق." />
       {list.loading && !list.data ? (
         <Loading />
       ) : list.error ? (
@@ -36,53 +35,35 @@ export default function ReturnsPage() {
         <EmptyState
           icon={Undo2}
           title="لا مرتجعات بعد"
-          description="عندما يعيد مستلم نتائجه تظهر هنا مع نتيجة التحقق، ويستطيع مدير المنشأة إعادة ربطها بالسجلات الحقيقية."
+          description="عندما يعيد مستلم نتائجه تظهر هنا مع تقرير التحقق، ويستطيع مدير المنشأة إعادة ربطها بالسجلات الحقيقية."
         />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {!isAdmin ? <Notice>إعادة الربط بالسجلات الحقيقية متاحة لمدير المنشأة فقط.</Notice> : null}
-          <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-card">
-            <Table>
-              <TableHeader className="bg-muted/60">
-                <TableRow>
-                  <TableHead className="px-5 text-start font-bold">الملف</TableHead>
-                  <TableHead className="px-5 text-start font-bold">المستلم</TableHead>
-                  <TableHead className="px-5 text-start font-bold">الصفوف المقبولة</TableHead>
-                  <TableHead className="px-5 text-start font-bold">المرفوض</TableHead>
-                  <TableHead className="px-5 text-start font-bold">إعادة الربط</TableHead>
-                  <TableHead className="px-5" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {list.data.map((r) => {
-                  const st = STATUS[r.relink?.status ?? "none"]
-                  return (
-                    <TableRow key={r.id}>
-                      <TableCell className="px-5 py-3">
-                        <bdi className="font-semibold">{r.file_name}</bdi>
-                        <span className="block text-xs text-muted-foreground">
-                          {r.dataset_name} · {formatDateTime(r.created_at)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-5 py-3">{r.recipient}</TableCell>
-                      <TableCell className="px-5 py-3">
-                        <Num>{r.rows_accepted.toLocaleString("en")}</Num> من <Num>{r.rows_total.toLocaleString("en")}</Num>
-                      </TableCell>
-                      <TableCell className="px-5 py-3 text-sm"><RejectedCounts rejected={r.rejected} /></TableCell>
-                      <TableCell className="px-5 py-3"><Chip tone={st.tone}>{st.label}</Chip></TableCell>
-                      <TableCell className="px-5 py-3 text-end">
-                        {isAdmin && r.available ? (
-                          <Button size="sm" variant="outline" onClick={() => setOpen(r.id)}>
-                            <Link2 data-icon="inline-start" /> إعادة الربط
-                          </Button>
-                        ) : null}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          {list.data.map((r) => {
+            const st = STATUS[r.relink?.status ?? "none"]
+            return (
+              <div key={r.id} className="space-y-5 rounded-xl border border-border bg-card p-6 shadow-card">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-lg font-bold"><bdi>{r.file_name}</bdi></p>
+                    <p className="text-sm text-muted-foreground">
+                      {r.dataset_name} · من {r.recipient || "مستلم"} · {formatDateTime(r.created_at)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Chip tone={st.tone}>{st.label}</Chip>
+                    {isAdmin && r.relinkable ? (
+                      <Button onClick={() => setOpen(r.id)}>
+                        <Link2 data-icon="inline-start" /> إعادة الربط
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+                <VerificationReport report={r.report} />
+              </div>
+            )
+          })}
         </div>
       )}
       <RelinkDialog orgId={orgId} returnId={open} open={open !== null} onOpenChange={(o) => !o && setOpen(null)}

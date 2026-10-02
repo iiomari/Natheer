@@ -73,23 +73,15 @@ def test_demo_walkthrough_four_steps(app, monkeypatch):
     assert "الأصل" in md and "النظير" in md and 'class="changed"' in md
     assert "نفس الأعداد والمجاميع والروابط — بدون عميل حقيقي." in md
 
-    # 4. proof: four verdict cards; k-anonymity fix turns the verdict to PASS
+    # 4. proof: four verdict cards (k-anonymity removed: the fourth is the residual scan)
     app.button(key="next_3").click().run()
     assert not app.exception and app.session_state["step"] == 4
     md = _md(app)
-    for title in ("تسريب", "صلاحية البدائل", "سلامة الروابط", "خطر التعرّف بالتركيب"):
+    for title in ("تسريب", "صلاحية البدائل", "سلامة الروابط", "فحص البقايا"):
         assert title in md
+    assert "خطر التعرّف بالتركيب" not in md
     assert md.count('class="nz-card ') >= 4
-    k = res.report["k_anonymity"]["customers"]
-    if not k["passed_before"]:
-        assert res.report["verdict"] == "FAIL"
-        app.button(key="apply_fix").click().run()
-        assert not app.exception
-        rep = app.session_state["result"].report
-        k2 = rep["k_anonymity"]["customers"]
-        assert k2["applied_fix"]["name"] == k["suggestions"][0]["name"]  # the recommended fix
-        assert k2["k_before"] == k["k_before"] and k2["passed_after"]
-        assert rep["verdict"] == "PASS" and "النتيجة" in _md(app)
+    assert res.report["verdict"] == "PASS" and "النتيجة" in md
 
     # planted leak is caught by the real leak scan; the delivered twin is untouched
     twin_before = app.session_state["result"].twin["claims"].copy()
@@ -169,7 +161,7 @@ def test_synthetic_flow(app):
     assert "الفائدة للتحليل" in md and "تجريبي" in md
 
 
-def test_override_and_kanon_apply_in_ui(app, monkeypatch):
+def test_override_is_recorded_in_ui(app, monkeypatch):
     monkeypatch.setenv("NAZEER_KEY", KEY)
     app.button(key="demo").click().run()
     app.session_state["overrides"] = {"customers.national_id": {"tag": "DIRECT_ID", "kind": "SAUDI_ID"}}
@@ -179,17 +171,7 @@ def test_override_and_kanon_apply_in_ui(app, monkeypatch):
     rep = app.session_state["result"].report
     col = next(c for c in rep["columns"] if c["column"] == "national_id")
     assert col["human_reviewed"]
-    k = rep["k_anonymity"]["customers"]
-    if k["passed_before"]:
-        pytest.skip("demo sample already k-anonymous; nothing to apply")
-    app.button(key="next_3").click().run()
-    pick = k["suggestions"][-1]["name"]  # not the recommended one: the choice must be honoured
-    app.selectbox(key="fix_pick").set_value(pick).run()
-    app.button(key="apply_fix").click().run()
-    assert not app.exception
-    k2 = app.session_state["result"].report["k_anonymity"]["customers"]
-    assert k2["applied_fix"]["name"] == pick
-    assert k2["k_before"] == k["k_before"] and k2["k_after"] >= k["k_after"]
+    assert "k_anonymity" not in rep
 
 
 def test_mysql_connect_without_credentials_shows_message(app, monkeypatch):

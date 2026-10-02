@@ -14,10 +14,10 @@ from nazeer.models import ColumnDetection, DatasetProfile
 
 log = logging.getLogger(__name__)
 
-ACTIONS = {"keep", "pseudonymize", "generalize", "replace_spans", "remap", "drop"}
+ACTIONS = {"keep", "pseudonymize", "replace_spans", "remap", "drop"}
 KIND_KEYS = {"SAUDI_ID", "MOBILE", "IBAN", "EMAIL", "PERSON_NAME"}
 SPECIAL_KEYS = {"free_text", "primary_key", "default"}
-DEFAULT_THRESHOLDS = {"k_anonymity_min": 5, "max_utility_drop": 0.05, "min_span_confidence": 0.5}
+DEFAULT_THRESHOLDS = {"max_utility_drop": 0.05, "min_span_confidence": 0.5}
 
 
 @dataclass

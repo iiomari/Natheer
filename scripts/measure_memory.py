@@ -47,7 +47,7 @@ def main() -> None:
     an = pipeline.analyze(tables, "measure")
     policy = load_policy(pipeline.DEFAULT_POLICY)
     if args.mode == "masked":
-        res = pipeline.run_masked(an, policy, os.urandom(32), apply_fix="auto")
+        res = pipeline.run_masked(an, policy, os.urandom(32))
     else:
         res = pipeline.run_synthetic(an, policy, target="is_large_claim=amount>p90")
     stop.set()

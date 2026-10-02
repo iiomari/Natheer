@@ -190,6 +190,58 @@ def leak_scan(originals: dict[str, set[str]], twin: dict[str, pd.DataFrame], mod
     }
 
 
+def canonical_or_none(kind: str, raw: str) -> str | None:
+    from nazeer import saudi_ids as s
+
+    try:
+        return s.canonical(kind, raw)
+    except Exception:  # noqa: BLE001 - an unparsable value simply cannot match
+        return None
+
+
+def residual_scan(twin: dict[str, pd.DataFrame], generated: set[str],
+                  allowed: dict[tuple[str, str, int], set] | None = None,
+                  cleared_columns: set[str] = frozenset()) -> dict:
+    """Blind-spot check, independent of what the detector found in the originals: every VALID
+    identifier left in the twin (checksum-valid national ID, valid mobile, mod-97-valid IBAN, valid
+    e-mail) that Nazeer did not generate is a leak. Exceptions, both explicit reviewer decisions:
+    values left for review in that cell, and columns confirmed to hold no identifiers.
+    Counts and locations only."""
+    from nazeer import detect
+    from nazeer import saudi_ids as s
+
+    allowed = allowed or {}
+    by_kind: dict[str, int] = {k: 0 for k in HARD_FAIL_KINDS}
+    locations: list[dict] = []
+    for tname, df in twin.items():
+        for col in df.columns:
+            if f"{tname}.{col}" in cleared_columns:
+                continue
+            for row, v in enumerate(df[col].tolist()):
+                if not isinstance(v, str) or len(v) < 6:
+                    continue
+                if "@" not in v and sum(ch.isdigit() for ch in v) < 9:
+                    continue
+                ok = allowed.get((tname, col, row), set())
+                for a, b, k, _, _ in detect.find_spans(v, names=False):
+                    piece = v[a:b]
+                    if k not in by_kind:
+                        continue
+                    canon = canonical_or_none(k, piece)
+                    # find_spans validated IDs, mobiles and e-mails; an IBAN shape must pass mod-97 here
+                    if canon is None or (k == "IBAN" and not s.is_valid("IBAN", canon)):
+                        continue
+                    if canon in generated or canon in ok:
+                        continue
+                    by_kind[k] += 1
+                    if len(locations) < 50:
+                        locations.append({"table": tname, "column": col, "row": row, "kind": k})
+    found = sum(by_kind.values())
+    return {"verdict": "PASS" if found == 0 else "FAIL", "found": found, "by_kind": by_kind,
+            "locations": locations,
+            "note": "valid identifiers in the twin that Nazeer did not generate (counts and locations only)"}
+
+
 def exact_copies(real: pd.DataFrame, twin: pd.DataFrame, columns: list[str] | None = None) -> int:
     """Number of twin rows identical to some real row over `columns` (default: shared columns)."""
     cols = columns or [c for c in twin.columns if c in real.columns]

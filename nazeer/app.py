@@ -39,7 +39,7 @@ from nazeer.mysqlio import MySQLError  # noqa: E402
 from nazeer.policy import load_policy  # noqa: E402
 from nazeer.safe_log import configure_logging  # noqa: E402
 from nazeer.tableio import load_csv_folder, read_csv  # noqa: E402
-from nazeer.ui_logic import ACTIONS, KINDS, TAGS, detection_frame, overrides_from_edits, suggestion_frame  # noqa: E402
+from nazeer.ui_logic import ACTIONS, KINDS, TAGS, detection_frame, overrides_from_edits  # noqa: E402
 
 log = logging.getLogger("nazeer.app")
 ROOT = _HERE.parent
@@ -56,9 +56,9 @@ AR_DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
 KIND_AR = {"SAUDI_ID": "هوية", "MOBILE": "جوال", "IBAN": "آيبان", "EMAIL": "بريد", "PERSON_NAME": "اسم"}
 TWIN_AR = {"SAUDI_ID": "هوية بديلة", "MOBILE": "جوال بديل", "IBAN": "آيبان بديل", "EMAIL": "بريد بديل",
            "PERSON_NAME": "اسم بديل"}
-ACTION_AR = {"pseudonymize": "بديل", "remap": "مفتاح جديد", "generalize": "تعميم", "replace_spans": "استبدال داخل النص",
+ACTION_AR = {"pseudonymize": "بديل", "remap": "مفتاح جديد", "replace_spans": "استبدال داخل النص",
              "keep": "كما هو", "drop": "حُذف"}
-CHECK_AR = {"leak_scan": "فحص التسريب", "exact_copies": "نسخ مطابقة للأصل", "human_review": "المراجعة البشرية",
+CHECK_AR = {"leak_scan": "فحص التسريب", "residual_identifiers": "فحص البقايا", "free_text_review": "قيم للمراجعة", "exact_copies": "نسخ مطابقة للأصل", "human_review": "المراجعة البشرية",
             "free_text_replacement": "الاستبدال داخل النص", "detection_vs_golden": "الكشف مقابل مفتاح الإجابة",
             "holdout_split": "فصل بيانات الاختبار قبل التدريب", "dcr": "البُعد عن بيانات التدريب",
             "utility_tstr": "الفائدة للتحليل", "fidelity": "التشابه الإحصائي", "dcr_robustness": "ثبات البُعد عبر التقسيمات",
@@ -93,7 +93,7 @@ def _init() -> None:
         configure_logging()
         st.session_state["logging"] = True
     for k in ("tables", "source", "source_label", "golden_dir", "golden", "analysis", "labels", "result", "error",
-              "applied_fix", "mysql_db", "mysql_schema", "mysql_written", "tracked", "planted", "pending_fix"):
+              "mysql_db", "mysql_schema", "mysql_written", "tracked", "planted"):
         st.session_state.setdefault(k, None)
     st.session_state.setdefault("overrides", {})
     st.session_state.setdefault("ner_mode", "gazetteer")
@@ -105,8 +105,7 @@ def _init() -> None:
 
 
 def _reset_after_load() -> None:
-    for k in ("analysis", "labels", "golden", "result", "error", "applied_fix", "mysql_written", "tracked", "planted",
-              "pending_fix"):
+    for k in ("analysis", "labels", "golden", "result", "error", "mysql_written", "tracked", "planted"):
         st.session_state[k] = None
     st.session_state["overrides"] = {}
     st.session_state["step"] = 1
@@ -200,7 +199,7 @@ def _connect_mysql() -> None:
 
 
 def _ner_changed() -> None:
-    for k in ("analysis", "labels", "golden", "result", "planted", "applied_fix"):
+    for k in ("analysis", "labels", "golden", "result", "planted"):
         st.session_state[k] = None
 
 
@@ -526,10 +525,10 @@ def step_detect() -> None:
 
 # ---------------------------------------------------------------- step 3: twin
 
-def _run_masked(an, apply_fix: str | None):
+def _run_masked(an, approve_review: bool = False):
     key, is_demo = _key()
     res = pipeline.run_masked(an, load_policy(pipeline.DEFAULT_POLICY), key, st.session_state["overrides"],
-                              apply_fix=apply_fix, golden_dir=st.session_state["golden_dir"])
+                              approve_review=approve_review, golden_dir=st.session_state["golden_dir"])
     if is_demo:
         res.report["key"] = {"source": DEMO_KEY_NOTE}
     return res
@@ -558,7 +557,7 @@ def run_twin() -> None:
                 an, load_policy(pipeline.DEFAULT_POLICY), st.session_state["overrides"],
                 target=st.session_state.get("target") or None, method=st.session_state.get("method", "stratified_copula"),
                 seed=int(st.session_state.get("seed") or 0), golden_dir=st.session_state["golden_dir"]))
-        st.session_state.update(result=res, applied_fix=None, planted=None, mysql_written=None)
+        st.session_state.update(result=res, planted=None, mysql_written=None)
         if res is not None and st.session_state.get("write_db"):
             _guarded(_write_to_mysql, st.session_state.get("target_db") or "")
 
@@ -719,8 +718,6 @@ def _card(title: str, status: str, big: str, sub: str, explain: str) -> str:
 
 def _failed_ar(name: str) -> str:
     base, _, table = name.partition("[")
-    if base == "k_anonymity":
-        return "خطر التعرّف بالتركيب"
     return CHECK_AR.get(base, base)
 
 
@@ -736,14 +733,6 @@ def _verdict(rep: dict, planted: dict | None = None) -> None:
         text = "لم ينجح بعد. الفحص الذي لم ينجح: " + "، ".join(dict.fromkeys(_failed_ar(n) for n in rep["failed_checks"]))
     show(f'<div class="nz-verdict {"pass" if rep["verdict"] == "PASS" else "fail"}"><b>النتيجة</b>'
          f'{badge(rep["verdict"])}<span>{esc(text)}</span></div>')
-
-
-def _apply_fix_clicked() -> None:
-    """The fix chosen under "fix options", else the recommended one (suggestions are best first)."""
-    k = next(iter(st.session_state["result"].report.get("k_anonymity", {}).values()), {})
-    suggested = [f["name"] for f in k.get("suggestions", [])]
-    pick = st.session_state.get("fix_pick")
-    st.session_state["pending_fix"] = pick if pick in suggested else (suggested[0] if suggested else None)
 
 
 def _plant_clicked() -> None:
@@ -764,13 +753,6 @@ def _do_pending(an) -> None:
     if st.session_state["pending_run"]:
         st.session_state["pending_run"] = False
         run_twin()
-    fix = st.session_state["pending_fix"]
-    if fix:
-        st.session_state["pending_fix"] = None
-        with st.spinner("نطبّق الإصلاح المقترح ونعيد توليد النظير وفحصه…"):
-            res = _guarded(lambda: _run_masked(an, fix))
-        if res is not None:
-            st.session_state.update(result=res, applied_fix=fix, planted=None)
     if st.session_state["pending_plant"]:
         st.session_state["pending_plant"] = False
         with st.spinner("نزرع رقم هوية حقيقياً داخل ملاحظة في نسخة من النظير، ثم نشغّل فحص التسريب…"):
@@ -822,28 +804,15 @@ def proof_masked(an, res) -> None:
         cols[2].markdown(_card("سلامة الروابط", lk["status"], ltr(lk["orphans"]), "روابط مكسورة بين الجداول",
                                "كل مطالبة ما زالت مرتبطة بعميلها بعد الاستبدال."), unsafe_allow_html=True)
 
-    # 4. k-anonymity
-    k = p["k"]
-    if k is None:
-        cols[3].markdown(_card("خطر التعرّف بالتركيب", "NOT_RUN", "—", "لا أعمدة شبه معرِّفة",
-                               "لا يوجد ما يُجمع للتعرّف على شخص."), unsafe_allow_html=True)
-        return
-    quasi = "، ".join(ltr(c) for c in k["quasi_columns"])
-    title = f"خطر التعرّف بالتركيب ({term('k', 'k')})"
-    if k.get("applied_fix"):
-        f = k["applied_fix"]
-        big = ltr(f"k = {k['k_before']} → {k['k_after']}")
-        sub = f"بعد الإصلاح (الحد الأدنى {ltr(k['k_min'])}) · أُخفيت قيم {ltr(f['rows_affected'])} صفاً"
-        explain = f"كل شخص يشبهه {ltr(k['k_after'])} على الأقل في {quasi}. فشل ما قبل الإصلاح باقٍ في التقرير."
+    # 4. residual scan: valid identifiers Nazeer did not generate
+    r = p.get("residual")
+    if r is None:
+        cols[3].markdown(_card("فحص البقايا", "NOT_RUN", "—", "النظير محجوب", "لا يُفحص نظير محجوب."),
+                         unsafe_allow_html=True)
     else:
-        big = ltr(f"k = {k['k_after']}")
-        sub = f"الحد الأدنى {ltr(k['k_min'])} · {ltr(k['rows_in_small_classes_before'])} صفاً في مجموعات صغيرة"
-        explain = (f"كل شخص يشبهه {ltr(k['k_after'])} على الأقل في {quasi}." if k["status"] == "PASS"
-                   else f"يمكن تمييز بعض الأشخاص بـ {quasi} معاً.")
-    cols[3].markdown(_card(title, k["status"], big, sub, explain), unsafe_allow_html=True)
-    if k["status"] == "FAIL" and k["suggestions"]:
-        cols[3].button("طبّق الإصلاح المقترح", key="apply_fix", type="primary", on_click=_apply_fix_clicked,
-                       width="stretch")
+        cols[3].markdown(_card("فحص البقايا", r["status"], ltr(r["found"]), "معرّف صالح لم يولّده نَظير",
+                               "أي رقم هوية أو جوال أو آيبان صالح بقي في النظير دون أن يولّده نَظير يُعد تسريباً."),
+                         unsafe_allow_html=True)
 
     if planted:
         show(f'<h4 style="margin:1rem 0 .4rem">الملاحظة بعد زرع التسريب ({ltr(planted["table"])}، صف '
@@ -852,11 +821,6 @@ def proof_masked(an, res) -> None:
         found = [ltr(x["table"] + "." + x["column"]) + " صف " + ltr(x["row"]) for x in planted["leak"]["locations"]]
         show(f'<p class="nz-note">زرعنا {KIND_AR.get(planted["kind"], "")} العميل الحقيقية بأرقام عربية ومسافات في '
              f'نسخة من النظير فقط. فحص التسريب وجدها في: {"، ".join(found) or "—"}. النظير الفعلي لم يتغيّر.</p>')
-    if k["suggestions"] and not k.get("applied_fix"):
-        with st.expander("خيارات الإصلاح (المقترح أولاً)"):
-            frame = suggestion_frame(k)
-            st.dataframe(frame, hide_index=True, width="stretch")
-            st.selectbox("الإصلاح الذي سيُطبَّق", [f["name"] for f in k["suggestions"]], key="fix_pick")
 
 
 def proof_synthetic(res) -> None:
@@ -907,8 +871,7 @@ def _checks_table(rep: dict) -> str:
     rows = []
     for c in rep["checks"]:
         base, _, table = c["name"].partition("[")
-        name = ("خطر التعرّف بالتركيب" + (" قبل الإصلاح" if base.endswith("before_fix") else "")
-                if base.startswith("k_anonymity") else CHECK_AR.get(base, base))
+        name = CHECK_AR.get(base, base)
         rows.append(f'<tr><td>{esc(name)}</td><td>{badge(c["status"])}</td>'
                     f'<td>{"نعم" if c["blocking"] else ""}</td><td class="nz-prose"><bdi class="nz-ltr-text" dir="ltr">'
                     f'{esc(c["detail"])}</bdi></td></tr>')

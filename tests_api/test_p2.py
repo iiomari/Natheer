@@ -74,7 +74,7 @@ def test_full_story_upload_detect_twin_share_receive_download(app, org_admin, de
     note = admin.get(f"/api/orgs/{org}/datasets/{ds['id']}/notes/0").json()
     assert note["text"] and note["nazeer"]
 
-    twin = masked_twin(app, admin, org, ds["id"], apply_fix="auto")
+    twin = masked_twin(app, admin, org, ds["id"])
     assert twin["verdict"] == "PASS" and twin["proof"]["leak"]["status"] == "PASS"
     preview = admin.get(f"/api/orgs/{org}/twins/{twin['id']}/preview").json()
     assert preview["tables"] and any(cell[2] for t in preview["tables"] for r in t["rows"] for cell in r.values())
@@ -100,7 +100,7 @@ def test_full_story_upload_detect_twin_share_receive_download(app, org_admin, de
 def test_twin_downloads_contain_no_original_identifier(app, org_admin, demo_files):
     admin, org = org_admin
     ds = ready_dataset(app, admin, org, demo_files)
-    twin = masked_twin(app, admin, org, ds["id"], apply_fix="auto")
+    twin = masked_twin(app, admin, org, ds["id"])
     me_id = admin.get("/api/auth/me").json()
     share = admin.post(f"/api/orgs/{org}/twins/{twin['id']}/shares", json={"external_labels": ["x"]}).json()
     rec, _ = signup(app, "rec@example.com", org=None)
@@ -116,7 +116,8 @@ def test_twin_downloads_contain_no_original_identifier(app, org_admin, demo_file
 def test_fail_twin_cannot_be_shared(app, org_admin, demo_files):
     admin, org = org_admin
     ds = ready_dataset(app, admin, org, demo_files)
-    twin = masked_twin(app, admin, org, ds["id"])  # no k-anonymity fix -> FAIL on this demo
+    # a reviewer keeps the mobile column as is: real identifiers stay -> blocking FAIL
+    twin = masked_twin(app, admin, org, ds["id"], overrides={"customers.mobile": {"action": {"action": "keep"}}})
     assert twin["verdict"] == "FAIL"
     r = admin.post(f"/api/orgs/{org}/twins/{twin['id']}/shares", json={"external_labels": ["x"]})
     assert r.status_code == 409 and r.json()["code"] == "twin_not_shareable"
@@ -124,7 +125,7 @@ def test_fail_twin_cannot_be_shared(app, org_admin, demo_files):
 
 def _shared(app, admin, org, demo_files):
     ds = ready_dataset(app, admin, org, demo_files)
-    twin = masked_twin(app, admin, org, ds["id"], apply_fix="auto")
+    twin = masked_twin(app, admin, org, ds["id"])
     return admin.post(f"/api/orgs/{org}/twins/{twin['id']}/shares",
                       json={"external_labels": ["a", "b"], "formats": ["csv"]}).json()
 
@@ -189,7 +190,7 @@ def test_exports_neutralize_formulas(app, org_admin):
     ds = ready_dataset(app, admin, org, [("t.csv", "\n".join(rows).encode())])
     twin = masked_twin(app, admin, org, ds["id"])
     if twin["verdict"] != "PASS":
-        twin = masked_twin(app, admin, org, ds["id"], apply_fix="auto")
+        twin = masked_twin(app, admin, org, ds["id"])
     share = admin.post(f"/api/orgs/{org}/twins/{twin['id']}/shares", json={"external_labels": ["x"]}).json()
     rec, _ = signup(app, "r5@example.com", org=None)
     rec.post("/api/share-links/accept", json={"token": token_of(share["new_links"][0]["link_path"])})
@@ -210,7 +211,7 @@ def test_originals_not_persisted_after_the_session(app, org_admin, demo_files):
     with app.state.sessionmaker() as db:
         kinds = {b.kind for b in db.execute(select(Blob).where(Blob.dataset_id == ds["id"])).scalars()}
     assert kinds == {"tables", "clean"}  # the raw upload is deleted as soon as it is parsed
-    masked_twin(app, admin, org, ds["id"], apply_fix="auto")
+    masked_twin(app, admin, org, ds["id"])
     assert admin.post(f"/api/orgs/{org}/datasets/{ds['id']}/end-session").status_code == 200
     with app.state.sessionmaker() as db:
         kinds = {b.kind for b in db.execute(select(Blob).where(Blob.dataset_id == ds["id"])).scalars()}
@@ -242,7 +243,7 @@ def test_stored_bytes_are_encrypted(app, org_admin, demo_files):
 def test_tenant_isolation_for_data(app, org_admin, demo_files):
     admin, org = org_admin
     ds = ready_dataset(app, admin, org, demo_files)
-    twin = masked_twin(app, admin, org, ds["id"], apply_fix="auto")
+    twin = masked_twin(app, admin, org, ds["id"])
     other, me = signup(app, "other@example.com", org="منشأة أخرى")
     org_b = me["memberships"][0]["org_id"]
     for url in (f"/api/orgs/{org}/datasets", f"/api/orgs/{org}/datasets/{ds['id']}", f"/api/orgs/{org}/twins/{twin['id']}",
@@ -260,7 +261,7 @@ def test_roles_for_data(app, org_admin, demo_files):
     dm, _ = invite_and_join(app, admin, org, "dm@alwaha.example.com", data_manager=True)
     assert plain.get(f"/api/orgs/{org}/datasets").json()["code"] == "data_manager_only"
     ds = ready_dataset(app, dm, org, demo_files)  # a data manager can upload
-    twin = masked_twin(app, dm, org, ds["id"], apply_fix="auto")
+    twin = masked_twin(app, dm, org, ds["id"])
     assert dm.get(f"/api/orgs/{org}/twins/{twin['id']}/preview").json()["code"] == "admin_only"  # originals: admins only
     assert admin.get(f"/api/orgs/{org}/twins/{twin['id']}/preview").status_code == 200
 

@@ -3,10 +3,12 @@
 Needs a fresh API on :8000, the worker, and the built site on :3000:
     python scripts\\e2e_web.py --url http://localhost:3000 --data data\\demo --out docs\\ui\\web
 
-Story: organization signs up -> invites an employee (link) -> uploads demo data -> reviews detection
--> generates a masked twin (FAIL on k) -> applies the suggested fix (PASS) -> shares with the employee
-and one external recipient -> the employee opens the invite link, sees the share in "received" and
-downloads CSV and Excel -> the external recipient accepts the share link and sees it too.
+Story: organization signs up -> invites an employee (link) -> uploads demo data -> cleaning -> reviews
+detection -> generates a masked twin (PASS) -> shares with the employee and one external recipient ->
+the employee downloads Excel, returns a 100-row subset with a score column (one token altered, one row
+duplicated) -> the admin sees both caught, confirms, re-links with the original file and checks every
+row -> the external recipient accepts the share link -> the three sample files (hospital, bank,
+insurance) each go upload -> answer-key check -> twin PASS -> share -> download.
 Fails if any request leaves the site's host. Playwright is a dev tool only, not a project dependency.
 """
 from __future__ import annotations
@@ -26,11 +28,19 @@ PASSWORD = "demo-password-2026"
 TIMEOUT = 180_000
 
 
+SAMPLES = [
+    ("hospital_patients_test.csv", "hospital_patients_answer_key.csv", "مرضى المستشفى"),
+    ("bank_customers_test.csv", "bank_customers_answer_key.csv", "عملاء البنك"),
+    ("insurance_claims_test.xlsx", "insurance_claims_answer_key.csv", "مطالبات التأمين"),
+]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default="http://localhost:3000")
     ap.add_argument("--data", type=Path, default=Path("data/demo"))
     ap.add_argument("--out", type=Path, default=Path("docs/ui/web"))
+    ap.add_argument("--samples", type=Path, default=Path("web/public/samples"))
     ap.add_argument("--tag", default="", help="suffix for test e-mails (e.g. a run id against a shared server)")
     args = ap.parse_args()
     tag = f"+{args.tag}" if args.tag else ""
@@ -102,15 +112,13 @@ def main() -> None:
         page.get_by_role("heading", name="البيانات الشخصية داخل النصوص").scroll_into_view_if_needed()
         shot(page, "p2-05-baseline-view.png", full=False)
 
-        # generate: FAIL on k-anonymity, then the suggested fix
+        # generate: the masked twin passes every blocking check (no k-anonymity step any more)
         page.get_by_role("button", name="ولّد النظير").click()
         page.wait_for_url("**/twins/**", timeout=TIMEOUT)
-        expect(page.get_by_text("النتيجة:")).to_be_visible()
-        shot(page, "p2-06-twin-fail.png")
-        page.get_by_role("button", name="طبّق الإصلاح المقترح").click()
-        page.wait_for_url("**/datasets/**", timeout=30_000)
-        page.wait_for_url("**/twins/**", timeout=TIMEOUT)
-        expect(page.get_by_text("النتيجة: ناجح")).to_be_visible()
+        expect(page.get_by_text("النتيجة: ناجح")).to_be_visible(timeout=TIMEOUT)
+        expect(page.get_by_text("فحص البقايا").first).to_be_visible()
+        expect(page.get_by_text("رمز التحقق:")).to_be_visible()
+        assert page.get_by_text("خطر التعرّف بالتركيب").count() == 0
         shot(page, "p2-07-twin-pass.png")
         page.get_by_role("button", name="عرض المعاينة (تتضمّن قيماً أصلية)").click()
         expect(page.get_by_text("الخلايا المتغيّرة مظلّلة").first).to_be_visible(timeout=60_000)
@@ -156,39 +164,53 @@ def main() -> None:
         expect(emp.get_by_text("هذه بيانات نظيرة لا تحتوي أي شخص حقيقي.")).to_be_visible()
         expect(emp.get_by_role("heading", name="ما نُظِّف قبل التوليد")).to_be_visible()
         shot(emp, "p2-11-received-detail.png")
-        zip_path = None
-        for label in ("تحميل CSV", "تحميل Excel"):
+        xlsx_path = None
+        for label in ("تحميل Excel (موصى به)", "تحميل CSV"):
             with emp.expect_download() as d:
                 emp.get_by_role("button", name=label).click()
             downloads.append(d.value.suggested_filename)
-            if d.value.suggested_filename.endswith(".zip"):
-                zip_path = d.value.path()
+            if d.value.suggested_filename.endswith(".xlsx"):
+                xlsx_path = d.value.path()
             emp.wait_for_timeout(1600)
 
-        # P5: the employee scores the customers and returns the file (key + nazeer_ref + score)
-        with zipfile.ZipFile(zip_path) as z:
-            rows = list(csv.reader(io.StringIO(z.read("customers.csv").decode("utf-8-sig"))))
+        # P5 (token): the employee returns a SUBSET of 100 customers with a score column, in Excel;
+        # one token was altered and one row duplicated: the report must catch both
+        from openpyxl import Workbook, load_workbook
+
+        ws = load_workbook(io.BytesIO(Path(xlsx_path).read_bytes()))["customers"]
+        rows = [list(r) for r in ws.iter_rows(values_only=True)]
         head = rows[0]
-        ki, ri = head.index("customer_id"), head.index("nazeer_ref")
-        results = tmp / "results.csv"
-        with results.open("w", encoding="utf-8", newline="") as f:
-            w = csv.writer(f)
-            w.writerow(["customer_id", "nazeer_ref", "score"])
-            for i, r in enumerate(rows[1:]):
-                w.writerow([r[ki], r[ri], i])
+        assert head[0] == "رمز_التحقق", head[:3]
+        picked = [r + [str(i)] for i, r in enumerate(rows[1:101])]
+        tok = picked[2][0]
+        picked[2][0] = tok[:-2] + ("A" if tok[-2] != "A" else "B") + tok[-1]   # one character altered
+        picked.append(list(picked[0]))                                       # one duplicated row
+        wb = Workbook()
+        out_ws = wb.active
+        out_ws.append(head + ["score"])
+        for r in picked:
+            out_ws.append(r)
+        results = tmp / "results.xlsx"
+        wb.save(results)
         emp.locator("input[type=file]").set_input_files(str(results))
         emp.get_by_role("button", name="إرسال النتائج").click()
-        expect(emp.get_by_text(re.compile("صف مقبول")).first).to_be_visible(timeout=TIMEOUT)
+        expect(emp.get_by_text(re.compile("صف مُتحقَّق")).first).to_be_visible(timeout=TIMEOUT)
         emp.get_by_role("heading", name="إعادة النتائج إلى المنشأة").scroll_into_view_if_needed()
         shot(emp, "p5-01-return-sent.png", full=False)
 
-        # the admin re-links it with the original files, then downloads the result
+        # the admin sees the verification report, confirms the partial integrity, re-links with the
+        # organization's own original file (a superset of the 100 rows) and downloads the result
         page.goto(f"{org_base}/returns")
-        expect(page.get_by_text("results.csv")).to_be_visible(timeout=TIMEOUT)
+        expect(page.get_by_text("results.xlsx")).to_be_visible(timeout=TIMEOUT)
+        card = page.locator("div.rounded-xl").filter(has_text="results.xlsx").first
+        for label, n in (("مُتحقَّق", "99"), ("غير صالح", "1"), ("مكرر", "1")):
+            tile = card.locator("div.rounded-xl").filter(has=page.get_by_text(label, exact=True)).first
+            expect(tile).to_contain_text(n)
         shot(page, "p5-02-returns.png", full=False)
         page.get_by_role("button", name="إعادة الربط").first.click()
         dlg = page.get_by_role("dialog")
-        dlg.locator("input[type=file]").set_input_files([str(args.data / "customers.csv"), str(args.data / "claims.csv")])
+        dlg.locator("input[type=file]").set_input_files([str(args.data / "customers.csv")])
+        dlg.locator("input[type=checkbox]").check()
         shot(page, "p5-03-relink-upload.png", full=False)
         dlg.get_by_role("button", name="ابدأ إعادة الربط").click()
         expect(dlg.get_by_text(re.compile("صف بسجلاته الحقيقية"))).to_be_visible(timeout=TIMEOUT)
@@ -196,13 +218,14 @@ def main() -> None:
         with page.expect_download() as d:
             dlg.get_by_text("تنزيل CSV").click()
         with zipfile.ZipFile(d.value.path()) as z:
-            linked = list(csv.reader(io.StringIO(z.read("results.csv").decode("utf-8-sig"))))
+            linked = list(csv.reader(io.StringIO(z.read(z.namelist()[0]).decode("utf-8-sig"))))
         with (args.data / "customers.csv").open(encoding="utf-8") as f:
             original = list(csv.reader(f))
-        oi = original[0].index("customer_id")
-        assert len(linked) == len(rows), (len(linked), len(rows))
-        for r in linked[1:]:  # the score (row number) landed on the real key of that row
-            assert r[0] == original[1 + int(r[linked[0].index("score")])][oi], "re-linked key does not match"
+        lh, oi = linked[0], original[0].index("customer_id")
+        assert len(linked) - 1 == 99, len(linked)
+        for r in linked[1:]:  # the score (row number) landed on the organization's real row
+            assert r[lh.index("customer_id")] == original[1 + int(r[lh.index("score")])][oi], "re-linked key mismatch"
+            assert r[lh.index("حالة_الربط")] == "مرتبط"
         downloads.append(d.value.suggested_filename)
         dlg.get_by_role("button", name="إغلاق").click()
 
@@ -226,6 +249,42 @@ def main() -> None:
         page.goto(f"{org_base}/shares")
         expect(page.get_by_text("مطالبات العرض").first).to_be_visible()
         shot(page, "p2-13-shares.png")
+
+        # the three sample files (three sectors): upload -> cleaning -> detection (+ answer key) ->
+        # twin PASS -> share -> the employee downloads it
+        member_label = "موظف العرض"
+        for sample, key_file, title in SAMPLES:
+            page.goto(f"{org_base}/datasets")
+            page.get_by_role("button", name="رفع بيانات").first.click()
+            page.locator("input[type=file]").set_input_files(str(args.samples / sample))
+            page.get_by_label("اسم مجموعة البيانات (اختياري)").fill(title)
+            page.get_by_role("button", name="رفع ومعالجة").click()
+            page.wait_for_url("**/datasets/**", timeout=30_000)
+            expect(page.get_by_role("heading", name="مراجعة الكشف")).to_be_visible(timeout=TIMEOUT)
+            expect(page.get_by_text("ما اكتُشف:")).to_be_visible()
+            page.get_by_role("button", name="رفع مفتاح إجابة").click()
+            page.locator("input[type=file][accept='.csv,text/csv']").set_input_files(str(args.samples / key_file))
+            page.get_by_role("button", name="قارن").click()
+            expect(page.get_by_text("وجده نَظير", exact=True)).to_be_visible(timeout=TIMEOUT)
+            page.get_by_role("heading", name="تحقق مستقل بمفتاح إجابة (اختياري)").scroll_into_view_if_needed()
+            shot(page, f"p6-{sample.split('_')[0]}-answer-key.png", full=False)
+            page.get_by_role("button", name="ولّد النظير").click()
+            page.wait_for_url("**/twins/**", timeout=TIMEOUT)
+            expect(page.get_by_text("النتيجة: ناجح")).to_be_visible(timeout=TIMEOUT)
+            shot(page, f"p6-{sample.split('_')[0]}-twin.png", full=False)
+            page.get_by_role("button", name="مشاركة").first.click()
+            dlg = page.get_by_role("dialog")
+            dlg.get_by_text(member_label).click()
+            dlg.get_by_role("button", name="مشاركة", exact=True).click()
+            expect(dlg.get_by_text("أُنشئت المشاركة")).to_be_visible()
+            dlg.get_by_role("button", name="تم").click()
+            emp.goto(f"{args.url}/app/received")
+            emp.get_by_text(title).first.click()
+            expect(emp.get_by_text("هذه بيانات نظيرة لا تحتوي أي شخص حقيقي.")).to_be_visible()
+            with emp.expect_download() as d:
+                emp.get_by_role("button", name="تحميل Excel (موصى به)").click()
+            downloads.append(d.value.suggested_filename)
+            print("sample OK:", sample)
         browser.close()
 
     print("downloads:", downloads)

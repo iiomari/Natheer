@@ -28,7 +28,9 @@ This file is updated after every milestone so a new session can resume from it a
 | P2 Vertical slice (upload → detect → masked twin → report → share → recipient) + any-data ingestion + no-email links | done | (this commit) |
 | Deploy (P9 early): Railway (api, worker, MySQL) + Vercel Hobby, full E2E against production | done | 3214b8a |
 | P4 Data cleaning (rules, toggles, before/after, approvals, report-only, in the twin report) | done | e8aa67f |
-| P5 Returns + admin-only re-linking (nazeer_ref, rejection thresholds, in-memory recomputation) | done | (this commit) |
+| P5 Returns + admin-only re-linking (nazeer_ref, rejection thresholds, in-memory recomputation) | done; re-link design replaced by P5b | 2bf71eb |
+| Judge-test fixes (user, 2026-10-02): k-anonymity removed, review band, IBAN shapes, residual scan, Arabic UI, answer-key check, 3 sector samples | done | (this commit) |
+| P5b Per-row verification token (رمز التحقق) replaces nazeer_ref and the exact-file re-link | done | (this commit) |
 | P3 Design system + all pages · P6 Team/audit/settings/email · P7 Public site + demo seed · P8 Hardening + E2E · P9 Deployment · P10 Final docs | not started | — |
 | HMA multi-table synthesis | **out of scope for the hackathon** | — |
 | PDF report | **out of scope for the hackathon** | — |
@@ -727,6 +729,155 @@ data. A superset is refused with an Arabic message saying the original files mus
     existing test now finds export columns by header instead of position.
 98. **Twins generated before P5 cannot be re-linked:** they lack the stored generation parameters.
 
+### Judge-test fixes (user's independent hospital file, report nazeer-report-1a200097)
+**What the user found, and the cause:**
+1. **k-anonymity:** removed entirely (product decision by the user).
+2. **IBANs in notes, 1 of 24 found.** The cause was not the space-merging rule: normalization joins
+   `SA48 8018 …` correctly. **23 of the 24 planted IBANs fail mod-97** (independent check; the file's
+   IBAN column is 203/203 valid). Nazeer only accepted checksum-valid IBANs.
+   - Fix (general): an exact Saudi IBAN shape with a failing checksum is still an account number. Next
+     to an account word (آيبان، حساب، تحويل، استرداد…) it is replaced (confidence 0.9); on its own it
+     goes to review (0.6).
+   - Lower-case and spaced valid IBANs are matched too.
+3. **"Needs review" ignored: confirmed.** The invoice/order-context rule gave confidence 0.6 while the
+   replacement threshold was 0.5, so the 25 "رقم الطلب" numbers were flagged and replaced anyway.
+   - Fix: free-text values below 0.7 (`detect.SPAN_REVIEW_BELOW`) are left unchanged and listed for
+     review (with highlighted examples, session-only).
+   - They are replaced only if the admin approves (`approve_review`), recorded in the report.
+4. **Leak-scan blind spot.** New blocking `residual_identifiers` check: any checksum-valid ID, valid
+   mobile, mod-97-valid IBAN or valid e-mail in the twin that Nazeer did not generate is a leak → FAIL.
+   - Allow-list: the run's pseudonyms (`Pseudonymizer.generated()`).
+   - Explicit reviewer decisions are respected: values left for review in that cell, and columns the
+     admin confirms are not identifiers (`cleared_columns`, from the twin page).
+
+**General problems found by the two new sector files (fixed generally):**
+- **Delimiter detection:** `csv.Sniffer` on the first lines picked "," for a semicolon file with a title
+  line. The delimiter is now the one that splits most lines into the same number of fields.
+- **Title rows above the header** ("كشف العملاء - سري") are skipped and noted (`skipped_title_rows`).
+- **Mobiles written with brackets**, `(054) 818 8763`: brackets are separators inside a number.
+- **First names missing from the name list:** an unknown word directly before a known family name
+  ("عمار الغامدي") is a name (0.75), except words like مستشفى، شركة، فرع. A cue word followed by `/` or
+  `:` ("السيد/ عمار") counts as a cue.
+
+**Recall per type (planted values replaced in the twin), measured with `scripts/eval_answer_key.py`**
+(the same steps as the site: ingest → default cleaning → detection → masked twin):
+
+| File | Type | Before | After |
+|---|---|---|---|
+| hospital_patients_test.csv (600 records, user's file) | ID / mobile / name | 100% / 100% / 100% | 100% / 100% / 100% |
+| | IBAN | **90.1%** (22 missed) | **100%** (223/223) |
+| | look-alikes (62) | 25 wrongly replaced | 0 wrong (37 ignored, 25 review) |
+| bank_customers_test.csv (450, semicolon CSV, title line) | ID / mobile / IBAN / e-mail / name | 0% everywhere (file not parsed); with the ingest fix only: 100 / 98.2 / 100 / 100 / 99.8% | 100% each |
+| | look-alikes (86) | 44 wrongly replaced | 0 wrong (42 ignored, 44 review) |
+| insurance_claims_test.xlsx (2 sheets) | ID / mobile / IBAN / e-mail / name | 100 / 100 / 100 / 100 / 99.4% | 100% each |
+| | look-alikes (111) | 51 wrongly replaced | 0 wrong (60 ignored, 51 review) |
+
+- The hospital answer key in `web/public/samples/` is **reconstructed** independently: the file's own
+  phrasing plus my own validators. The user's original `hospital_patients_answer_key.csv` was not on
+  this machine.
+- The bank and insurance files come from `scripts/make_eval_samples.py`. It is written independently,
+  with its own name lists, validators and mess patterns, and does not use the hospital file or the demo
+  generator.
+- The generator had one bug of its own: 26-character IBANs. It was fixed before measuring.
+
+**Removed:** `nazeer/kanon.py` and its tests; the `generalize` action, the age/birth-date generalization
+rules and `k_anonymity_min`; the k card, fix suggestions and «طبّق الإصلاح المقترح»; `apply_fix` in the CLI,
+the API and the old Streamlit app; `k_anonymity` in the report JSON. k-anonymity can no longer affect the
+verdict or sharing. The test that needed a FAIL twin now gets it from a reviewer override that keeps the
+mobile column.
+
+**Site for judges (all text in Arabic):**
+- check names and details are rebuilt in Arabic from the numbers (`web/src/lib/labels.ts`);
+- the detector's reasons are in Arabic; the report carries Arabic limitations (`limitations_ar`);
+- each step shows its result at a glance:
+  - «ما اكتُشف» chips by type;
+  - cleaning counts;
+  - the review queue with highlighted examples;
+  - the verdict banner and four cards (التسريب، فحص البقايا، صلاحية البدائل، سلامة الروابط);
+  - the review and residual boxes on the twin page;
+- an optional answer-key check on the dataset page: planted / found / missed per type, plus look-alikes
+  ignored, sent to review or wrongly treated;
+- the three samples and their answer keys are downloadable from the upload dialog
+  (`web/public/samples/`, the demo seed).
+
+**Deviations:**
+99. **k-anonymity removed** (user decision). Limitation stated in the report, the README (Arabic and
+    English) and on the twin page.
+100. **IBAN shape with a failing checksum is detected** (replaced with context, reviewed without). This
+     relaxes "validator must pass" for one exact, look-alike-free shape.
+101. **Uncertain free-text values are kept unchanged by default** and do not count as leaks; previously
+     they were replaced. The admin approves replacement per twin.
+102. **Residual scan exceptions are explicit reviewer decisions only** (review-kept values, confirmed
+     columns). Without them a stray checksum-valid number in an ordinary column fails the twin.
+
+### P5b: Per-row verification token (رمز التحقق)
+**Replaces** the `nazeer_ref` mechanism and the re-link rule that required the exact original files.
+
+**Token** (`nazeer_api/tokens.py`):
+- format: `NZ-` + base32 of header(4) + AES-SIV(plaintext, AD);
+- header: key version (1 byte) + a 3-byte share fingerprint (HMAC under the master key, so it survives
+  org-key rotation);
+- plaintext: table index + the original row key, numeric keys packed as integers;
+- AD: share id | dataset id | key version; no row values are bound;
+- length: `NZ-` + 40–60 characters (42 for a 6-digit key, 53 for "MRN-100000");
+- letters A–Z and digits 2–7 only, always written as text in Excel;
+- base32 is checked strictly: a changed last character cannot decode to the same bytes.
+
+**How the reference travels:**
+- At generation, every masked twin row gets the same reference sealed without the share binding, in an
+  internal column of the encrypted twin.
+- Exports and previews replace it with the share-bound token, as the first column.
+- Admin previews strip it.
+
+**Return (`verify_return`):**
+- any subset, any sheet;
+- every row is classified: verified, invalid, missing, foreign (another share, dataset or organization),
+  old key, or duplicate;
+- the report holds counts, row numbers (up to 200 per status), the added column names, coverage
+  (returned / shared), integrity (verified / returned), and the informational number of rows whose copy of
+  the twin columns differs;
+- only verified rows are kept: their token and added columns, encrypted;
+- a file without the token column is refused with an Arabic explanation;
+- a file where no row verifies is recorded but cannot be re-linked.
+
+**Re-link (worker):**
+- verified tokens → original keys, in memory → joined with whatever original file the admin uploads
+  (superset or subset; only matching keys join);
+- output: the organization's rows exactly as uploaded + the recipient's added columns + `حالة_الربط`
+  (مرتبط / غير موجود في الملف الأصلي المرفوع);
+- below 100% integrity the admin must confirm (`relink.partial_confirmed` audited);
+- after a key rotation: «لا يمكن التحقق: صُنع بمفتاح سابق»;
+- downloads as before: the requesting admin, 30 minutes, each one audited.
+
+**Web:**
+- recipients see «لا تحذف عمود رمز_التحقق ولا تعدّله…» on the share page and the share-link page;
+- «تحميل Excel (موصى به)» comes first;
+- the returns page shows large numbers (سلامة الصفوف، مُتحقَّق، غير صالح، بلا رمز، غريب، مكرر), coverage, the
+  problem row numbers and the added columns, then «إعادة الربط»;
+- the twin report has the «رمز التحقق» card.
+
+**Verified:** `tests_api/test_p5_tokens.py`, 10 tests:
+- 100 of 10,000 rows → 100% verified, coverage 1%, re-linked to the real rows;
+- swapped or edited IDs, names, mobiles and dates → still verified, the output carries the true
+  originals, and "differs" = 5;
+- openpyxl and Excel-CSV round trips → 100%;
+- no token column → refused;
+- one altered character → invalid, a duplicate detected, other share and other organization → foreign,
+  and partial integrity requires confirmation;
+- added columns appear; a superset and a subset of the original both work;
+- key rotation → old key;
+- no values in reports, audit or logs; roles and tenancy.
+
+**Deviations:**
+103. **The verification token replaces `nazeer_ref`** (user decision). Recipients may now return any
+     subset and change anything except the token.
+104. **Re-link no longer requires the exact original files and no longer re-runs the pipeline.** The
+     admin's file only needs the key column (a superset or subset is fine). A table with no unique key
+     column is referenced by row position after cleaning, so it still needs the same file (documented).
+105. **The encrypted twin holds each row's sealed reference** (the token before the share binding),
+     because shares are made after the originals are deleted. It is not a mapping table: no
+     pseudonym → key pair is ever stored, and it opens only with the organization key.
+
 ## Milestone log
 
 ### M2: Demo data + golden labels
@@ -1185,6 +1336,6 @@ MySQL integration tests, waiting for credentials.
 
 ## Next step
 
-P6: team, audit, settings (key rotation), notifications.
+P6: team, audit, settings (key rotation), notifications. The user's original hospital answer key should replace the reconstructed one in `web/public/samples/` when available.
 Still waiting on you: MySQL service and password in `.env` (engine live tests and a MySQL run of the API
 migrations); Docker Desktop, so `docker compose up` can be verified; hand-written notes.

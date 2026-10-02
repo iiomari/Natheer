@@ -253,8 +253,9 @@ class ShareGrant(Base):
 
 
 class Return(Base):
-    """Results a recipient sent back for a masked twin (checked, stored encrypted; pseudonyms only).
-    Re-linking output is a separate short-lived blob; no mapping is ever stored."""
+    """Results a recipient sent back for a masked twin. Only verified rows are kept (their token and
+    the columns the recipient added), encrypted. Re-linking output is a separate short-lived blob;
+    no mapping is ever stored."""
     __tablename__ = "returns"
     __table_args__ = (Index("ix_returns_org_created", "org_id", "created_at"),)
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
@@ -266,7 +267,8 @@ class Return(Base):
     rows_total: Mapped[int] = mapped_column(Integer, nullable=False)
     rows_accepted: Mapped[int] = mapped_column(Integer, nullable=False)
     rejected: Mapped[dict] = mapped_column(JSON, nullable=False)   # reason -> count
-    columns: Mapped[list] = mapped_column(JSON, nullable=False)    # column names only
+    columns: Mapped[list] = mapped_column(JSON, nullable=False)    # added column names only
+    report: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # verification report: counts, row numbers, names
     blob_id: Mapped[str | None] = mapped_column(ForeignKey("blobs.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
     # re-linking (admin only): none | running | ready | failed | expired

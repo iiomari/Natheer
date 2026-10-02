@@ -121,5 +121,5 @@ def test_cleaned_demo_still_detects_and_masks(tmp_path):
     tables, rep = clean(load_csv_folder(tmp_path))
     an = pipeline.analyze(tables, "x")
     assert any(d.kind == "SAUDI_ID" for d in an.detections) and an.spans
-    res = pipeline.run_masked(an, load_policy(pipeline.DEFAULT_POLICY), b"k" * 40, apply_fix="auto")
+    res = pipeline.run_masked(an, load_policy(pipeline.DEFAULT_POLICY), b"k" * 40)
     assert res.report["leak_scan"]["verdict"] == "PASS"

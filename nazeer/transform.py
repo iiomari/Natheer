@@ -130,6 +130,10 @@ class Pseudonymizer:
         self._cache[(kind, canon)] = out
         return out
 
+    def generated(self) -> set[str]:
+        """Every pseudonym produced in this run (canonical form): the residual scan's allow-list."""
+        return {v for (kind, _), v in self._cache.items() if kind not in NAME_KINDS}
+
     # ---------------------------------------------------------------- display values
 
     def name(self, raw: str) -> str:
@@ -227,29 +231,6 @@ def replace_spans(text: str, spans: list[tuple[int, int, s.Kind]], pseudo: Pseud
     return text
 
 
-# -------------------------------------------------------------------- generalization
-
-def generalize(series: pd.Series, params: dict) -> pd.Series:
-    if "bins" in params:
-        width = int(params["bins"])
-        nums = pd.to_numeric(series, errors="coerce")
-
-        def label(v: float) -> str | None:
-            if math.isnan(v):
-                return None
-            lo = int(v // width) * width
-            return f"{lo}-{lo + width - 1}"
-
-        return nums.map(label).astype(object)
-    if "to" in params:
-        fmt = {"month": "%Y-%m", "year": "%Y"}[params["to"]]
-        dates = pd.to_datetime(series, errors="coerce")
-        return dates.dt.strftime(fmt).astype(object).where(dates.notna(), None)
-    raise ValueError("generalize needs 'bins' or 'to'")
-
-
-# -------------------------------------------------------------------- whole dataset
-
 def _span_index(spans: list[Span], min_conf: float) -> dict[tuple[str, str], dict[int, list[tuple[int, int, str]]]]:
     idx: dict = defaultdict(lambda: defaultdict(list))
     for sp in spans:
@@ -307,8 +288,6 @@ def apply(tables: dict[str, pd.DataFrame], prof: DatasetProfile, decisions: list
             df[col] = df[col].map(lambda v: mapping.get(v, v) if isinstance(v, str) else v)
         elif d.action == "remap":
             df[col] = df[col].map(lambda v: pseudo.fake(d.remap_group, str(v).strip()) if isinstance(v, str) else v)
-        elif d.action == "generalize":
-            df[col] = generalize(df[col], d.params)
         elif d.action == "replace_spans":
             by_row = span_idx.get((d.table, col), {})
             texts = df[col].tolist()
