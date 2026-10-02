@@ -195,9 +195,10 @@ def test_exports_neutralize_formulas(app, org_admin):
     rec.post("/api/share-links/accept", json={"token": token_of(share["new_links"][0]["link_path"])})
     xlsx = rec.get(rec.post(f"/api/received/{share['id']}/download", json={"format": "xlsx"}).json()["url"]).content
     ws = load_workbook(io.BytesIO(xlsx)).active
-    comments = [ws.cell(row=r, column=3).value for r in range(2, 5)]
+    col = {c.value: c.column for c in ws[1]}  # by header: exports may add nazeer_ref next to the key
+    comments = [ws.cell(row=r, column=col["comment"]).value for r in range(2, 5)]
     assert all(c.startswith("'=") for c in comments)
-    assert ws.cell(row=2, column=4).value == "-1.5"  # numbers untouched
+    assert ws.cell(row=2, column=col["amount"]).value == "-1.5"  # numbers untouched
     csvz = rec.get(rec.post(f"/api/received/{share['id']}/download", json={"format": "csv"}).json()["url"]).content
     body = zipfile.ZipFile(io.BytesIO(csvz)).read("t.csv").decode("utf-8-sig")
     assert "'=HYPERLINK" in body and ",=HYPERLINK" not in body

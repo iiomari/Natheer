@@ -7,9 +7,10 @@ import { ArrowRight, Download, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 
 import { CleaningNote } from "@/components/cleaning"
+import { ReturnResults } from "@/components/returns"
 import { DataTable } from "@/components/data"
 import { LoadError, Loading } from "@/components/org"
-import { Chip, EmptyState, Ltr, Notice, Num, PageHeader, Section, Spinner, VerdictChip } from "@/components/nz"
+import { Chip, EmptyState, Notice, Num, PageHeader, Section, Spinner, VerdictChip } from "@/components/nz"
 import { Button } from "@/components/ui/button"
 import { api, messageFor } from "@/lib/api"
 import type { Received } from "@/lib/types"
@@ -86,9 +87,7 @@ export default function ReceivedDetail() {
             </Section>
           ))}
           <CleaningNote cleaning={d.cleaning} />
-          <p className="text-sm text-muted-foreground">
-            إعادة نتائجك إلى المنشأة تُتاح هنا في الإصدار القادم. الجداول: <Ltr>{d.tables.map((x) => x.name).join(", ")}</Ltr>
-          </p>
+          <ReturnResults share={d} />
         </div>
       )}
     </>

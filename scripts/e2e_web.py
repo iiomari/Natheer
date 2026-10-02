@@ -12,7 +12,11 @@ Fails if any request leaves the site's host. Playwright is a dev tool only, not 
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import re
+import tempfile
+import zipfile
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -44,6 +48,7 @@ def main() -> None:
         page.screenshot(path=str(args.out / name), full_page=full)
         print("saved", name)
 
+    tmp = Path(tempfile.mkdtemp(prefix="nazeer-e2e-"))
     with sync_playwright() as p:
         browser = p.chromium.launch()
         admin_ctx = browser.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA", accept_downloads=True)
@@ -151,11 +156,55 @@ def main() -> None:
         expect(emp.get_by_text("هذه بيانات نظيرة لا تحتوي أي شخص حقيقي.")).to_be_visible()
         expect(emp.get_by_role("heading", name="ما نُظِّف قبل التوليد")).to_be_visible()
         shot(emp, "p2-11-received-detail.png")
+        zip_path = None
         for label in ("تحميل CSV", "تحميل Excel"):
             with emp.expect_download() as d:
                 emp.get_by_role("button", name=label).click()
             downloads.append(d.value.suggested_filename)
+            if d.value.suggested_filename.endswith(".zip"):
+                zip_path = d.value.path()
             emp.wait_for_timeout(1600)
+
+        # P5: the employee scores the customers and returns the file (key + nazeer_ref + score)
+        with zipfile.ZipFile(zip_path) as z:
+            rows = list(csv.reader(io.StringIO(z.read("customers.csv").decode("utf-8-sig"))))
+        head = rows[0]
+        ki, ri = head.index("customer_id"), head.index("nazeer_ref")
+        results = tmp / "results.csv"
+        with results.open("w", encoding="utf-8", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["customer_id", "nazeer_ref", "score"])
+            for i, r in enumerate(rows[1:]):
+                w.writerow([r[ki], r[ri], i])
+        emp.locator("input[type=file]").set_input_files(str(results))
+        emp.get_by_role("button", name="إرسال النتائج").click()
+        expect(emp.get_by_text(re.compile("صف مقبول")).first).to_be_visible(timeout=TIMEOUT)
+        emp.get_by_role("heading", name="إعادة النتائج إلى المنشأة").scroll_into_view_if_needed()
+        shot(emp, "p5-01-return-sent.png", full=False)
+
+        # the admin re-links it with the original files, then downloads the result
+        page.goto(f"{org_base}/returns")
+        expect(page.get_by_text("results.csv")).to_be_visible(timeout=TIMEOUT)
+        shot(page, "p5-02-returns.png", full=False)
+        page.get_by_role("button", name="إعادة الربط").first.click()
+        dlg = page.get_by_role("dialog")
+        dlg.locator("input[type=file]").set_input_files([str(args.data / "customers.csv"), str(args.data / "claims.csv")])
+        shot(page, "p5-03-relink-upload.png", full=False)
+        dlg.get_by_role("button", name="ابدأ إعادة الربط").click()
+        expect(dlg.get_by_text(re.compile("صف بسجلاته الحقيقية"))).to_be_visible(timeout=TIMEOUT)
+        shot(page, "p5-04-relinked.png", full=False)
+        with page.expect_download() as d:
+            dlg.get_by_text("تنزيل CSV").click()
+        with zipfile.ZipFile(d.value.path()) as z:
+            linked = list(csv.reader(io.StringIO(z.read("results.csv").decode("utf-8-sig"))))
+        with (args.data / "customers.csv").open(encoding="utf-8") as f:
+            original = list(csv.reader(f))
+        oi = original[0].index("customer_id")
+        assert len(linked) == len(rows), (len(linked), len(rows))
+        for r in linked[1:]:  # the score (row number) landed on the real key of that row
+            assert r[0] == original[1 + int(r[linked[0].index("score")])][oi], "re-linked key does not match"
+        downloads.append(d.value.suggested_filename)
+        dlg.get_by_role("button", name="إغلاق").click()
 
         # the external recipient accepts the share link with a new individual account
         ext_ctx = browser.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA")

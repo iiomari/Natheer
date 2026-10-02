@@ -119,6 +119,13 @@ python -m nazeer.pipeline --mysql-db nazeer_prod_demo --mysql-target nazeer_dev 
 الخادم بالكامل أمكن فك المفاتيح وإعادة التعرّف على النظائر المقنّعة. هذا مقبول لنسخة العرض، وهو سبب أن
 النشر الحقيقي داخل المنشأة.
 
+**إعادة النتائج وإعادة الربط:** كل ملف نظير مقنّع يُنزَّل ومعه عمود `nazeer_ref` بجانب مفتاح السجل. يعيد
+المستلم ملف نتائجه محتفظاً بالعمودين، فيرفض نَظير الملف إن لم يطابق المفتاح مرجعه في أكثر من 1% من الصفوف
+(أو إن كانت أكثر من 5% من الصفوف بمفاتيح غير موجودة أو فارغة أو مكررة). **`nazeer_ref` يكشف التلاعب
+بالمفاتيح، لا التعديل على قيم النتائج نفسها.** إعادة الربط لمدير المنشأة فقط: يرفع الملفات الأصلية نفسها
+بأسمائها وصفوفها، فيعيد نَظير الحساب بمفتاح المنشأة في الذاكرة ويتحقق أنه يطابق النظير المشارَك تماماً، ثم
+يربط. لا يُخزَّن أي جدول ربط؛ والملف الناتج متاح لذلك المدير 30 دقيقة ثم يُحذف.
+
 ### القيود المعروفة (بصراحة)
 - الاكتشاف ليس كاملًا أبدًا. ما يفوت المكتشِف في النص الحر لا يُستبدل ولا يستطيع فحص التسرّب العثور
   عليه.
@@ -257,6 +264,16 @@ organization**; the hosted version is for demonstration.
 **Known risk:** organization keys are encrypted in the database under a master key held in the backend
 environment, so a full backend compromise could decrypt the keys and re-identify masked twins. This is
 acceptable for the hosted demo, and it is why the real deployment is on-premise.
+
+**Returns and re-linking:** every masked twin export carries a `nazeer_ref` column next to the record key.
+A recipient returns results keeping both columns. Nazeer refuses the file if the key does not match its
+reference in more than 1% of rows (or if more than 5% of rows have unknown, empty or duplicate keys).
+**`nazeer_ref` detects tampering with keys, not edits to the result values themselves.** Re-linking is for
+organization admins only: the admin uploads the very same original files (same names, same rows); Nazeer
+recomputes the twin with the organization key in memory, checks it reproduces the shared twin exactly,
+then joins. No mapping table is stored; the output is available to that admin for 30 minutes, then deleted.
+Python cannot guarantee that freed memory is wiped: the key and the in-memory dictionary are released when
+the job ends, not overwritten.
 
 Run the API locally (PowerShell; SQLite is enough for a first try):
 ```powershell

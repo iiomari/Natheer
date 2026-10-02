@@ -20,7 +20,7 @@ from nazeer.safe_log import configure_logging
 from nazeer_api import __version__
 from nazeer_api.config import Settings, get_settings
 from nazeer_api.db import make_engine, make_sessionmaker
-from nazeer_api.routers import auth, datasets, invitations, orgs, shares
+from nazeer_api.routers import auth, datasets, invitations, orgs, returns, shares
 from nazeer_api.security import API_HEADERS, HSTS, CSRF_HEADER, RateLimiter
 
 log = logging.getLogger("nazeer_api")
@@ -78,6 +78,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(datasets.router)
     app.include_router(shares.org_router)
     app.include_router(shares.router)
+    app.include_router(returns.org_router)
+    app.include_router(returns.router)
     return app
 
 

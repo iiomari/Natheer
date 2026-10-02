@@ -250,3 +250,34 @@ class ShareGrant(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
 
     share: Mapped[Share] = relationship()
+
+
+class Return(Base):
+    """Results a recipient sent back for a masked twin (checked, stored encrypted; pseudonyms only).
+    Re-linking output is a separate short-lived blob; no mapping is ever stored."""
+    __tablename__ = "returns"
+    __table_args__ = (Index("ix_returns_org_created", "org_id", "created_at"),)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    share_id: Mapped[str] = mapped_column(ForeignKey("shares.id", ondelete="CASCADE"), nullable=False, index=True)
+    twin_id: Mapped[str] = mapped_column(ForeignKey("twins.id", ondelete="CASCADE"), nullable=False, index=True)
+    submitted_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    file_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    rows_total: Mapped[int] = mapped_column(Integer, nullable=False)
+    rows_accepted: Mapped[int] = mapped_column(Integer, nullable=False)
+    rejected: Mapped[dict] = mapped_column(JSON, nullable=False)   # reason -> count
+    columns: Mapped[list] = mapped_column(JSON, nullable=False)    # column names only
+    blob_id: Mapped[str | None] = mapped_column(ForeignKey("blobs.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    # re-linking (admin only): none | running | ready | failed | expired
+    relink_status: Mapped[str] = mapped_column(String(16), nullable=False, default="none")
+    relink_error: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    relink_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    relink_upload_id: Mapped[str | None] = mapped_column(ForeignKey("blobs.id", ondelete="SET NULL"), nullable=True)
+    relinked_blob_id: Mapped[str | None] = mapped_column(ForeignKey("blobs.id", ondelete="SET NULL"), nullable=True)
+    relink_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    relink_matched: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    relink_downloads: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    share: Mapped[Share] = relationship()
+    twin: Mapped[Twin] = relationship()

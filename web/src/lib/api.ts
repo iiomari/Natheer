@@ -11,6 +11,7 @@ export class ApiError extends Error {
     public status: number,
     public code: string,
     public fields: string[] = [],
+    public detail: Record<string, unknown> = {},
   ) {
     super(code)
   }
@@ -84,7 +85,7 @@ export async function upload<T = unknown>(path: string, form: FormData): Promise
   }
   if (!res.ok) {
     const j = await res.json().catch(() => ({}))
-    throw new ApiError(res.status, j?.code ?? (res.status === 413 ? "ingest:total_too_large" : "error"), j?.fields ?? [])
+    throw new ApiError(res.status, j?.code ?? (res.status === 413 ? "ingest:total_too_large" : "error"), j?.fields ?? [], j ?? {})
   }
   return (await res.json()) as T
 }
@@ -116,6 +117,25 @@ const MESSAGES: Record<string, string> = {
   quota_exceeded: "امتلأت مساحة التخزين المخصّصة لمنشأتك. احذف مجموعات بيانات قديمة ثم حاول مجدداً.",
   session_expired: "انتهت جلسة المعالجة وحُذفت البيانات الأصلية. ارفع الملفات مجدداً للمتابعة.",
   processing_failed: "تعذّرت معالجة الملفات بسبب خطأ غير متوقع. جرّب مجدداً أو احفظ الملف بصيغة CSV.",
+  returns_not_supported: "لا يمكن إعادة نتائج لهذا النظير (الإعادة متاحة للنظير المقنّع الذي فيه مفتاح للسجلات).",
+  return_missing_ref_column: "الملف لا يحتوي عمود nazeer_ref. أبقِ هذا العمود كما نزل مع البيانات.",
+  return_missing_key_column: "الملف لا يحتوي عمود المفتاح الذي نزل مع البيانات. أبقِه كما هو.",
+  return_empty: "الملف لا يحتوي أي صف.",
+  return_tampered: "رُفض الملف: أكثر من 1% من الصفوف لا يطابق فيها المفتاح مرجعه nazeer_ref (تعديل أو تلف). أعد الملف دون تغيير هذين العمودين.",
+  return_too_many_errors: "رُفض الملف: أكثر من 5% من الصفوف بمفتاح غير موجود في البيانات المشاركة أو فارغ أو مكرر.",
+  return_no_valid_rows: "لا يوجد صف صالح في الملف.",
+  return_purged: "انتهت مدة الاحتفاظ بهذه النتائج.",
+  relink_not_supported: "لا يمكن إعادة ربط هذا النظير.",
+  relink_running: "إعادة الربط جارية بالفعل.",
+  relink_not_yours: "الملف المعاد ربطه متاح فقط للمدير الذي طلبه.",
+  relink_expired: "انتهت مدة الملف المعاد ربطه (30 دقيقة) وحُذف. أعد الربط إن احتجته.",
+  relink_upload_expired: "انتهت مهلة الملفات المرفوعة. ارفعها مجدداً.",
+  relink_key_rotated: "تغيّر مفتاح المنشأة بعد توليد هذا النظير، فلا يمكن إعادة ربطه.",
+  relink_twin_purged: "حُذف النظير بعد انتهاء مدة الاحتفاظ، فلا يمكن إعادة الربط.",
+  relink_tables_differ: "الملفات المرفوعة ليست الملفات الأصلية نفسها: أسماء الملفات أو عددها مختلف. ارفع الملفات نفسها بأسمائها.",
+  relink_rows_differ: "يجب رفع الملفات الأصلية نفسها تماماً: عدد الصفوف مختلف. إضافة صفوف أو حذفها يغيّر الأسماء المستعارة فلا يمكن الربط.",
+  relink_mismatch: "هذه ليست البيانات الأصلية التي صُنع منها النظير: إعادة الحساب لم تطابق المفاتيح المشاركة. ارفع الملفات نفسها دون أي تعديل.",
+  relink_failed: "تعذّرت إعادة الربط بسبب خطأ غير متوقع. جرّب مجدداً.",
   invalid_merge_key: "اقتراح الدمج غير صالح. حدّث الصفحة وأعد الاختيار.",
   dataset_not_ready: "ما زالت البيانات قيد المعالجة. انتظر قليلاً.",
   synthetic_too_large: "النظير الاصطناعي متاح في النسخة المستضافة حتى 15,000 صف فقط. استخدم النظير المقنّع لهذه البيانات.",

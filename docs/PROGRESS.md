@@ -27,8 +27,9 @@ This file is updated after every milestone so a new session can resume from it a
 | **Site + infrastructure first** (user, 2026-10-01): Next.js app (design system, public site, auth, workspace shell, team/audit/settings), deployment setup (Railway + Aiven + Vercel + Resend), CI | done | (this commit) |
 | P2 Vertical slice (upload → detect → masked twin → report → share → recipient) + any-data ingestion + no-email links | done | (this commit) |
 | Deploy (P9 early): Railway (api, worker, MySQL) + Vercel Hobby, full E2E against production | done | 3214b8a |
-| P4 Data cleaning (rules, toggles, before/after, approvals, report-only, in the twin report) | done | (this commit) |
-| P3 Design system + all pages · P5 Returns + re-linking · P6 Team/audit/settings/email · P7 Public site + demo seed · P8 Hardening + E2E · P9 Deployment · P10 Final docs | not started | — |
+| P4 Data cleaning (rules, toggles, before/after, approvals, report-only, in the twin report) | done | e8aa67f |
+| P5 Returns + admin-only re-linking (nazeer_ref, rejection thresholds, in-memory recomputation) | done | (this commit) |
+| P3 Design system + all pages · P6 Team/audit/settings/email · P7 Public site + demo seed · P8 Hardening + E2E · P9 Deployment · P10 Final docs | not started | — |
 | HMA multi-table synthesis | **out of scope for the hackathon** | — |
 | PDF report | **out of scope for the hackathon** | — |
 
@@ -644,6 +645,88 @@ ambiguous-dates notice, «طبّق وأعد الكشف» and «تراجع». Rec
 95. **Fixed:** the local `NAZEER_ROLE=all` supervisor failed on Windows because `--forwarded-allow-ips *`
     was expanded like a file glob. It is now passed as `FORWARDED_ALLOW_IPS`; Linux is unaffected.
 
+### P5: Returns and re-linking
+**Flow:**
+1. Every masked twin export (CSV, Excel and the recipient's preview) carries `nazeer_ref` right after the
+   entity key: `"NZ-"` + 12 base32 characters of HMAC(share secret, pseudonym). The share secret is
+   derived from the master key and the share id.
+2. The recipient returns one file (CSV or Excel) on the share page. It is checked against the shared
+   twin, and the accepted rows are stored encrypted (pseudonyms and results only).
+3. An org admin opens «المرتجعات» → «إعادة الربط» and uploads the original files again.
+4. The worker re-runs ingest, the twin's stored cleaning options (including approved merge keys),
+   detection, and `run_masked` with the org key, overrides and fix. It verifies that this reproduces the
+   stored twin's key column value for value, builds the pseudonym → real key dictionary in memory, joins,
+   and stores the output encrypted for 30 minutes.
+5. The same admin can download it as CSV or Excel any number of times within that window; each download
+   is audited. Then the sweep deletes it.
+
+**Where the key lives:** encrypted under `NAZEER_MASTER_KEY` in the database. It is decrypted only inside
+the `relink` job and released (`del`) when the job ends, together with the dictionary. It never reaches
+the database, files, logs or responses. Python cannot guarantee freed memory is wiped (recorded in the
+README).
+
+**Logged** (ids, column names and counts only): `return.submitted` (rows, accepted, rejected per reason,
+Excel repairs), `return.rejected` (reason, counts), `relink.requested`, `relink.completed` (rows, matched,
+unmatched), `relink.failed` (reason, counts), `relink.downloaded` (format, rows, download number). Tests
+assert that no real key, pseudonym or result value appears in audit entries or logs.
+
+**Rejection:**
+- missing `nazeer_ref` or key column; an empty file;
+- **more than 1% of rows** whose key does not match its reference (edited or swapped keys, corruption,
+  or a file made for another share) → `return_tampered`;
+- **more than 5% of rows** with an unknown, empty or duplicate key → `return_too_many_errors`;
+- below both limits the bad rows are dropped and counted.
+- At re-link time:
+  - different file names → `relink_tables_differ`;
+  - a different number of rows, including a superset → `relink_rows_differ`;
+  - anything else that does not reproduce the twin exactly → `relink_mismatch`;
+  - a rotated key → `relink_key_rotated`;
+  - a purged twin → `relink_twin_purged`.
+- `nazeer_ref` detects tampering with keys, not edits to result values (tested and documented).
+
+**Cleaning consistency:** pseudonyms are computed on cleaned values, so re-linking re-applies the exact
+cleaning options stored with the twin. Tested with originals that have extra spaces, mixed mobile formats
+(with phone unification on) and 25 duplicate rows: all rows re-link.
+
+**Why the exact set is required:** the collision step assigns pseudonyms in sorted order and never reuses
+one, and for identifier kinds it also avoids every original value. Extra rows can therefore push an
+existing value to its next candidate. Measured: with 3,000 six-digit keys, adding 500 rows changed 2
+pseudonyms (`test_superset_can_change_pseudonyms`). Detection and k-anonymity also depend on the full
+data. A superset is refused with an Arabic message saying the original files must be uploaded exactly.
+
+**Excel safety:**
+- References are `NZ-` plus letters and digits 2–7, so they are never read as a number, a date or
+  e-notation.
+- Twin keys are written as text in Excel exports.
+- On return, keys that Excel turned into numbers are repaired against the twin's keys: `"751233.0"`,
+  dropped leading zeros, and 12+ digit e-notation (accepted only when the reference confirms it).
+- Tested by round-tripping through openpyxl and through a simulated "open and save in Excel" CSV.
+
+**Web:**
+- the recipient page has «إعادة النتائج إلى المنشأة» (instructions, upload, rejection reasons with
+  counts, my returns);
+- «المرتجعات» lists returns (recipient, accepted out of total, rejected per reason, re-link status), with
+  the admin-only re-link dialog: the expected file names, upload, progress, result, and CSV/Excel
+  downloads with the time left.
+
+**Verified:**
+- `tests_api/test_p5.py`, 9 tests: the full story, tampering and thresholds, a foreign share's file,
+  wrong originals (superset, renamed file, changed key), key rotation, the superset behaviour, cleaning
+  consistency, Excel round trips, the documented limit of `nazeer_ref`, roles and tenancy, and synthetic
+  twins excluded;
+- full suite: **339 passed, 4 skipped**;
+- browser E2E, locally and against the live site: the recipient returns a scored file; the admin
+  re-links it with the demo originals and downloads the CSV; every re-linked key equals the real key of
+  its row; 0 external requests. Screenshots `docs/ui/web/p5-*.png`.
+
+**Deviations:**
+96. **Re-linking re-runs the whole masked pipeline** on the uploaded originals instead of recomputing
+    single pseudonyms. This is the only way to reproduce the collision step and the detection exactly,
+    and it makes the "same data" check exact.
+97. **`nazeer_ref` is added in the export layer only.** The stored twin and the engine are unchanged. An
+    existing test now finds export columns by header instead of position.
+98. **Twins generated before P5 cannot be re-linked:** they lack the stored generation parameters.
+
 ## Milestone log
 
 ### M2: Demo data + golden labels
@@ -1102,6 +1185,6 @@ MySQL integration tests, waiting for credentials.
 
 ## Next step
 
-P5: returns from recipients and admin-only re-linking (key-based, in memory, no mapping table).
+P6: team, audit, settings (key rotation), notifications.
 Still waiting on you: MySQL service and password in `.env` (engine live tests and a MySQL run of the API
 migrations); Docker Desktop, so `docker compose up` can be verified; hand-written notes.

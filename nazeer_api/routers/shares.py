@@ -192,7 +192,15 @@ def received_payload(s: Share) -> dict:
             "status": share_status(s), "formats": s.formats, "message": s.message,
             "created_at": s.created_at.isoformat(), "expires_at": s.expires_at.isoformat(),
             "tables": [{"name": tb["name"], "rows": tb["rows"]} for tb in (t.dataset.summary or {}).get("tables", [])],
-            "cleaning": cleaning_note(t.report)}
+            "cleaning": cleaning_note(t.report),
+            "returns": _return_info(t)}
+
+
+def _return_info(t: Twin) -> dict | None:
+    from nazeer_api.returns import REF_COLUMN, link_of
+
+    link = link_of(t)
+    return {**link, "ref_column": REF_COLUMN} if link else None
 
 
 @router.get("/received")
@@ -206,7 +214,10 @@ def _active_share_tables(db: DbSession, settings: Settings, s: Share) -> dict:
         raise api_error(410, f"share_{share_status(s)}")
     if s.twin.blob_id is None:
         raise api_error(410, "share_expired")
-    return zip_to_tables(read_blob(settings.master_key, db.get(Blob, s.twin.blob_id)))
+    from nazeer_api.returns import add_refs, link_of, ref_key
+
+    tables = zip_to_tables(read_blob(settings.master_key, db.get(Blob, s.twin.blob_id)))
+    return add_refs(tables, link_of(s.twin), ref_key(settings.master_key, s.id))  # nazeer_ref next to the key
 
 
 @router.get("/received/{share_id}")

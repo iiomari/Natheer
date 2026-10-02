@@ -193,6 +193,35 @@ export type Received = {
   expires_at: string
   tables: { name: string; rows: number }[]
   cleaning: { rules: string[]; changed: Record<string, number> } | null
+  returns: { table: string; column: string; ref_column: string } | null
   proof?: Twin["proof"]
   preview?: { table: string; columns: string[]; rows: (string | null)[][] }[]
+}
+
+export type ReturnRejected = { ref_mismatch: number; unknown_key: number; missing_key: number; duplicate_key: number }
+
+export type ReturnInfo = {
+  id: string
+  share_id: string
+  twin_id: string
+  dataset_name: string
+  file_name: string
+  created_at: string
+  rows_total: number
+  rows_accepted: number
+  rejected: ReturnRejected
+  columns: string[]
+  available: boolean
+  recipient?: string
+  excel_repaired?: number
+  relink?: {
+    status: "none" | "running" | "ready" | "failed" | "expired"
+    error_code: string | null
+    matched: number | null
+    expires_at: string | null
+    downloads: number
+    mine?: boolean
+  }
+  link?: { table: string; column: string } | null
+  source_tables?: string[]
 }

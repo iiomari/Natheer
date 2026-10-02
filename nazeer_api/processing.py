@@ -199,7 +199,19 @@ def generate_twin(db: DbSession, settings: Settings, ds: Dataset, payload: dict,
         blob = put_blob(db, settings.master_key, ds.org_id, "twin", tables_to_zip(res.twin), dataset_id=ds.id)
         db.flush()
     report = _json_safe(res.report)
-    report["cleaning"] = (ds.summary or {}).get("cleaning", {}).get("report")  # what was cleaned (counts only)
+    summary = ds.summary or {}
+    cleaning = summary.get("cleaning") or {}
+    report["cleaning"] = cleaning.get("report")  # what was cleaned (counts only)
+    # Everything needed to rebuild this twin from the same original files at re-link time.
+    # Names, options and counts only: no data value.
+    key = ui.entity_key(an.profile) if mode == "masked" else None
+    opts = dict((cleaning.get("report") or {}).get("options") or {})
+    opts["merges"] = [g["key"] for g in cleaning.get("suggestions", []) if g.get("approved")]
+    report["generation"] = _json_safe({
+        "dataset_name": ds.name, "cleaning": opts, "overrides": overrides, "apply_fix": payload.get("apply_fix"),
+        "link": {"table": key[0], "column": key[1]} if key else None,
+        "source": [{"table": n["table"], "rows": n["rows"]} for n in summary.get("ingest", [])],
+    })
     twin = Twin(org_id=ds.org_id, dataset_id=ds.id, blob_id=blob.id if blob else None, mode=mode,
                 verdict=res.report["verdict"], report=report, proof=_json_safe(proof),
                 key_version=org.key_version, created_by=created_by)
@@ -221,6 +233,19 @@ def sweep(db: DbSession, settings: Settings) -> dict:
         ds.originals_deleted_at = ds.originals_deleted_at or now
         if ds.status == "processing":
             ds.status, ds.error_code = "failed", "session_expired"
+    from nazeer_api.models import Return
+    from nazeer_api.returns import RELINK_KINDS
+
+    relink_blobs = db.execute(select(Blob).where(Blob.kind.in_(RELINK_KINDS), Blob.expires_at <= now)).scalars().all()
+    for b in relink_blobs:
+        for r in db.execute(select(Return).where((Return.relinked_blob_id == b.id) | (Return.relink_upload_id == b.id))).scalars():
+            if r.relinked_blob_id == b.id:
+                r.relinked_blob_id, r.relink_status = None, "expired"
+            else:
+                r.relink_upload_id = None
+                if r.relink_status == "running":
+                    r.relink_status, r.relink_error = "failed", "relink_upload_expired"
+        db.delete(b)
     cutoff = now - timedelta(days=settings.twin_retention_days)
     purged = 0
     for twin in db.execute(select(Twin).where(Twin.purged_at.is_(None), Twin.created_at <= cutoff)).scalars():
@@ -229,10 +254,13 @@ def sweep(db: DbSession, settings: Settings) -> dict:
         if active is None:
             if twin.blob_id:
                 db.execute(delete(Blob).where(Blob.id == twin.blob_id))
+            for r in db.execute(select(Return).where(Return.twin_id == twin.id, Return.blob_id.is_not(None))).scalars():
+                db.execute(delete(Blob).where(Blob.id == r.blob_id))
+                r.blob_id = None
             twin.blob_id, twin.purged_at = None, now
             purged += 1
     db.commit()
-    return {"originals_deleted": len(expired), "twins_purged": purged}
+    return {"originals_deleted": len(expired), "twins_purged": purged, "relink_files_deleted": len(relink_blobs)}
 
 
 def end_session(db: DbSession, ds: Dataset) -> None:

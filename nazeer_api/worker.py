@@ -84,6 +84,40 @@ def _generate(ctx: JobContext) -> dict:
     return {"twin_id": twin.id, "verdict": twin.verdict}
 
 
+@handler("relink")
+def _relink(ctx: JobContext) -> dict:
+    """Admin-only re-linking. The org key and the pseudonym -> real key dictionary exist only inside
+    returns.relink(); a failure leaves a code on the return, never a value in the job or the logs."""
+    from nazeer_api import audit
+    from nazeer_api.models import Blob, Return
+    from nazeer_api.returns import ReturnError, relink
+
+    rid = ctx.job.payload["return_id"]
+    r = ctx.db.get(Return, rid)
+    ctx.progress("relinking", 15)
+    try:
+        out = relink(ctx.db, ctx.settings, r)
+    except Exception as e:  # noqa: BLE001 - the admin must see a reason, and the upload must go
+        ctx.db.rollback()
+        r = ctx.db.get(Return, rid)
+        code = e.code if isinstance(e, ReturnError) else "relink_failed"
+        counts = e.counts if isinstance(e, ReturnError) else {}
+        upload = ctx.db.get(Blob, r.relink_upload_id) if r.relink_upload_id else None
+        if upload is not None:
+            ctx.db.delete(upload)
+        r.relink_upload_id, r.relink_status, r.relink_error = None, "failed", code[:64]
+        audit.record(ctx.db, "relink.failed", org_id=r.org_id, actor_user_id=ctx.job.created_by, target_type="return",
+                     target_id=r.id, reason=code, **counts)
+        ctx.db.commit()
+        if not isinstance(e, ReturnError):
+            raise
+        return {"error_code": code, **counts}
+    audit.record(ctx.db, "relink.completed", org_id=r.org_id, actor_user_id=ctx.job.created_by, target_type="return",
+                 target_id=r.id, **out)
+    ctx.db.commit()
+    return out
+
+
 _last_sweep = 0.0
 
 

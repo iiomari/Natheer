@@ -46,7 +46,7 @@ function orgNav(m: MembershipRef): { title: string; items: NavItem[] }[] {
     work.push(
       { href: `${base}/datasets`, label: "مجموعات البيانات", icon: Database },
       { href: `${base}/shares`, label: "المشاركات", icon: Share2 },
-      { href: `${base}/returns`, label: "المرتجعات", icon: Undo2, soon: true },
+      { href: `${base}/returns`, label: "المرتجعات", icon: Undo2 },
     )
   }
   groups.push({ title: "المنشأة", items: work })
