@@ -41,7 +41,7 @@ export const DTYPE_LABEL: Record<string, string> = {
 }
 
 export const STAGE_LABEL: Record<string, string> = {
-  reading_files: "قراءة الملفات واكتشاف البيانات الشخصية",
+  reading_files: "قراءة الملفات وتنظيفها واكتشاف البيانات الشخصية",
   generating: "توليد النظير وفحصه",
   requeued: "إعادة المحاولة",
 }

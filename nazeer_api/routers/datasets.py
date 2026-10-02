@@ -156,6 +156,68 @@ def note(org_id: str, dataset_id: str, index: int, m: Membership = Depends(data_
             "baseline": n["baseline"], "nazeer": n["nazeer"]}
 
 
+class CleanIn(BaseModel):
+    trim: bool = True
+    nulls: bool = True
+    numbers: bool = True
+    dates: bool = True
+    dedupe: bool = True
+    arabic: bool = False
+    phones: bool = False
+    merges: list[str] = Field(default_factory=list, max_length=500)  # suggestion keys only, never values
+
+
+CLEAN_RULES = ("trim", "nulls", "numbers", "dates", "dedupe", "arabic", "phones")
+
+
+@router.post("/datasets/{dataset_id}/clean", status_code=202)
+def reclean(org_id: str, dataset_id: str, body: CleanIn, m: Membership = Depends(data_manager),
+            db: DbSession = Depends(get_db)) -> dict:
+    """Re-run cleaning + detection on the session's raw tables with new options."""
+    ds = _dataset(db, org_id, dataset_id)
+    if ds.status not in ("ready", "failed") or not (ds.summary or {}).get("cleaning"):
+        raise api_error(409, "dataset_not_ready")
+    if not session_open(ds):
+        raise api_error(410, "session_expired")
+    if any(len(k) > 600 or "#" not in k for k in body.merges):
+        raise api_error(422, "invalid_merge_key")
+    ds.status, ds.error_code = "processing", None
+    j = jobs.enqueue(db, org_id, "process", {"dataset_id": ds.id, "cleaning": body.model_dump()}, created_by=m.user_id)
+    audit.record(db, "dataset.cleaning_changed", org_id=org_id, actor_user_id=m.user_id, target_type="dataset",
+                 target_id=ds.id, on=sorted(r for r in CLEAN_RULES if getattr(body, r)), merges=len(body.merges))
+    db.commit()
+    return {"job_id": j.id}
+
+
+def _raw_tables(db: DbSession, settings: Settings, ds: Dataset) -> dict:
+    try:
+        return load_tables(db, settings, ds, kind="tables")
+    except ProcessingError as e:
+        raise api_error(410, e.code) from None
+
+
+@router.get("/datasets/{dataset_id}/cleaning/examples/{rule}")
+def cleaning_examples(org_id: str, dataset_id: str, rule: str, m: Membership = Depends(data_manager),
+                      db: DbSession = Depends(get_db), settings: Settings = Depends(get_settings_dep)) -> dict:
+    """Before/after values for one rule. Original values: only while the session is open, never stored."""
+    from nazeer.cleaning import examples
+
+    if rule not in CLEAN_RULES:
+        raise api_error(404, "not_found")
+    ds = _dataset(db, org_id, dataset_id)
+    return {"rule": rule, "examples": examples(_raw_tables(db, settings, ds), rule, n=6)}
+
+
+@router.get("/datasets/{dataset_id}/cleaning/suggestions")
+def cleaning_suggestions(org_id: str, dataset_id: str, m: Membership = Depends(data_manager),
+                         db: DbSession = Depends(get_db), settings: Settings = Depends(get_settings_dep)) -> list[dict]:
+    """Category spelling groups with their values (session-only); approvals are sent back as keys."""
+    from nazeer.cleaning import category_suggestions
+
+    ds = _dataset(db, org_id, dataset_id)
+    return category_suggestions(_raw_tables(db, settings, ds))
+
+
 class GenerateIn(BaseModel):
     mode: Literal["masked", "synthetic"] = "masked"
     overrides: dict = Field(default_factory=dict)

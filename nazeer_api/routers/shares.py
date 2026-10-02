@@ -175,12 +175,24 @@ def _grant(db: DbSession, user: User, share_id: str) -> Share:
     return g.share
 
 
+def cleaning_note(report: dict | None) -> dict | None:
+    """What was cleaned before the twin was made: rules that ran and how many cells/rows each changed."""
+    c = (report or {}).get("cleaning")
+    if not c:
+        return None
+    on = [r for r, v in c.get("options", {}).items() if v and r != "merges"]
+    if c.get("options", {}).get("merges"):
+        on.append("merges")
+    return {"rules": on, "changed": {r: v["total"] for r, v in c.get("applied", {}).items()}}
+
+
 def received_payload(s: Share) -> dict:
     t = s.twin
     return {"id": s.id, "org_name": s.org.name, "dataset_name": t.dataset.name, "mode": t.mode, "verdict": t.verdict,
             "status": share_status(s), "formats": s.formats, "message": s.message,
             "created_at": s.created_at.isoformat(), "expires_at": s.expires_at.isoformat(),
-            "tables": [{"name": tb["name"], "rows": tb["rows"]} for tb in (t.dataset.summary or {}).get("tables", [])]}
+            "tables": [{"name": tb["name"], "rows": tb["rows"]} for tb in (t.dataset.summary or {}).get("tables", [])],
+            "cleaning": cleaning_note(t.report)}
 
 
 @router.get("/received")

@@ -102,10 +102,26 @@ export type Dataset = {
     entity: { table: string } | null
     ingest: { table: string; source: string; rows: number; columns: number; encoding: string | null; delimiter: string | null; header: string; dropped_empty_rows: number; dropped_empty_columns: number; renamed_columns: number }[]
     total_rows: number
+    cleaning?: {
+      report: {
+        options: Record<CleanRule, boolean> & { merges: number }
+        applied: Partial<Record<CleanRule | "merges", { total: number; by_column: Record<string, number> }>>
+        ambiguous_dates: string[]
+      }
+      potential: Partial<Record<CleanRule, number>>
+      suggestions: { key: string; table: string; column: string; variants: number; rows: number; approved: boolean }[]
+      report_only: { table: string; column: string; missing: number; missing_share: number; extreme_outliers: number; mixed_types: boolean }[]
+      rows_before: number
+    }
   } | null
   process_job?: JobState | null
   generate_job?: JobState | null
 }
+
+export type CleanRule = "trim" | "nulls" | "numbers" | "dates" | "dedupe" | "arabic" | "phones"
+export type CleanOptions = Record<CleanRule, boolean> & { merges: string[] }
+export type CleanExample = { table: string; column: string; before: string | null; after: string | null }
+export type CleanSuggestion = { key: string; table: string; column: string; to: string; from: string[]; rows: number }
 
 export type Mark = [number, number, string, string]
 
@@ -176,6 +192,7 @@ export type Received = {
   created_at: string
   expires_at: string
   tables: { name: string; rows: number }[]
+  cleaning: { rules: string[]; changed: Record<string, number> } | null
   proof?: Twin["proof"]
   preview?: { table: string; columns: string[]; rows: (string | null)[][] }[]
 }

@@ -22,9 +22,10 @@ log = logging.getLogger("nazeer_api.serve")
 
 
 def _api_cmd() -> list[str]:
+    # "*" goes through the environment: as an argument, Windows Python expands it like a file glob.
+    os.environ.setdefault("FORWARDED_ALLOW_IPS", "*")
     return [sys.executable, "-m", "uvicorn", "nazeer_api.main:app", "--host", "0.0.0.0",
-            "--port", os.environ.get("PORT", "8000"), "--proxy-headers", "--forwarded-allow-ips", "*",
-            "--no-server-header"]
+            "--port", os.environ.get("PORT", "8000"), "--proxy-headers", "--no-server-header"]
 
 
 def _worker_cmd() -> list[str]:

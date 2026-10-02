@@ -26,7 +26,9 @@ This file is updated after every milestone so a new session can resume from it a
 | **Web product** P1 Backend foundation (auth, orgs, roles, tenancy, migrations, job worker) | done | (this commit) |
 | **Site + infrastructure first** (user, 2026-10-01): Next.js app (design system, public site, auth, workspace shell, team/audit/settings), deployment setup (Railway + Aiven + Vercel + Resend), CI | done | (this commit) |
 | P2 Vertical slice (upload → detect → masked twin → report → share → recipient) + any-data ingestion + no-email links | done | (this commit) |
-| P3 Design system + all pages · P4 Cleaning · P5 Returns + re-linking · P6 Team/audit/settings/email · P7 Public site + demo seed · P8 Hardening + E2E · P9 Deployment · P10 Final docs | not started | — |
+| Deploy (P9 early): Railway (api, worker, MySQL) + Vercel Hobby, full E2E against production | done | 3214b8a |
+| P4 Data cleaning (rules, toggles, before/after, approvals, report-only, in the twin report) | done | (this commit) |
+| P3 Design system + all pages · P5 Returns + re-linking · P6 Team/audit/settings/email · P7 Public site + demo seed · P8 Hardening + E2E · P9 Deployment · P10 Final docs | not started | — |
 | HMA multi-table synthesis | **out of scope for the hackathon** | — |
 | PDF report | **out of scope for the hackathon** | — |
 
@@ -598,6 +600,50 @@ installed).
 
 **Next:** deployment (needs the two CLI logins), then P4 cleaning, P5 returns and re-linking, P6, P7, P8.
 
+### P4: Data cleaning
+Runs in the worker between parsing and detection: upload → raw tables (encrypted, session-only) →
+cleaning → cleaned tables (encrypted, session-only) → detection. Generation uses the cleaned tables.
+
+**Engine (`nazeer/cleaning.py`, value-free report):**
+- on by default: trim and collapse spaces, remove invisible characters; whole-cell null-likes become
+  empty (text that merely contains "null" is kept); numbers stored as text (Arabic-Indic digits,
+  thousands separators) in numeric columns; dates to ISO when the day/month order is certain
+  (ambiguous columns are left alone and listed); exact duplicate rows removed;
+- off by default: Arabic letter forms in categorical columns (never on name columns); mobile format
+  to 05XXXXXXXX; category spelling merges, applied only for groups the user approves by key;
+- report only: missing values per column, extreme outliers (3 × IQR), mixed number/text columns;
+- identifiers are protected: a column with leading zeros, or where most values validate as a national
+  ID, mobile or IBAN, is never converted to numbers and gets no outlier statistics.
+
+**API:** `POST /datasets/{id}/clean` (options and approved merge keys, never values; re-runs cleaning
+and detection from the raw tables; audit records the rule names and the merge count);
+`GET …/cleaning/examples/{rule}` and `GET …/cleaning/suggestions` return original values, so they work
+only while the session is open (410 afterwards). `dataset.summary.cleaning` holds the report, the
+potential counts per rule, value-free suggestion keys and the report-only stats. The twin's report
+carries `cleaning`; the recipient's view shows which rules ran and how many cells or rows each changed.
+
+**Web:** a «تنظيف البيانات» section on the dataset page: one checkbox per rule with "applied to N" or
+"would change N", a before/after table per rule, suggestion approvals, the report-only table, the
+ambiguous-dates notice, «طبّق وأعد الكشف» and «تراجع». Recipients see «ما نُظِّف قبل التوليد».
+
+**Verified:**
+- `tests/test_cleaning.py`, 13 tests (one per rule, identifiers untouched, ambiguous dates, names never
+  normalized, approvals by key, value-free report, a cleaned demo still detects and masks with PASS);
+- `tests_api/test_p4.py`, 5 tests (defaults and counts, session-only previews, re-clean with an approved
+  merge, the twin report and the recipient's view, roles);
+- full suite: **330 passed, 4 skipped**;
+- browser E2E: opt in to the mobile rule, before/after preview, apply and re-detect, then the full P2
+  story; 0 external requests; screenshot `docs/ui/web/p4-01-cleaning.png`.
+
+**Deviations:**
+93. **Cleaning keeps a second encrypted copy for the session.** The raw tables stay, so options can
+    be changed without uploading again. Both copies expire with the session and are removed by the
+    sweep and by «احذف الأصول الآن» (tested).
+94. **Suggestion values are never stored.** The stored summary has the key, column and counts only.
+    Values come from the session's raw tables on request.
+95. **Fixed:** the local `NAZEER_ROLE=all` supervisor failed on Windows because `--forwarded-allow-ips *`
+    was expanded like a file glob. It is now passed as `FORWARDED_ALLOW_IPS`; Linux is unaffected.
+
 ## Milestone log
 
 ### M2: Demo data + golden labels
@@ -1056,6 +1102,6 @@ MySQL integration tests, waiting for credentials.
 
 ## Next step
 
-Deploy (Vercel Hobby + Railway trial via CLI; see docs/DEPLOY.md), then P4 cleaning.
+P5: returns from recipients and admin-only re-linking (key-based, in memory, no mapping table).
 Still waiting on you: MySQL service and password in `.env` (engine live tests and a MySQL run of the API
 migrations); Docker Desktop, so `docker compose up` can be verified; hand-written notes.

@@ -6,6 +6,7 @@ import { useState } from "react"
 import { ArrowRight, Download, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 
+import { CleaningNote } from "@/components/cleaning"
 import { DataTable } from "@/components/data"
 import { LoadError, Loading } from "@/components/org"
 import { Chip, EmptyState, Ltr, Notice, Num, PageHeader, Section, Spinner, VerdictChip } from "@/components/nz"
@@ -84,6 +85,7 @@ export default function ReceivedDetail() {
               <DataTable columns={t.columns} rows={t.rows} />
             </Section>
           ))}
+          <CleaningNote cleaning={d.cleaning} />
           <p className="text-sm text-muted-foreground">
             إعادة نتائجك إلى المنشأة تُتاح هنا في الإصدار القادم. الجداول: <Ltr>{d.tables.map((x) => x.name).join(", ")}</Ltr>
           </p>

@@ -38,8 +38,12 @@ def originals_blob(db: DbSession, dataset_id: str, kind: str) -> Blob | None:
     return db.execute(select(Blob).where(Blob.dataset_id == dataset_id, Blob.kind == kind)).scalar_one_or_none()
 
 
-def load_tables(db: DbSession, settings: Settings, ds: Dataset) -> dict:
-    blob = originals_blob(db, ds.id, "tables")
+ORIGINAL_KINDS = ("upload", "tables", "clean")
+
+
+def load_tables(db: DbSession, settings: Settings, ds: Dataset, kind: str = "clean") -> dict:
+    """The cleaned tables (what detection and generation use); kind="tables" gives the raw parse."""
+    blob = originals_blob(db, ds.id, kind) or (originals_blob(db, ds.id, "tables") if kind == "clean" else None)
     if blob is None or ds.originals_deleted_at is not None or ds.session_expires_at <= utcnow():
         raise ProcessingError("session_expired")
     return zip_to_tables(read_blob(settings.master_key, blob))
@@ -107,29 +111,52 @@ def detection_summary(an, ingest_notes: list[dict]) -> dict:
     }
 
 
-def process_upload(db: DbSession, settings: Settings, ds: Dataset) -> dict:
-    """Upload blob -> clean tables blob (the upload blob is deleted) -> detection summary."""
+def process_upload(db: DbSession, settings: Settings, ds: Dataset, cleaning: dict | None = None) -> dict:
+    """upload -> raw tables (the upload blob is deleted) -> cleaning -> detection summary.
+
+    Called again with new cleaning options: then the raw tables blob is reused."""
+    from nazeer import cleaning as cl
     from nazeer import pipeline
     from nazeer.ingest import IngestError, read_files
 
     upload = originals_blob(db, ds.id, "upload")
-    if upload is None:
-        raise ProcessingError("session_expired")
-    try:
-        res = read_files(_upload_files(read_blob(settings.master_key, upload)))
-    except IngestError as e:
-        raise ProcessingError(f"ingest:{e.code}") from None
-    total = sum(len(df) for df in res.tables.values())
+    if upload is not None:
+        try:
+            res = read_files(_upload_files(read_blob(settings.master_key, upload)))
+        except IngestError as e:
+            raise ProcessingError(f"ingest:{e.code}") from None
+        raw, ingest_notes = res.tables, res.report()
+        put_blob(db, settings.master_key, ds.org_id, "tables", tables_to_zip(raw),
+                 expires_at=ds.session_expires_at, dataset_id=ds.id)
+        db.delete(upload)
+    else:
+        raw = load_tables(db, settings, ds, kind="tables")
+        ingest_notes = (ds.summary or {}).get("ingest", [])
+    total = sum(len(df) for df in raw.values())
     if total > settings.max_rows_masked:
         raise ProcessingError("too_many_rows_hosted")
-    put_blob(db, settings.master_key, ds.org_id, "tables", tables_to_zip(res.tables),
+    opts = cl.CleanOptions.from_dict(cleaning)
+    cleaned, report = cl.clean(raw, opts)
+    old = originals_blob(db, ds.id, "clean")
+    if old is not None:
+        db.delete(old)
+    put_blob(db, settings.master_key, ds.org_id, "clean", tables_to_zip(cleaned),
              expires_at=ds.session_expires_at, dataset_id=ds.id)
-    db.delete(upload)
-    an = pipeline.analyze(res.tables, ds.name)
-    ds.summary = detection_summary(an, res.report())
+    an = pipeline.analyze(cleaned, ds.name)
+    summary = detection_summary(an, ingest_notes)
+    suggestions = cl.category_suggestions(raw)
+    summary["cleaning"] = {
+        "report": report,
+        "potential": cl.potential(raw),
+        "suggestions": [{"key": g["key"], "table": g["table"], "column": g["column"], "variants": len(g["from"]) + 1,
+                         "rows": g["rows"], "approved": g["key"] in opts.merges} for g in suggestions],
+        "report_only": cl.report_only(raw),
+        "rows_before": int(total),
+    }
+    ds.summary = summary
     ds.status = "ready"
     db.commit()
-    return {"tables": len(res.tables), "rows": total}
+    return {"tables": len(cleaned), "rows": summary["total_rows"]}
 
 
 # ---------------------------------------------------------------- twin generation
@@ -171,8 +198,10 @@ def generate_twin(db: DbSession, settings: Settings, ds: Dataset, payload: dict,
     if not res.twin_withheld:
         blob = put_blob(db, settings.master_key, ds.org_id, "twin", tables_to_zip(res.twin), dataset_id=ds.id)
         db.flush()
+    report = _json_safe(res.report)
+    report["cleaning"] = (ds.summary or {}).get("cleaning", {}).get("report")  # what was cleaned (counts only)
     twin = Twin(org_id=ds.org_id, dataset_id=ds.id, blob_id=blob.id if blob else None, mode=mode,
-                verdict=res.report["verdict"], report=_json_safe(res.report), proof=_json_safe(proof),
+                verdict=res.report["verdict"], report=report, proof=_json_safe(proof),
                 key_version=org.key_version, created_by=created_by)
     db.add(twin)
     db.commit()
@@ -184,7 +213,7 @@ def generate_twin(db: DbSession, settings: Settings, ds: Dataset, payload: dict,
 def sweep(db: DbSession, settings: Settings) -> dict:
     """Delete expired originals; purge old twins no active share needs. Counts only."""
     now = utcnow()
-    expired = db.execute(select(Blob).where(Blob.kind.in_(("upload", "tables")), Blob.expires_at <= now)).scalars().all()
+    expired = db.execute(select(Blob).where(Blob.kind.in_(ORIGINAL_KINDS), Blob.expires_at <= now)).scalars().all()
     ds_ids = {b.dataset_id for b in expired}
     for b in expired:
         db.delete(b)
@@ -208,7 +237,7 @@ def sweep(db: DbSession, settings: Settings) -> dict:
 
 def end_session(db: DbSession, ds: Dataset) -> None:
     """The user's "delete originals now": both original blobs go, immediately."""
-    db.execute(delete(Blob).where(Blob.dataset_id == ds.id, Blob.kind.in_(("upload", "tables"))))
+    db.execute(delete(Blob).where(Blob.dataset_id == ds.id, Blob.kind.in_(ORIGINAL_KINDS)))
     ds.originals_deleted_at = utcnow()
     ds.session_expires_at = min(ds.session_expires_at, utcnow())
     db.commit()

@@ -63,7 +63,7 @@ def _process(ctx: JobContext) -> dict:
     ds = ctx.db.get(Dataset, ctx.job.payload["dataset_id"])
     ctx.progress("reading_files", 10)
     try:
-        return process_upload(ctx.db, ctx.settings, ds)
+        return process_upload(ctx.db, ctx.settings, ds, ctx.job.payload.get("cleaning"))
     except Exception as e:  # noqa: BLE001 - any failure must reach the user, not leave "processing"
         ctx.db.rollback()
         ds = ctx.db.get(Dataset, ctx.job.payload["dataset_id"])

@@ -208,7 +208,7 @@ def test_originals_not_persisted_after_the_session(app, org_admin, demo_files):
     ds = ready_dataset(app, admin, org, demo_files)
     with app.state.sessionmaker() as db:
         kinds = {b.kind for b in db.execute(select(Blob).where(Blob.dataset_id == ds["id"])).scalars()}
-    assert kinds == {"tables"}  # the raw upload is deleted as soon as it is parsed
+    assert kinds == {"tables", "clean"}  # the raw upload is deleted as soon as it is parsed
     masked_twin(app, admin, org, ds["id"], apply_fix="auto")
     assert admin.post(f"/api/orgs/{org}/datasets/{ds['id']}/end-session").status_code == 200
     with app.state.sessionmaker() as db:
@@ -224,7 +224,7 @@ def test_originals_not_persisted_after_the_session(app, org_admin, demo_files):
         db.execute(update(Blob).where(Blob.dataset_id == ds2["id"]).values(expires_at=utcnow() - timedelta(seconds=1)))
         db.execute(update(Dataset).where(Dataset.id == ds2["id"]).values(session_expires_at=utcnow() - timedelta(seconds=1)))
         db.commit()
-        assert sweep(db, app.state.settings)["originals_deleted"] == 1
+        assert sweep(db, app.state.settings)["originals_deleted"] == 2
         assert db.execute(select(Blob).where(Blob.dataset_id == ds2["id"])).first() is None
     assert admin.get(f"/api/orgs/{org}/datasets/{ds2['id']}").json()["session_open"] is False
 

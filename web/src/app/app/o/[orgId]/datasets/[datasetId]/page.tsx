@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react"
 import { ChevronLeft, ChevronRight, FileCheck2, Link2, ScanSearch, Table2, Trash2, Wand2 } from "lucide-react"
 import { toast } from "sonner"
 
+import { CleaningPanel } from "@/components/cleaning"
 import { HighlightedText, MarkLegend, useNow } from "@/components/data"
 import { DTYPE_LABEL, DatasetStatus, KIND_LABEL, STAGE_LABEL, TAG_LABEL } from "@/components/dataset"
 import { NativeSelect } from "@/components/form"
@@ -244,6 +245,8 @@ export default function DatasetPage() {
             <StatCard label="الروابط بين الجداول" value={<Num>{s.relationships.length}</Num>} icon={Link2}
               hint={s.relationships.length ? undefined : "تُعامل الجداول باستقلال"} />
           </div>
+
+          <CleaningPanel orgId={orgId} ds={d} onApplied={() => void ds.reload()} />
 
           <Section title="مراجعة الكشف" description="ما اكتشفه نَظير في كل عمود، ولماذا. غيّر الإجراء إن لزم؛ كل تعديل يُسجَّل في التقرير.">
             {s.tables.map((t) => (

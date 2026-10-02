@@ -12,6 +12,7 @@ Fails if any request leaves the site's host. Playwright is a dev tool only, not 
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -81,6 +82,17 @@ def main() -> None:
         page.wait_for_url("**/datasets/**", timeout=30_000)
         expect(page.get_by_role("heading", name="مراجعة الكشف")).to_be_visible(timeout=TIMEOUT)
         shot(page, "p2-04-review.png")
+        # cleaning: opt in to phone unification, look at before/after, apply and re-detect
+        cleaning = page.get_by_role("heading", name="تنظيف البيانات")
+        cleaning.scroll_into_view_if_needed()
+        page.get_by_role("checkbox", name=re.compile("توحيد صيغة الجوال")).click()
+        phones_row = page.locator("li").filter(has_text="توحيد صيغة الجوال")
+        phones_row.get_by_role("button", name="قبل / بعد").click()
+        expect(phones_row.locator("table")).to_be_visible(timeout=TIMEOUT)
+        shot(page, "p4-01-cleaning.png", full=False)
+        page.get_by_role("button", name="طبّق وأعد الكشف").click()
+        expect(phones_row.get_by_text(re.compile("طُبِّق على"))).to_be_visible(timeout=TIMEOUT)
+        expect(page.get_by_role("heading", name="مراجعة الكشف")).to_be_visible(timeout=TIMEOUT)
         page.get_by_role("tab", name="أداة تقليدية").click()
         page.get_by_role("heading", name="البيانات الشخصية داخل النصوص").scroll_into_view_if_needed()
         shot(page, "p2-05-baseline-view.png", full=False)
@@ -137,6 +149,7 @@ def main() -> None:
         shot(emp, "p2-10-received.png")
         emp.get_by_text("مطالبات العرض").click()
         expect(emp.get_by_text("هذه بيانات نظيرة لا تحتوي أي شخص حقيقي.")).to_be_visible()
+        expect(emp.get_by_role("heading", name="ما نُظِّف قبل التوليد")).to_be_visible()
         shot(emp, "p2-11-received-detail.png")
         for label in ("تحميل CSV", "تحميل Excel"):
             with emp.expect_download() as d:
