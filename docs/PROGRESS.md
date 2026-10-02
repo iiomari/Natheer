@@ -30,7 +30,8 @@ This file is updated after every milestone so a new session can resume from it a
 | P4 Data cleaning (rules, toggles, before/after, approvals, report-only, in the twin report) | done | e8aa67f |
 | P5 Returns + admin-only re-linking (nazeer_ref, rejection thresholds, in-memory recomputation) | done; re-link design replaced by P5b | 2bf71eb |
 | Judge-test fixes (user, 2026-10-02): k-anonymity removed, review band, IBAN shapes, residual scan, Arabic UI, answer-key check, 3 sector samples | done | (this commit) |
-| P5b Per-row verification token (رمز التحقق) replaces nazeer_ref and the exact-file re-link | done | (this commit) |
+| P5b Per-row verification token (رمز التحقق) replaces nazeer_ref and the exact-file re-link | done | cccb8d1 |
+| Valid fakes for bracketed mobiles; amber «تنبيه» for non-blocking checks; twin viewer; one-page Arabic PDF report | done | (this commit) |
 | P3 Design system + all pages · P6 Team/audit/settings/email · P7 Public site + demo seed · P8 Hardening + E2E · P9 Deployment · P10 Final docs | not started | — |
 | HMA multi-table synthesis | **out of scope for the hackathon** | — |
 | PDF report | **out of scope for the hackathon** | — |
@@ -877,6 +878,73 @@ mobile column.
 105. **The encrypted twin holds each row's sealed reference** (the token before the share binding),
      because shares are made after the originals are deleted. It is not a mapping table: no
      pseudonym → key pair is ever stored, and it opens only with the organization key.
+
+### Valid fakes, clearer report, twin viewer, PDF report
+**Why 16% of fakes failed (insurance file).** Only mobile columns, and only originals written as
+`(05X) XXX XXXX`:
+
+| File | Column (type) | Failing fakes before | After |
+|---|---|---|---|
+| insurance_claims_test | المؤمن_لهم.جوال (MOBILE) | 42 of 260 (card 84%) | 0 (100%) |
+| bank_customers_test | هاتف التواصل (MOBILE) | 77 of 450 (card 83%) | 0 (100%) |
+| hospital_patients_test | all identifier columns | 0 | 0 (100%) |
+
+- **Root cause:** `saudi_ids.flatten` kept the brackets, so the original did not validate. The fake was
+  then rendered as the bare 9-digit national number, `506056166`.
+- **Fix:** brackets are dropped by `flatten` (no identifier contains them), and `render_like` treats them
+  as layout, so the fake is `(050) 605 6166`.
+- No column was misclassified, and no first-digit or IBAN issue was found.
+- `tests/test_fake_validity.py` (23 formats: IDs in three digit scripts with spaces, dashes and dots;
+  mobiles with every prefix, brackets and separators; IBANs lower-case, grouped, with Arabic digits)
+  requires a valid fake in the original layout for each.
+- The card now looks columns up by (table, column), not by column name alone.
+
+**Consistent report:**
+- A check that does not block sharing never shows a red «راسب». It shows an amber «تنبيه» with one
+  Arabic line («بعض البدائل لا تجتاز التحقق؛ قد ترفضها الأنظمة. لا يوجد أي تسريب.»).
+- The cards are grouped into «الأمان» (leak scan, residual scan) and «الجودة» (validity, links), each
+  with its own status.
+- In the checks table, a non-blocking FAIL is shown as «تنبيه».
+
+**Twin viewer («عرض النظير»)** for the organization (`/app/o/:org/twins/:id/view`) and for recipients
+(`/app/received/:share/view`):
+- server-side pagination (50 rows), search and numeric-aware sorting;
+- sticky headers, table tabs, IDs and numbers LTR-isolated;
+- replaced cells subtly highlighted and review cells with an amber «؟», with a legend;
+- the `رمز_التحقق` column (the organization's view carries its own view-only tokens; every share
+  gets its own);
+- «تحميل Excel» and «تحميل CSV».
+
+How it works:
+- Cell marks are positions only (replaced columns, changed free-text rows, review rows), stored in the
+  encrypted twin blob (`_meta.json`).
+- A 3-twin, 5-minute in-process cache of the decrypted twin keeps paging fast; it holds pseudonymized
+  data only.
+
+**Simple report:**
+- the page opens with one verdict sentence, then «الأمان» and «الجودة», then «ما نُظِّف» / «ما استُبدل» /
+  «قرارات المراجعة» and the main limitation;
+- the checks table, the before/after preview and the full limitations sit under «تفاصيل للمختصين»;
+- «تنزيل التقرير (PDF)» is a one-page Arabic PDF with the same content: organization, dataset, Riyadh
+  date, verdict, cards, cleaned, replaced, review decisions, token note and limitation;
+- the PDF uses fpdf2 with HarfBuzz shaping (`uharfbuzz`) and bundled IBM Plex Sans Arabic TTFs
+  (converted from the site's WOFF2, SIL OFL), and was checked visually (`docs/ui/web/p7-report.png`);
+- JSON is only a small link, «تنزيل البيانات التقنية (JSON)».
+
+**Verified:**
+- `tests_api/test_twin_view.py` (paging, search, sort, marks, per-share tokens, recipients only their
+  own share, a one-page value-free PDF);
+- full suite **368 passed, 4 skipped**;
+- local browser E2E with the viewer, search, recipient view and PDF, 0 external requests.
+  Screenshots: `p7-twin-view.png`, `p7-twin-view-search.png`, `p7-recipient-view.png`, `p7-report.pdf`
+  and `.png`.
+
+**Deviations:**
+106. **New dependencies:** `fpdf2` (LGPL-3.0, used unmodified as a library) and `uharfbuzz`
+     (Apache-2.0). Tests read PDFs with `pypdf` (BSD). PyMuPDF (AGPL) was used only to render a PNG
+     locally and is not a dependency.
+107. **The organization's twin view and downloads carry view-only tokens** (bound to `view-<twin>`).
+     Returns are verified only against a real share's tokens.
 
 ## Milestone log
 

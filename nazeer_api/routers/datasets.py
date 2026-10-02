@@ -329,6 +329,12 @@ def _limitations_ar() -> list[str]:
     return LIMITATIONS_AR
 
 
+def _plain_summary(t: Twin) -> dict:
+    from nazeer_api.report_pdf import summary
+
+    return summary(t)
+
+
 def twin_payload(t: Twin) -> dict:
     rep = t.report
     return {"id": t.id, "dataset_id": t.dataset_id, "dataset_name": t.dataset.name, "mode": t.mode,
@@ -340,6 +346,7 @@ def twin_payload(t: Twin) -> dict:
             "limitations_ar": rep.get("limitations_ar") or _limitations_ar(),
             "token": (rep.get("generation") or {}).get("token"),
             "options": {k_: (rep.get("generation") or {}).get(k_) for k_ in ("approve_review", "cleared_columns", "overrides")},
+            "summary": _plain_summary(t),
             "review": (rep.get("free_text") or {}).get("review"), "residual": rep.get("residual_scan"),
             "utility": rep.get("utility"), "synthetic": rep.get("synthetic"),
             "privacy": rep.get("privacy")}
@@ -358,6 +365,64 @@ def get_twin(org_id: str, twin_id: str, m: Membership = Depends(data_manager), d
     out["session_open"] = session_open(t.dataset)
     out["shares"] = db.execute(select(Share.id).where(Share.twin_id == t.id)).scalars().all()
     return out
+
+
+def _view_sealer(settings: Settings, db: DbSession, t: Twin):
+    """Tokens shown in the organization's own view and downloads (each share gets its own tokens)."""
+    from nazeer_api.models import Organization
+    from nazeer_api.processing import org_key
+    from nazeer_api.tokens import Sealer
+
+    org = db.get(Organization, t.org_id)
+    key = org_key(settings, org) if t.key_version == org.key_version else None
+    return Sealer(key, settings.master_key, t.dataset_id, t.key_version, f"view-{t.id}")
+
+
+def _twin_blob(db: DbSession, t: Twin) -> Blob:
+    if t.blob_id is None:
+        raise api_error(410, "twin_purged" if t.purged_at else "twin_withheld")
+    return db.get(Blob, t.blob_id)
+
+
+@router.get("/twins/{twin_id}/rows")
+def twin_rows(org_id: str, twin_id: str, table: str | None = None, page: int = 1, size: int = 50, q: str = "",
+              sort: str | None = None, desc: bool = False, m: Membership = Depends(data_manager),
+              db: DbSession = Depends(get_db), settings: Settings = Depends(get_settings_dep)) -> dict:
+    """One page of the twin (no original value), with replaced / review marks."""
+    from nazeer_api import twin_view
+
+    t = _twin(db, org_id, twin_id)
+    tables, marks = twin_view.load(settings.master_key, _twin_blob(db, t))
+    return twin_view.page(tables, marks, table, page, size, q[:100], sort, desc, _view_sealer(settings, db, t))
+
+
+@router.get("/twins/{twin_id}/download.{fmt}")
+def twin_download(org_id: str, twin_id: str, fmt: Literal["csv", "xlsx"], m: Membership = Depends(data_manager),
+                  db: DbSession = Depends(get_db), settings: Settings = Depends(get_settings_dep)):
+    from nazeer_api.returns import tables_for_share
+    from nazeer_api.storage import export_csv_zip, export_xlsx
+
+    t = _twin(db, org_id, twin_id)
+    tables = tables_for_share(zip_to_tables(read_blob(settings.master_key, _twin_blob(db, t))), _view_sealer(settings, db, t))
+    audit.record(db, "twin.downloaded", org_id=org_id, actor_user_id=m.user_id, target_type="twin", target_id=t.id,
+                 format=fmt)
+    db.commit()
+    if fmt == "xlsx":
+        data, media, ext = export_xlsx(tables), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"
+    else:
+        data, media, ext = export_csv_zip(tables), "application/zip", "zip"
+    return Response(data, media_type=media, headers={"Content-Disposition": f'attachment; filename="nazeer-twin-{t.id[:8]}.{ext}"'})
+
+
+@router.get("/twins/{twin_id}/report.pdf")
+def twin_report_pdf(org_id: str, twin_id: str, m: Membership = Depends(data_manager), db: DbSession = Depends(get_db)):
+    from nazeer_api.models import Organization
+    from nazeer_api.report_pdf import build
+
+    t = _twin(db, org_id, twin_id)
+    pdf = build(t, db.get(Organization, t.org_id).name)
+    return Response(pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="nazeer-report-{t.id[:8]}.pdf"'})
 
 
 @router.get("/twins/{twin_id}/report.json")

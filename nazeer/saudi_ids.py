@@ -151,8 +151,9 @@ VALIDATORS: dict[Kind, Callable[[str], bool]] = {
 
 
 def flatten(value: str) -> str:
-    """ASCII digits with in-number separators and all whitespace removed; prefixes kept."""
-    return "".join(ch for ch in normalize(value)[0] if not ch.isspace())
+    """ASCII digits with in-number separators, brackets and all whitespace removed; prefixes kept.
+    No identifier contains brackets: "(058) 547 2803" is the mobile 0585472803."""
+    return "".join(ch for ch in normalize(value)[0] if not ch.isspace() and ch not in "()")
 
 
 def is_valid(kind: Kind, raw: str) -> bool:

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useState } from "react"
-import { ArrowRight, CheckCircle2, Download, KeyRound, Share2, ShieldAlert, XCircle } from "lucide-react"
+import { ArrowRight, CheckCircle2, Download, KeyRound, Share2, ShieldAlert, Table2, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
 import { DataTable } from "@/components/data"
@@ -14,6 +14,7 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { api, messageFor } from "@/lib/api"
 import { KIND_AR, checkDetail, checkName } from "@/lib/labels"
+import { RULE_LABEL } from "@/components/cleaning"
 import type { Twin } from "@/lib/types"
 import { formatDateTime, useApi } from "@/lib/use-api"
 import { cn } from "@/lib/utils"
@@ -106,6 +107,10 @@ export default function TwinPage() {
   }
 
   const pass = t.verdict === "PASS"
+  const safetyPass = p.leak.status === "PASS" && p.residual?.status !== "FAIL"
+  const validityOk = p.validity?.status !== "FAIL"
+  const linksOk = (p.links?.orphans ?? 0) === 0
+  const qualityPass = validityOk && linksOk
   return (
     <>
       <Link href={`/app/o/${orgId}/datasets/${t.dataset_id}`} className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
@@ -116,9 +121,14 @@ export default function TwinPage() {
         description={<>وُلّد {formatDateTime(t.created_at)}</>}
         actions={
           <>
-            <a href={`/api/orgs/${orgId}/twins/${t.id}/report.json`} className={buttonVariants({ variant: "outline" })}>
-              <Download data-icon="inline-start" /> تنزيل التقرير
+            <a href={`/api/orgs/${orgId}/twins/${t.id}/report.pdf`} className={buttonVariants({ variant: "outline" })}>
+              <Download data-icon="inline-start" /> تنزيل التقرير (PDF)
             </a>
+            {!t.withheld && !t.purged ? (
+              <Link href={`/app/o/${orgId}/twins/${t.id}/view`} className={buttonVariants({ variant: "outline" })}>
+                <Table2 data-icon="inline-start" /> عرض النظير
+              </Link>
+            ) : null}
             <Button onClick={() => setShareOpen(true)} disabled={!shareable} title={shareable ? undefined : "المشاركة متاحة للنظير الناجح فقط"}>
               <Share2 data-icon="inline-start" /> مشاركة
             </Button>
@@ -137,6 +147,8 @@ export default function TwinPage() {
           <p className="text-lg font-bold">{pass ? "النتيجة: ناجح · يمكن مشاركة هذا النظير" : "النتيجة: راسب · لا يمكن مشاركة هذا النظير"}</p>
           {!pass ? (
             <p className="mt-1 text-sm">الفحص الذي لم ينجح: {t.failed_checks.map(checkName).filter((v, i, a) => a.indexOf(v) === i).join("، ")}</p>
+          ) : !qualityPass ? (
+            <p className="mt-1 text-sm">الأمان: ناجح · الجودة: تنبيه (لا يمنع المشاركة).</p>
           ) : pending && !t.review?.approved ? (
             <p className="mt-1 text-sm"><Num>{pending}</Num> قيمة غير مؤكدة تُركت كما هي بانتظار قرارك (أدناه).</p>
           ) : null}
@@ -145,19 +157,39 @@ export default function TwinPage() {
       </div>
 
       {t.mode === "masked" ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <VerdictCard title="التسريب" verdict={p.leak.status === "PASS" ? "PASS" : "FAIL"}
-            value={<Num>{p.leak.leaks}</Num>}
-            explanation={`معرّف حقيقي في ${p.leak.cells.toLocaleString("en")} خلية فُحصت كلها.`} />
-          <VerdictCard title="فحص البقايا" verdict={p.residual?.status === "FAIL" ? "FAIL" : "PASS"}
-            value={<Num>{p.residual?.found ?? 0}</Num>}
-            explanation="رقم هوية أو جوال أو آيبان صالح بقي في النظير دون أن يولّده نَظير." />
-          <VerdictCard title="صلاحية البدائل" verdict={p.validity?.status === "PASS" || p.validity?.status === "NOT_RUN" ? "PASS" : "FAIL"}
-            value={p.validity?.share != null ? <Num>{Math.round(p.validity.share * 100)}%</Num> : "—"}
-            explanation={p.validity?.share != null ? "من البدائل تجتاز خوارزميات التحقق الرسمية." : "لا توجد أعمدة معرّفات منظّمة لفحصها."} />
-          <VerdictCard title="سلامة الروابط" verdict={(p.links?.orphans ?? 0) === 0 ? "PASS" : "FAIL"}
-            value={<Num>{p.links?.orphans ?? 0}</Num>}
-            explanation="روابط مكسورة بين الجداول بعد الاستبدال." />
+        <div className="grid gap-6 xl:grid-cols-2">
+          <section aria-labelledby="g-safety" className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 id="g-safety" className="text-lg font-bold">الأمان</h2>
+              <VerdictChip verdict={safetyPass ? "PASS" : "FAIL"} />
+            </div>
+            <p className="text-sm text-muted-foreground">{safetyPass ? "لا تسريب: لا يوجد في النظير أي معرّف حقيقي." : "وُجد معرّف حقيقي في النظير، فلا يمكن مشاركته."}</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <VerdictCard title="التسريب" verdict={p.leak.status === "PASS" ? "PASS" : "FAIL"}
+                value={<Num>{p.leak.leaks}</Num>}
+                explanation={`معرّف حقيقي في ${p.leak.cells.toLocaleString("en")} خلية فُحصت كلها.`} />
+              <VerdictCard title="فحص البقايا" verdict={p.residual?.status === "FAIL" ? "FAIL" : "PASS"}
+                value={<Num>{p.residual?.found ?? 0}</Num>}
+                explanation="رقم هوية أو جوال أو آيبان صالح بقي في النظير دون أن يولّده نَظير." />
+            </div>
+          </section>
+          <section aria-labelledby="g-quality" className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 id="g-quality" className="text-lg font-bold">الجودة</h2>
+              <VerdictChip verdict={qualityPass ? "PASS" : "WARN"} />
+            </div>
+            <p className="text-sm text-muted-foreground">تؤثر على فائدة النظير للأنظمة والتحليل، لا على الخصوصية.</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <VerdictCard title="صلاحية البدائل" verdict={validityOk ? "PASS" : "WARN"}
+                value={p.validity?.share != null ? <Num>{Math.round(p.validity.share * 100)}%</Num> : "—"}
+                explanation={!validityOk
+                  ? "بعض البدائل لا تجتاز التحقق؛ قد ترفضها الأنظمة. لا يوجد أي تسريب."
+                  : p.validity?.share != null ? "من البدائل تجتاز خوارزميات التحقق الرسمية." : "لا توجد أعمدة معرّفات منظّمة لفحصها."} />
+              <VerdictCard title="سلامة الروابط" verdict={linksOk ? "PASS" : "WARN"}
+                value={<Num>{p.links?.orphans ?? 0}</Num>}
+                explanation={linksOk ? "روابط مكسورة بين الجداول بعد الاستبدال." : "بعض الروابط بين الجداول انكسرت؛ قد يتأثر التحليل. لا يوجد أي تسريب."} />
+            </div>
+          </section>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -219,6 +251,42 @@ export default function TwinPage() {
         </div>
       ) : null}
 
+      {t.summary ? (
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+            <p className="font-bold">ما نُظِّف</p>
+            <p className="mt-2 text-sm leading-7 text-muted-foreground">
+              {Object.entries(t.summary.cleaned).length
+                ? Object.entries(t.summary.cleaned).map(([r, n]) => `${RULE_LABEL[r] ?? "تنظيف"}: ${n.toLocaleString("en")}`).join("، ")
+                : "لم تحتج البيانات إلى تنظيف."}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+            <p className="font-bold">ما استُبدل</p>
+            <p className="mt-2 text-sm leading-7 text-muted-foreground">
+              {Object.entries(t.summary.replaced).length
+                ? Object.entries(t.summary.replaced).map(([k, n]) => `${KIND_AR[k] ?? "معرّف"}: ${n.toLocaleString("en")}`).join("، ")
+                : "لا شيء."}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+            <p className="font-bold">قرارات المراجعة</p>
+            <p className="mt-2 text-sm leading-7 text-muted-foreground">
+              {t.summary.review.approved ? "وافقتَ على استبدال القيم غير المؤكدة."
+                : t.summary.review.pending ? `${t.summary.review.pending} قيمة غير مؤكدة تُركت كما هي.` : "لا قيم معلّقة للمراجعة."}
+              {t.summary.review.cleared_columns ? ` أكّدتَ أن ${t.summary.review.cleared_columns} عموداً لا يحتوي معرّفات.` : ""}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {t.mode === "masked" && t.limitations_ar?.[0] ? (
+        <p className="mt-4 text-sm leading-7 text-muted-foreground">حد معروف: {t.limitations_ar[0]}</p>
+      ) : null}
+
+      <details className="group mt-10 rounded-xl border border-border bg-card px-5 py-4 shadow-card">
+        <summary className="cursor-pointer font-bold text-muted-foreground">تفاصيل للمختصين</summary>
+        <div className="mt-6 space-y-10">
       {t.mode === "masked" && isAdmin && t.session_open && !t.withheld ? (
         <Section title="قبل وبعد" description="سجل واحد وصفوفه المرتبطة. للمدير فقط، وأثناء جلسة المعالجة." className="mt-10">
           {showPreview ? (
@@ -246,7 +314,11 @@ export default function TwinPage() {
               {t.checks.map((c) => (
                 <TableRow key={c.name}>
                   <TableCell className="px-5 py-3 font-semibold">{checkName(c.name)}</TableCell>
-                  <TableCell className="px-5 py-3"><Chip tone={STATUS[c.status]?.tone ?? "neutral"}>{STATUS[c.status]?.label ?? "—"}</Chip></TableCell>
+                  <TableCell className="px-5 py-3">
+                    {c.status === "FAIL" && !c.blocking
+                      ? <Chip tone="review">تنبيه</Chip>
+                      : <Chip tone={STATUS[c.status]?.tone ?? "neutral"}>{STATUS[c.status]?.label ?? "—"}</Chip>}
+                  </TableCell>
                   <TableCell className="px-5 py-3">{c.blocking ? "نعم" : "—"}</TableCell>
                   <TableCell className="max-w-xl px-5 py-3 text-sm whitespace-normal text-muted-foreground">{checkDetail(c)}</TableCell>
                 </TableRow>
@@ -261,6 +333,11 @@ export default function TwinPage() {
           {t.limitations_ar.map((l) => <li key={l}>{l}</li>)}
         </ul>
       </Section>
+          <a href={`/api/orgs/${orgId}/twins/${t.id}/report.json`} className="inline-block text-sm text-primary hover:underline">
+            تنزيل البيانات التقنية (JSON)
+          </a>
+        </div>
+      </details>
 
       <ShareDialog orgId={orgId} twinId={t.id} open={shareOpen} onOpenChange={setShareOpen} />
     </>

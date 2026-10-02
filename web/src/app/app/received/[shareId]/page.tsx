@@ -3,14 +3,13 @@
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { useState } from "react"
-import { ArrowRight, Download, ShieldCheck } from "lucide-react"
+import { ArrowLeft, ArrowRight, Download, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 
 import { CleaningNote } from "@/components/cleaning"
 import { ReturnResults, TOKEN_RULE } from "@/components/returns"
-import { DataTable } from "@/components/data"
 import { LoadError, Loading } from "@/components/org"
-import { Chip, EmptyState, Notice, Num, PageHeader, Section, Spinner, VerdictChip } from "@/components/nz"
+import { Chip, EmptyState, Notice, Num, PageHeader, Spinner, VerdictChip } from "@/components/nz"
 import { Button } from "@/components/ui/button"
 import { api, messageFor } from "@/lib/api"
 import type { Received } from "@/lib/types"
@@ -82,11 +81,16 @@ export default function ReceivedDetail() {
             ) : null}
           </div>
           {d.message ? <Notice>{d.message}</Notice> : null}
-          {d.preview?.map((t) => (
-            <Section key={t.table} title={t.table} description={<>أول <Num>{t.rows.length}</Num> صفاً للمعاينة</>}>
-              <DataTable columns={t.columns} rows={t.rows} />
-            </Section>
-          ))}
+          <Link href={`/app/received/${d.id}/view`}
+            className="flex items-center justify-between gap-4 rounded-xl border border-primary/25 bg-accent px-6 py-5 shadow-card hover:bg-accent/80">
+            <span>
+              <span className="block text-lg font-bold">عرض البيانات</span>
+              <span className="text-sm text-muted-foreground">
+                {d.tables.map((t) => `${t.name} (${t.rows.toLocaleString("en")} صف)`).join("، ")}
+              </span>
+            </span>
+            <ArrowLeft className="size-5 text-primary" aria-hidden="true" />
+          </Link>
           <CleaningNote cleaning={d.cleaning} />
           <ReturnResults share={d} />
         </div>

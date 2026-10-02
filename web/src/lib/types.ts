@@ -154,6 +154,7 @@ export type Twin = {
   review: { pending_by_type: Record<string, number>; approved: boolean } | null
   residual: { verdict: string; found: number; by_kind: Record<string, number>; locations: { table: string; column: string; row: number; kind: string }[] } | null
   token: { column: string; length: number } | null
+  summary?: { cleaned: Record<string, number>; replaced: Record<string, number>; review: { pending: number; approved: boolean; cleared_columns: number } }
   options: { approve_review: boolean | null; cleared_columns: string[] | null; overrides: Record<string, unknown> | null }
   utility: { max_auc_drop?: number | null; note?: string; models?: Record<string, { real: { auc: number }; twin: { auc: number } }> } | null
   privacy: { dcr?: { share_twin_closer_to_train_than_holdout: number; passed: boolean } } | null

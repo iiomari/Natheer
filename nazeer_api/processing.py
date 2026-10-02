@@ -244,7 +244,9 @@ def generate_twin(db: DbSession, settings: Settings, ds: Dataset, payload: dict,
     if mode == "masked" and not res.twin_withheld:
         token_info = add_row_refs(res.twin, an, org_key(settings, org), ds.id, org.key_version)
     if not res.twin_withheld:
-        blob = put_blob(db, settings.master_key, ds.org_id, "twin", tables_to_zip(res.twin), dataset_id=ds.id)
+        marks = (res.extras or {}).get("marks") if mode == "masked" else None
+        blob = put_blob(db, settings.master_key, ds.org_id, "twin", tables_to_zip(res.twin, {"marks": marks or {}}),
+                        dataset_id=ds.id)
         db.flush()
     report = _json_safe(res.report)
     summary = ds.summary or {}

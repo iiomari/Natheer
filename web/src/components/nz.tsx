@@ -152,9 +152,10 @@ export function TypeChip({ type }: { type: keyof typeof DATA_TYPES }) {
   return <Chip tone={t.tone}>{t.label}</Chip>
 }
 
-export function VerdictChip({ verdict }: { verdict: "PASS" | "FAIL" | "PENDING" }) {
+export function VerdictChip({ verdict }: { verdict: "PASS" | "FAIL" | "WARN" | "PENDING" }) {
   if (verdict === "PASS") return <Chip tone="twin" icon={CheckCircle2}>ناجح</Chip>
   if (verdict === "FAIL") return <Chip tone="sensitive" icon={XCircle}>راسب</Chip>
+  if (verdict === "WARN") return <Chip tone="review" icon={AlertTriangle}>تنبيه</Chip>
   return <Chip tone="neutral" icon={CircleHelp}>قيد التحقق</Chip>
 }
 
@@ -194,16 +195,15 @@ export function VerdictCard({
   explanation,
 }: {
   title: string
-  verdict: "PASS" | "FAIL"
+  verdict: "PASS" | "FAIL" | "WARN"
   value: React.ReactNode
   explanation: string
 }) {
-  const pass = verdict === "PASS"
   return (
     <div
       className={cn(
         "rounded-xl border bg-card p-5 shadow-card",
-        pass ? "border-twin/30" : "border-sensitive/35",
+        verdict === "PASS" ? "border-twin/30" : verdict === "WARN" ? "border-review/40" : "border-sensitive/35",
       )}
     >
       <div className="flex items-start justify-between gap-3">

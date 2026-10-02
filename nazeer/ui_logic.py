@@ -461,14 +461,15 @@ def fake_validity(result, detections) -> dict:
     kinds = {}
     for d in detections:
         if d.tag == "DIRECT_ID" and d.kind in ("SAUDI_ID", "MOBILE", "IBAN", "EMAIL"):
-            kinds.setdefault(d.column, d.kind)
+            kinds[(d.table, d.column)] = d.kind
     out = {}
     for table, df in result.twin.items():
         for col in df.columns:
-            if col in kinds:
+            kind = kinds.get((table, col))
+            if kind:
                 vals = df[col].dropna().astype(str)
                 if len(vals):
-                    out[f"{table}.{col}"] = round(float(vals.map(lambda v, k=kinds[col]: s.is_valid(k, v)).mean()), 4)
+                    out[f"{table}.{col}"] = round(float(vals.map(lambda v, k=kind: s.is_valid(k, v)).mean()), 4)
     return out
 
 

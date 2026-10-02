@@ -203,7 +203,7 @@ def render_like(raw: str, kind: s.Kind, fake_canon: str) -> str:
     separators at the same positions, same prefix style and letter case."""
     target = _display_target(raw, kind, fake_canon)
     _, offsets = s.normalize(raw)
-    slots = [i for i in offsets if not raw[i].isspace()]
+    slots = [i for i in offsets if not raw[i].isspace() and raw[i] not in "()"]  # brackets are layout
     if len(slots) != len(target):
         # Layout cannot be mirrored (unusual spelling); fall back to the dominant script.
         digits = [ch for ch in raw if s.ascii_digit(ch) is not None]

@@ -52,14 +52,26 @@ def org_usage_bytes(db: DbSession, org_id: str) -> int:
 
 # ---------------------------------------------------------------- tables <-> bytes
 
-def tables_to_zip(tables: dict) -> bytes:
-    """All-text tables as UTF-8 CSVs in a zip (table order and names kept)."""
+def tables_to_zip(tables: dict, meta: dict | None = None) -> bytes:
+    """All-text tables as UTF-8 CSVs in a zip (table order and names kept). `meta`: value-free JSON
+    stored next to them (e.g. the twin viewer's cell marks)."""
+    import json
+
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("_order.txt", "\n".join(tables))
+        if meta is not None:
+            z.writestr("_meta.json", json.dumps(meta, ensure_ascii=False))
         for name, df in tables.items():
             z.writestr(f"{name}.csv", df.to_csv(index=False, lineterminator="\n"))
     return buf.getvalue()
+
+
+def zip_meta(data: bytes) -> dict:
+    import json
+
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        return json.loads(z.read("_meta.json")) if "_meta.json" in z.namelist() else {}
 
 
 def zip_to_tables(data: bytes) -> dict:

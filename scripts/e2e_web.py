@@ -120,6 +120,24 @@ def main() -> None:
         expect(page.get_by_text("رمز التحقق:")).to_be_visible()
         assert page.get_by_text("خطر التعرّف بالتركيب").count() == 0
         shot(page, "p2-07-twin-pass.png")
+        # the one-page PDF report (Arabic), kept in docs/ui/web for review
+        with page.expect_download() as d:
+            page.get_by_role("link", name="تنزيل التقرير (PDF)").click()
+        d.value.save_as(str(args.out / "p7-report.pdf"))
+        # the twin itself: paginated table with the token column and replaced cells marked
+        page.get_by_role("link", name="عرض النظير").click()
+        page.wait_for_url("**/view", timeout=30_000)
+        expect(page.get_by_role("button", name="ترتيب حسب رمز_التحقق")).to_be_visible(timeout=TIMEOUT)
+        expect(page.get_by_text("قيمة استُبدلت ببديل")).to_be_visible()
+        shot(page, "p7-twin-view.png", full=False)
+        page.get_by_role("tab", name=re.compile("claims")).click()
+        page.get_by_label("بحث في الجدول").fill("هوية")
+        expect(page.get_by_text(re.compile("صف · صفحة"))).to_be_visible(timeout=TIMEOUT)
+        page.wait_for_timeout(800)
+        shot(page, "p7-twin-view-search.png", full=False)
+        page.go_back()
+        page.wait_for_url("**/twins/**", timeout=30_000)
+        page.get_by_text("تفاصيل للمختصين").click()
         page.get_by_role("button", name="عرض المعاينة (تتضمّن قيماً أصلية)").click()
         expect(page.get_by_text("الخلايا المتغيّرة مظلّلة").first).to_be_visible(timeout=60_000)
         page.get_by_role("heading", name="قبل وبعد").scroll_into_view_if_needed()
@@ -164,6 +182,12 @@ def main() -> None:
         expect(emp.get_by_text("هذه بيانات نظيرة لا تحتوي أي شخص حقيقي.")).to_be_visible()
         expect(emp.get_by_role("heading", name="ما نُظِّف قبل التوليد")).to_be_visible()
         shot(emp, "p2-11-received-detail.png")
+        emp.get_by_role("link", name=re.compile("عرض البيانات")).click()
+        emp.wait_for_url("**/view", timeout=30_000)
+        expect(emp.get_by_role("button", name="ترتيب حسب رمز_التحقق")).to_be_visible(timeout=TIMEOUT)
+        shot(emp, "p7-recipient-view.png", full=False)
+        emp.go_back()
+        emp.wait_for_url("**/received/**", timeout=30_000)
         xlsx_path = None
         for label in ("تحميل Excel (موصى به)", "تحميل CSV"):
             with emp.expect_download() as d:

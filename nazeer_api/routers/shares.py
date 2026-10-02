@@ -235,6 +235,23 @@ def received_detail(share_id: str, user: User = Depends(current_user), db: DbSes
     return out
 
 
+@router.get("/received/{share_id}/rows")
+def received_rows(share_id: str, table: str | None = None, page: int = 1, size: int = 50, q: str = "",
+                  sort: str | None = None, desc: bool = False, user: User = Depends(current_user),
+                  db: DbSession = Depends(get_db), settings: Settings = Depends(get_settings_dep)) -> dict:
+    """The shared twin, page by page, with this share's verification tokens."""
+    from nazeer_api import twin_view
+    from nazeer_api.returns import sealer_for
+
+    s = _grant(db, user, share_id)
+    if share_status(s) != "active":
+        raise api_error(410, f"share_{share_status(s)}")
+    if s.twin.blob_id is None:
+        raise api_error(410, "share_expired")
+    tables, marks = twin_view.load(settings.master_key, db.get(Blob, s.twin.blob_id))
+    return twin_view.page(tables, marks, table, page, size, q[:100], sort, desc, sealer_for(settings, s))
+
+
 def _sign(settings: Settings, payload: str) -> str:
     key = hashlib.sha256(b"nazeer-download:" + settings.master_key).digest()
     return base64.urlsafe_b64encode(hmac.new(key, payload.encode(), hashlib.sha256).digest()).decode().rstrip("=")

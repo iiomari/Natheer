@@ -26,4 +26,5 @@ python-dotenv==1.2.4
 
 # Tests
 pytest==9.1.1
+pypdf==6.19.0  # tests only: reads the PDF report (BSD-3-Clause)
 hypothesis==6.168.3

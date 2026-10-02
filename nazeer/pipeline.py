@@ -232,8 +232,22 @@ def run_masked(analysis: Analysis, policy: Policy, key: bytes, overrides: dict |
               "(demo answer key)", value={"nazeer": golden["nazeer"]["overall_recall"],
                                           "baseline": golden["baseline"]["overall_recall"]})
     report = b.build()
+    # Cell positions only (no values), for the twin viewer: what changed, what waits for review.
+    marks: dict = {}
+    for d in decisions:
+        if d.action in ("pseudonymize", "remap") and d.column in twin[d.table].columns:
+            marks.setdefault(d.table, {}).setdefault("replaced_columns", []).append(d.column)
+    for sp in spans:
+        if sp.confidence >= cut:
+            marks.setdefault(sp.table, {}).setdefault("changed_cells", {}).setdefault(sp.column, set()).add(sp.row)
+    for sp in pending:
+        marks.setdefault(sp.table, {}).setdefault("review_cells", {}).setdefault(sp.column, set()).add(sp.row)
+    for t in marks.values():
+        for key in ("changed_cells", "review_cells"):
+            if key in t:
+                t[key] = {c: sorted(rows) for c, rows in t[key].items()}
     return RunResult(run_id, "masked", report, twin, twin_withheld=leak["hard_fail"], decisions=decisions,
-                     extras={"transform": tstats, "pending_review": pending})
+                     extras={"transform": tstats, "pending_review": pending, "marks": marks})
 
 
 # ---------------------------------------------------------------- synthetic mode (5b)
