@@ -29,6 +29,8 @@ TIMEOUT = 180_000
 
 
 SAMPLES = [
+    ("clinic_appointments_clean.csv", "clinic_appointments_answer_key.csv", "مواعيد العيادات"),
+    ("bank_accounts_clean.csv", "bank_accounts_answer_key.csv", "حسابات البنك"),
     ("hospital_patients_test.csv", "hospital_patients_answer_key.csv", "مرضى المستشفى"),
     ("bank_customers_test.csv", "bank_customers_answer_key.csv", "عملاء البنك"),
     ("insurance_claims_test.xlsx", "insurance_claims_answer_key.csv", "مطالبات التأمين"),
@@ -98,6 +100,9 @@ def main() -> None:
         expect(page.get_by_role("heading", name="مراجعة الكشف")).to_be_visible(timeout=TIMEOUT)
         shot(page, "p2-04-review.png")
         # cleaning: opt in to phone unification, look at before/after, apply and re-detect
+        # cleaning is optional: a clean file needs nothing; the toggles sit behind «خيارات التنظيف»
+        expect(page.get_by_text("البيانات نظيفة")).to_be_visible(timeout=TIMEOUT)
+        page.get_by_role("button", name="خيارات التنظيف").click()
         cleaning = page.get_by_role("heading", name="تنظيف البيانات")
         cleaning.scroll_into_view_if_needed()
         page.get_by_role("checkbox", name=re.compile("توحيد صيغة الجوال")).click()
@@ -106,7 +111,7 @@ def main() -> None:
         expect(phones_row.locator("table")).to_be_visible(timeout=TIMEOUT)
         shot(page, "p4-01-cleaning.png", full=False)
         page.get_by_role("button", name="طبّق وأعد الكشف").click()
-        expect(phones_row.get_by_text(re.compile("طُبِّق على"))).to_be_visible(timeout=TIMEOUT)
+        expect(page.get_by_text("نُظِّف الملف")).to_be_visible(timeout=TIMEOUT)
         expect(page.get_by_role("heading", name="مراجعة الكشف")).to_be_visible(timeout=TIMEOUT)
         page.get_by_role("tab", name="أداة تقليدية").click()
         page.get_by_role("heading", name="البيانات الشخصية داخل النصوص").scroll_into_view_if_needed()
@@ -280,11 +285,25 @@ def main() -> None:
         for sample, key_file, title in SAMPLES:
             page.goto(f"{org_base}/datasets")
             page.get_by_role("button", name="رفع بيانات").first.click()
-            page.locator("input[type=file]").set_input_files(str(args.samples / sample))
+            dlg = page.get_by_role("dialog")
+            dlg.locator("li").filter(has=page.locator(f"a[href='/samples/{sample}']"))                 .get_by_role("button", name="استخدم هذا الملف").click()       # one-click example
+            expect(dlg.get_by_role("button", name="تم اختياره")).to_be_visible(timeout=30_000)
+            if sample == SAMPLES[0][0]:
+                shot(page, "p8-samples-dialog.png", full=False)
             page.get_by_label("اسم مجموعة البيانات (اختياري)").fill(title)
             page.get_by_role("button", name="رفع ومعالجة").click()
             page.wait_for_url("**/datasets/**", timeout=30_000)
             expect(page.get_by_role("heading", name="مراجعة الكشف")).to_be_visible(timeout=TIMEOUT)
+            if "_clean" in sample:
+                expect(page.get_by_text("البيانات نظيفة")).to_be_visible()
+                if sample == SAMPLES[0][0]:
+                    shot(page, "p8-clean-file.png", full=False)
+            else:
+                expect(page.get_by_text(re.compile("يمكن تنظيف"))).to_be_visible()
+                if sample == "hospital_patients_test.csv":
+                    shot(page, "p8-cleaning-offer.png", full=False)
+                page.get_by_role("button", name="نظّف", exact=True).click()
+                expect(page.get_by_text("نُظِّف الملف")).to_be_visible(timeout=TIMEOUT)
             expect(page.get_by_text("ما اكتُشف:")).to_be_visible()
             page.get_by_role("button", name="رفع مفتاح إجابة").click()
             page.locator("input[type=file][accept='.csv,text/csv']").set_input_files(str(args.samples / key_file))

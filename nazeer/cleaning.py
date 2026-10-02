@@ -63,6 +63,14 @@ class CleanOptions:
     def to_dict(self) -> dict:
         return asdict(self)
 
+    @classmethod
+    def off(cls) -> "CleanOptions":
+        """Nothing applied: cleaning is optional; uploads are detected as they are."""
+        return cls(trim=False, nulls=False, numbers=False, dates=False, dedupe=False)
+
+
+RECOMMENDED = ("trim", "nulls", "numbers", "dates", "dedupe")  # what «نظّف» applies
+
 
 # ---------------------------------------------------------------- per-value transforms
 

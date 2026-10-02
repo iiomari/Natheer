@@ -114,17 +114,28 @@ def test_generated_pseudonyms_are_not_flagged():
 
 # ---------------------------------------------------------------- independent answer keys
 
+def test_generated_keys_that_look_like_identifiers_are_not_flagged():
+    # fake keys keep the "APT-####-######" shape; their digits can read as a mobile or an ID
+    keys = [f"APT-2026-{i:06d}" for i in range(1, 301)]
+    tables = {"t": pd.DataFrame({"appointment_id": keys, "clinic": ["الأسنان"] * 300}, dtype=object)}
+    _, res = _run(tables)
+    assert res.report["residual_scan"]["verdict"] == "PASS"
+
+
 @pytest.mark.parametrize("data,key", [
     ("hospital_patients_test.csv", "hospital_patients_answer_key.csv"),
     ("bank_customers_test.csv", "bank_customers_answer_key.csv"),
     ("insurance_claims_test.xlsx", "insurance_claims_answer_key.csv"),
+    ("clinic_appointments_clean.csv", "clinic_appointments_answer_key.csv"),
+    ("bank_accounts_clean.csv", "bank_accounts_answer_key.csv"),
 ])
-def test_recall_against_answer_keys(data, key):
+@pytest.mark.parametrize("cleaning", [True, False], ids=["cleaned", "skipped"])
+def test_recall_against_answer_keys(data, key, cleaning):
     import sys
     sys.path.insert(0, str(SAMPLES.parents[2] / "scripts"))
     from eval_answer_key import run
 
-    out = run([SAMPLES / data], SAMPLES / key)
+    out = run([SAMPLES / data], SAMPLES / key, cleaning=cleaning)  # cleaning is optional
     assert out["verdict"] == "PASS", out["failed_checks"]
     for kind, v in out["types"].items():
         assert v["recall"] == 1.0, (kind, v)

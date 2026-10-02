@@ -33,7 +33,12 @@ def _arabic_ratio(values: pd.Series) -> float:
 
 
 def infer_dtype(values: pd.Series) -> tuple[ColType, float, float]:
-    """(dtype, mean_len, arabic_ratio) for the non-null string values of one column."""
+    """(dtype, mean_len, arabic_ratio) for the non-null string values of one column. Placeholders for
+    missing values ("N/A", "NULL", "لا يوجد", "-") are ignored, cleaned or not: detection must not depend
+    on whether the user chose to clean."""
+    from nazeer.cleaning import NULL_LIKE
+
+    values = values[~values.astype(str).str.strip().str.lower().isin(NULL_LIKE)]
     if values.empty:
         return "short_text", 0.0, 0.0
     mean_len = float(values.str.len().mean())

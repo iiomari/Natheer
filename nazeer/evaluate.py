@@ -222,6 +222,8 @@ def residual_scan(twin: dict[str, pd.DataFrame], generated: set[str],
                     continue
                 if "@" not in v and sum(ch.isdigit() for ch in v) < 9:
                     continue
+                if v.strip() in generated:  # a whole generated value (e.g. a fake key "APT-0543-157420")
+                    continue
                 ok = allowed.get((tname, col, row), set())
                 for a, b, k, _, _ in detect.find_spans(v, names=False):
                     piece = v[a:b]

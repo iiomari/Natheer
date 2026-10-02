@@ -258,7 +258,8 @@ export default function TwinPage() {
             <p className="mt-2 text-sm leading-7 text-muted-foreground">
               {Object.entries(t.summary.cleaned).length
                 ? Object.entries(t.summary.cleaned).map(([r, n]) => `${RULE_LABEL[r] ?? "تنظيف"}: ${n.toLocaleString("en")}`).join("، ")
-                : "لم تحتج البيانات إلى تنظيف."}
+                : t.summary.cleaning_decision === "skipped" ? "تخطّيتَ التنظيف: استُخدمت البيانات كما رُفعت."
+                : "البيانات نظيفة — لم تحتج إلى تنظيف."}
             </p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5 shadow-card">

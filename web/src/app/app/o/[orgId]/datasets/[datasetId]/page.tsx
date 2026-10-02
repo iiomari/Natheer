@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react"
 import { ChevronLeft, ChevronRight, FileCheck2, Link2, ScanSearch, Table2, Trash2, Wand2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { CleaningPanel } from "@/components/cleaning"
+import { CleaningStep } from "@/components/cleaning"
 import { AnswerKeyCheck, FoundByType, ReviewQueue } from "@/components/detection-extras"
 import { reasonAr } from "@/lib/labels"
 import { HighlightedText, MarkLegend, useNow } from "@/components/data"
@@ -251,7 +251,7 @@ export default function DatasetPage() {
 
           <FoundByType ds={d} />
 
-          <CleaningPanel orgId={orgId} ds={d} onApplied={() => void ds.reload()} />
+          <CleaningStep orgId={orgId} ds={d} onApplied={() => void ds.reload()} />
 
           <Section title="مراجعة الكشف" description="ما اكتشفه نَظير في كل عمود، ولماذا. غيّر الإجراء إن لزم؛ كل تعديل يُسجَّل في التقرير.">
             {s.tables.map((t) => (

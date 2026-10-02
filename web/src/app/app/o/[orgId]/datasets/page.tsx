@@ -18,10 +18,29 @@ import { formatDateTime, useApi } from "@/lib/use-api"
 
 const ACCEPT = ".csv,.tsv,.txt,.xlsx,.xlsm,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
-const SAMPLES: [string, string, string][] = [
-  ["مرضى مستشفى (600 سجل)", "hospital_patients_test.csv", "hospital_patients_answer_key.csv"],
-  ["عملاء بنك (450 سجلاً)", "bank_customers_test.csv", "bank_customers_answer_key.csv"],
-  ["مطالبات تأمين (ملف Excel بورقتين)", "insurance_claims_test.xlsx", "insurance_claims_answer_key.csv"],
+type Sample = { label: string; rows: string; file: string; key: string; name: string }
+
+const SAMPLE_GROUPS: { title: string; items: Sample[] }[] = [
+  {
+    title: "بيانات نظيفة (الاستخدام الأشيع)",
+    items: [
+      { label: "مواعيد عيادات لتدريب نموذج (عمود «لم_يحضر»)", rows: "1,000 صف", file: "clinic_appointments_clean.csv",
+        key: "clinic_appointments_answer_key.csv", name: "مواعيد العيادات" },
+      { label: "عملاء بنك بالمعرّفات والملاحظات", rows: "600 صف", file: "bank_accounts_clean.csv",
+        key: "bank_accounts_answer_key.csv", name: "عملاء البنك" },
+    ],
+  },
+  {
+    title: "بيانات تحتاج تنظيف",
+    items: [
+      { label: "مرضى مستشفى", rows: "612 صفاً", file: "hospital_patients_test.csv", key: "hospital_patients_answer_key.csv",
+        name: "مرضى المستشفى" },
+      { label: "عملاء بنك (فاصلة منقوطة وسطر عنوان)", rows: "458 صفاً", file: "bank_customers_test.csv",
+        key: "bank_customers_answer_key.csv", name: "عملاء البنك (غير منظّف)" },
+      { label: "مطالبات تأمين (Excel بورقتين)", rows: "780 صفاً", file: "insurance_claims_test.xlsx",
+        key: "insurance_claims_answer_key.csv", name: "مطالبات التأمين" },
+    ],
+  },
 ]
 
 function UploadDialog({ orgId, open, onOpenChange }: { orgId: string; open: boolean; onOpenChange: (v: boolean) => void }) {
@@ -29,6 +48,24 @@ function UploadDialog({ orgId, open, onOpenChange }: { orgId: string; open: bool
   const [files, setFiles] = useState<File[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [name, setName] = useState("")
+  const [loadingSample, setLoadingSample] = useState<string | null>(null)
+
+  async function pickSample(sm: Sample) {
+    setLoadingSample(sm.file)
+    try {
+      const res = await fetch(`/samples/${sm.file}`)
+      if (!res.ok) throw new Error()
+      const blob = await res.blob()
+      setFiles([new File([blob], sm.file, { type: blob.type || "text/csv" })])
+      setName(sm.name)
+      setError(null)
+    } catch {
+      setError("تعذّر تحميل الملف التجريبي. جرّب مرة أخرى.")
+    } finally {
+      setLoadingSample(null)
+    }
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -49,26 +86,42 @@ function UploadDialog({ orgId, open, onOpenChange }: { orgId: string; open: bool
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-lg">رفع بيانات</DialogTitle>
           <DialogDescription>ملف واحد أو عدة ملفات مترابطة. كل ورقة في Excel تُعامل كجدول.</DialogDescription>
         </DialogHeader>
         <form id="upload-form" onSubmit={onSubmit} className="space-y-5" noValidate>
           <Notice icon={Info}>يُرجى استخدام بيانات تجريبية في هذه النسخة.</Notice>
-          <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm leading-7">
-            <p className="font-semibold">ملفات تجريبية جاهزة (مع مفاتيح الإجابة):</p>
-            <ul className="mt-1 space-y-0.5">
-              {SAMPLES.map(([label, file, key]) => (
-                <li key={file}>
-                  {label}: <a className="font-semibold text-primary hover:underline" href={`/samples/${file}`} download>الملف</a>
-                  {" · "}<a className="text-primary hover:underline" href={`/samples/${key}`} download>مفتاح الإجابة</a>
-                </li>
-              ))}
-            </ul>
+          <div className="space-y-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
+            <p className="font-semibold">ملفات تجريبية جاهزة (مع مفاتيح الإجابة)</p>
+            {SAMPLE_GROUPS.map((g) => (
+              <div key={g.title}>
+                <p className="mb-1 text-xs font-bold text-muted-foreground">{g.title}</p>
+                <ul className="space-y-1.5">
+                  {g.items.map((sm) => (
+                    <li key={sm.file} className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="leading-6">
+                        {sm.label} <span className="text-muted-foreground">· {sm.rows}</span>
+                        <span className="block text-xs">
+                          <a className="text-primary hover:underline" href={`/samples/${sm.file}`} download>الملف</a>
+                          {" · "}<a className="text-primary hover:underline" href={`/samples/${sm.key}`} download>مفتاح الإجابة</a>
+                        </span>
+                      </span>
+                      <Button type="button" size="sm" variant={files[0]?.name === sm.file ? "default" : "outline"}
+                        onClick={() => pickSample(sm)} disabled={loadingSample !== null}>
+                        {loadingSample === sm.file ? <Spinner className="size-3.5" /> : null}
+                        {files[0]?.name === sm.file ? "تم اختياره" : "استخدم هذا الملف"}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
           {error ? <InlineError>{error}</InlineError> : null}
-          <TextField name="name" label="اسم مجموعة البيانات (اختياري)" placeholder="مثال: مطالبات الربع الأول" />
+          <TextField name="name" label="اسم مجموعة البيانات (اختياري)" placeholder="مثال: مطالبات الربع الأول"
+            value={name} onChange={(e) => setName(e.target.value)} />
           <FileDropzone files={files} onChange={setFiles} accept={ACCEPT} />
           <p className="text-xs leading-5 text-muted-foreground">
             تُحفظ الملفات الأصلية مشفّرة مدة جلسة المعالجة فقط (<Num>30</Num> دقيقة)، ثم تُحذف تلقائياً.

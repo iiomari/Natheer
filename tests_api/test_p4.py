@@ -21,17 +21,40 @@ def _ds(client, org, ds_id):
     return client.get(f"/api/orgs/{org}/datasets/{ds_id}").json()
 
 
-def test_defaults_clean_before_detection_and_report_counts(app, org_admin):
+def test_upload_does_not_clean_it_measures_then_clean_applies_recommended_rules(app, org_admin):
     admin, org = org_admin
     ds = ready_dataset(app, admin, org, [("visits.csv", MESSY)])
     c = ds["summary"]["cleaning"]
-    applied = {r: v["total"] for r, v in c["report"]["applied"].items()}
-    assert applied["trim"] >= 1 and applied["nulls"] >= 2 and applied["dedupe"] == 1 and applied["dates"] >= 5
-    assert ds["summary"]["total_rows"] == 6 and c["rows_before"] == 7
+    assert c["decision"] == "pending" and c["recommended"] >= 9           # «يمكن تنظيف N خلية»
+    assert sum(v["total"] for v in c["report"]["applied"].values()) == 0   # nothing forced
+    assert ds["summary"]["total_rows"] == 7                                # duplicate still there
     assert c["potential"]["arabic"] >= 1 and c["report"]["options"]["arabic"] is False
     assert any(g["column"] == "Kind" for g in c["suggestions"])
-    blob = json.dumps(ds["summary"]["cleaning"], ensure_ascii=False)
+    blob = json.dumps(c, ensure_ascii=False)
     assert "أحمد" not in blob and "ادوية" not in blob  # stored summary is value-free
+
+    # «نظّف»: the recommended rules
+    assert admin.post(f"/api/orgs/{org}/datasets/{ds['id']}/clean", json={}).status_code == 202
+    work(app)
+    ds = _ds(admin, org, ds["id"])
+    c = ds["summary"]["cleaning"]
+    applied = {r: v["total"] for r, v in c["report"]["applied"].items()}
+    assert c["decision"] == "applied"
+    assert applied["trim"] >= 1 and applied["nulls"] >= 2 and applied["dedupe"] == 1 and applied["dates"] >= 5
+    assert ds["summary"]["total_rows"] == 6 and c["rows_before"] == 7
+
+
+def test_skip_is_remembered_and_a_clean_file_needs_nothing(app, org_admin, demo_files):
+    admin, org = org_admin
+    ds = ready_dataset(app, admin, org, [("visits.csv", MESSY)])
+    r = admin.post(f"/api/orgs/{org}/datasets/{ds['id']}/cleaning/skip")
+    assert r.status_code == 200 and r.json()["summary"]["cleaning"]["decision"] == "skipped"
+    twin = masked_twin(app, admin, org, ds["id"])
+    rep = admin.get(f"/api/orgs/{org}/twins/{twin['id']}/report.json").json()
+    assert rep["cleaning_decision"] == "skipped"
+    clean_ds = ready_dataset(app, admin, org, demo_files)
+    assert clean_ds["summary"]["cleaning"]["decision"] == "not_needed"
+    assert clean_ds["summary"]["cleaning"]["recommended"] == 0
 
 
 def test_examples_and_suggestions_are_session_only(app, org_admin):
@@ -76,6 +99,8 @@ def test_twin_report_and_recipient_see_what_was_cleaned(app, org_admin, demo_fil
     admin, org = org_admin
     emp, _ = invite_and_join(app, admin, org, "employee@alwaha.example.com")
     ds = ready_dataset(app, admin, org, demo_files)
+    assert admin.post(f"/api/orgs/{org}/datasets/{ds['id']}/clean", json={}).status_code == 202  # «نظّف»
+    work(app)
     twin = masked_twin(app, admin, org, ds["id"])
     assert twin["verdict"] == "PASS"
     rep = admin.get(f"/api/orgs/{org}/twins/{twin['id']}/report.json").json()

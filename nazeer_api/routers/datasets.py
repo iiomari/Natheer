@@ -189,6 +189,22 @@ def reclean(org_id: str, dataset_id: str, body: CleanIn, m: Membership = Depends
     return {"job_id": j.id}
 
 
+@router.post("/datasets/{dataset_id}/cleaning/skip")
+def skip_cleaning(org_id: str, dataset_id: str, m: Membership = Depends(data_manager),
+                  db: DbSession = Depends(get_db)) -> dict:
+    """«تخطَّ»: keep the data as uploaded (already detected that way); remember the decision."""
+    ds = _dataset(db, org_id, dataset_id)
+    summary = dict(ds.summary or {})
+    if not summary.get("cleaning"):
+        raise api_error(409, "dataset_not_ready")
+    summary["cleaning"] = {**summary["cleaning"], "decision": "skipped"}
+    ds.summary = summary
+    audit.record(db, "dataset.cleaning_skipped", org_id=org_id, actor_user_id=m.user_id, target_type="dataset",
+                 target_id=ds.id, cells=summary["cleaning"].get("recommended"))
+    db.commit()
+    return dataset_payload(db, ds, detail=True)
+
+
 def _raw_tables(db: DbSession, settings: Settings, ds: Dataset) -> dict:
     try:
         return load_tables(db, settings, ds, kind="tables")

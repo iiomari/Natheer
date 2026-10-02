@@ -31,7 +31,8 @@ This file is updated after every milestone so a new session can resume from it a
 | P5 Returns + admin-only re-linking (nazeer_ref, rejection thresholds, in-memory recomputation) | done; re-link design replaced by P5b | 2bf71eb |
 | Judge-test fixes (user, 2026-10-02): k-anonymity removed, review band, IBAN shapes, residual scan, Arabic UI, answer-key check, 3 sector samples | done | (this commit) |
 | P5b Per-row verification token (رمز التحقق) replaces nazeer_ref and the exact-file re-link | done | cccb8d1 |
-| Valid fakes for bracketed mobiles; amber «تنبيه» for non-blocking checks; twin viewer; one-page Arabic PDF report | done | (this commit) |
+| Valid fakes for bracketed mobiles; amber «تنبيه» for non-blocking checks; twin viewer; one-page Arabic PDF report | done | 7535d8e |
+| Clean example datasets; cleaning made optional («نظّف» / «تخطَّ»); detection independent of cleaning | done | (this commit) |
 | P3 Design system + all pages · P6 Team/audit/settings/email · P7 Public site + demo seed · P8 Hardening + E2E · P9 Deployment · P10 Final docs | not started | — |
 | HMA multi-table synthesis | **out of scope for the hackathon** | — |
 | PDF report | **out of scope for the hackathon** | — |
@@ -945,6 +946,72 @@ How it works:
      locally and is not a dependency.
 107. **The organization's twin view and downloads carry view-only tokens** (bound to `view-<twin>`).
      Returns are verified only against a real share's tokens.
+
+### Clean examples, optional cleaning
+**Two clean fictional datasets** (`scripts/make_clean_samples.py`):
+- written independently: own name lists (none from the messy files' generator or the names visible in
+  the hospital file), validators and generators;
+- answer keys in the same format;
+- listed FIRST in the upload dialog under «بيانات نظيفة (الاستخدام الأشيع)»; the three messy files sit
+  under «بيانات تحتاج تنظيف»;
+- each example has «الملف», «مفتاح الإجابة», its row count and a one-click «استخدم هذا الملف», which
+  loads it into the upload with a suggested name.
+
+The files:
+- `clinic_appointments_clean.csv`: 1,000 appointments prepared for model training. ISO dates,
+  consistent types and categories, numeric features, and a label «لم_يحضر» drawn from a logistic model
+  of lead time, previous no-shows, reminder and insurance. Reception notes carry some identifiers and
+  look-alike booking or referral numbers.
+- `bank_accounts_clean.csv`: 600 customers with name, national ID / iqama, mobile, IBAN, e-mail, branch,
+  account type, balance, join date, and notes with identifiers and look-alike operation numbers.
+
+**Cleaning is optional:**
+- an upload is detected as it is (`CleanOptions.off()`); Nazeer only measures what the recommended
+  rules could change;
+- `summary.cleaning.decision` is `not_needed` («البيانات نظيفة — لا حاجة للتنظيف»), `pending`
+  («يمكن تنظيف N خلية» with «نظّف» and «تخطَّ»), `applied` or `skipped`
+  (`POST …/cleaning/skip`, audited);
+- the rule toggles appear only under «خيارات التنظيف»;
+- the decision reaches the twin report, the page and the PDF.
+
+**Detection no longer depends on cleaning (general fix).**
+- Found while testing «تخطَّ»: null placeholders («N/A», «NULL», «لا يوجد», «-») counted as real text when
+  the column type was inferred. The uncleaned hospital notes became "short text" and were not scanned.
+- `profiling.infer_dtype` now ignores them.
+- «ما اكتُشف» counts only values that validate (the uncleaned IBAN column showed 464 instead of 199).
+
+**Residual-scan false positive fixed:** a remapped key such as `APT-0543-157420` reads, across its dashes,
+as a valid mobile. A cell whose whole value is a Nazeer-generated pseudonym is no longer flagged.
+
+**Recall per type** (planted values replaced in the twin), cleaned («نظّف») and uncleaned («تخطَّ»):
+
+| File | Rows | Cleaned | Uncleaned | Look-alikes wrongly replaced |
+|---|---|---|---|---|
+| clinic_appointments_clean (clean) | 1,000 | 100% each type | 100% each type | 0 of 216 |
+| bank_accounts_clean (clean) | 600 | 100% each type | 100% each type | 0 of 76 |
+| hospital_patients_test (messy) | 612 | 100% each type | 100% each type | 0 of 62 |
+| bank_customers_test (messy) | 458 | 100% each type | 100% each type | 0 of 86 |
+| insurance_claims_test (messy, 2 sheets) | 780 | 100% each type | 100% each type | 0 of 111 |
+
+All five twins: verdict PASS. The recall test runs every file both ways.
+
+**Verified:**
+- `tests_api/test_clean_flow.py`: the clean clinic file goes upload → detection → twin → report and PDF →
+  share → return (200 rows with predictions) → re-link, with **zero** cleaning changes;
+- `tests_api/test_p4.py`: nothing at upload, «نظّف» applies the recommended rules, «تخطَّ» is remembered;
+- full suite **378 passed, 4 skipped**;
+- local browser E2E: all five samples picked with «استخدم هذا الملف»; «البيانات نظيفة» on the clean files,
+  «يمكن تنظيف N خلية» → «نظّف» on the messy ones; 0 external requests. Screenshots in
+  `docs/ui/web/p8-*.png`.
+
+**Docs:** `DEMO_SCRIPT.md` uses the clean clinic file as the main path (model training) and the messy
+hospital file as the secondary example.
+
+**Deviations:**
+108. **Uploads are no longer cleaned automatically** (user decision). The recommended rules apply only
+     after «نظّف».
+109. **Type inference ignores null placeholders**, so detection gives the same result with or without
+     cleaning.
 
 ## Milestone log
 

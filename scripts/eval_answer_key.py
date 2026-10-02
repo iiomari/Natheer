@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 
-def run(paths: list[Path], key_path: Path) -> dict:
+def run(paths: list[Path], key_path: Path, cleaning: bool = True) -> dict:
     from nazeer import pipeline
     from nazeer.answer_key import evaluate, load_key
     from nazeer.cleaning import clean
@@ -23,7 +23,7 @@ def run(paths: list[Path], key_path: Path) -> dict:
     from nazeer.policy import load_policy
 
     tables = read_files([(p.name, p.read_bytes()) for p in paths]).tables
-    cleaned, _ = clean(tables)
+    cleaned = clean(tables)[0] if cleaning else tables  # the site: «نظّف» or «تخطَّ»
     an = pipeline.analyze(cleaned, paths[0].stem)
     res = pipeline.run_masked(an, load_policy(pipeline.DEFAULT_POLICY), b"eval-key-" + b"x" * 32)
     entries = load_key(key_path.read_bytes())
@@ -39,8 +39,9 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--data", type=Path, nargs="+", required=True)
     ap.add_argument("--key", type=Path, required=True)
     ap.add_argument("--json", type=Path)
+    ap.add_argument("--no-clean", action="store_true", help="as if the user chose «تخطَّ» (no cleaning)")
     a = ap.parse_args(argv)
-    out = run(a.data, a.key)
+    out = run(a.data, a.key, cleaning=not a.no_clean)
     print(f"verdict {out['verdict']}  failed {out['failed_checks']}")
     print(f"{'type':<12}{'planted':>8}{'found':>8}{'replaced':>9}{'missed':>8}{'recall':>8}")
     for k, v in out["types"].items():

@@ -288,3 +288,58 @@ export function CleaningNote({ cleaning }: { cleaning: { rules: string[]; change
     </Section>
   )
 }
+
+/** Cleaning is optional: one line when nothing is needed; «نظّف» / «تخطَّ» when something could be;
+ * the rule toggles only behind «خيارات التنظيف». */
+export function CleaningStep({ orgId, ds, onApplied }: { orgId: string; ds: Dataset; onApplied: () => void }) {
+  const c = ds.summary?.cleaning
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState<"clean" | "skip" | null>(null)
+  if (!c) return null
+  const decision = c.decision ?? "applied"
+  const changed = Object.values(c.report.applied).reduce((n, r) => n + (r?.total ?? 0), 0)
+
+  async function act(kind: "clean" | "skip") {
+    setBusy(kind)
+    try {
+      if (kind === "clean") {
+        await api(`/orgs/${orgId}/datasets/${ds.id}/clean`, { method: "POST", body: {} })
+        toast.success("يُنظَّف الملف ويُعاد الكشف.")
+      } else {
+        await api(`/orgs/${orgId}/datasets/${ds.id}/cleaning/skip`, { method: "POST" })
+      }
+      onApplied()
+    } catch (e) {
+      toast.error(messageFor(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const line =
+    decision === "not_needed" ? <><span className="font-bold text-twin">البيانات نظيفة</span> — لا حاجة للتنظيف.</>
+    : decision === "pending" ? <><span className="font-bold">يمكن تنظيف <Num>{(c.recommended ?? 0).toLocaleString("en")}</Num> خلية</span> (مسافات زائدة، قيم فارغة، أرقام وتواريخ بصيغ مختلفة، صفوف مكررة). التنظيف اختياري.</>
+    : decision === "skipped" ? <>تخطّيتَ التنظيف: تُستخدم البيانات كما رُفعت.</>
+    : <><span className="font-bold text-twin">نُظِّف الملف</span>: تغيّرت <Num>{changed.toLocaleString("en")}</Num> قيمة.</>
+
+  return (
+    <div className="space-y-4">
+      <div className={cn("flex flex-wrap items-center justify-between gap-3 rounded-xl border px-5 py-4 shadow-card",
+        decision === "pending" ? "border-review/30 bg-review-soft" : "border-border bg-card")}>
+        <p className="text-sm leading-7">{line}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          {decision === "pending" && ds.session_open ? (
+            <>
+              <Button size="sm" onClick={() => act("clean")} disabled={busy !== null}>
+                {busy === "clean" ? <Spinner className="size-4" /> : <Sparkles data-icon="inline-start" />} نظّف
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => act("skip")} disabled={busy !== null}>تخطَّ</Button>
+            </>
+          ) : null}
+          <Button size="sm" variant="ghost" onClick={() => setOpen(!open)} aria-expanded={open}>خيارات التنظيف</Button>
+        </div>
+      </div>
+      {open ? <CleaningPanel orgId={orgId} ds={ds} onApplied={onApplied} /> : null}
+    </div>
+  )
+}

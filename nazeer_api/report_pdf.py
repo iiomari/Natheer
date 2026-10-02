@@ -93,7 +93,7 @@ def summary(twin) -> dict:
         replaced[k] = replaced.get(k, 0) + int(n)
     review = rep.get("free_text", {}).get("review") or {}
     gen = rep.get("generation") or {}
-    return {"cleaned": cleaned, "replaced": replaced,
+    return {"cleaned": cleaned, "replaced": replaced, "cleaning_decision": rep.get("cleaning_decision"),
             "review": {"pending": int(sum((review.get("pending_by_type") or {}).values())),
                        "approved": bool(review.get("approved")),
                        "cleared_columns": len(gen.get("cleared_columns") or [])}}
@@ -145,7 +145,9 @@ def build(twin, org_name: str) -> bytes:
     doc.rule()
     sm = summary(twin)
     doc.text("ما نُظِّف قبل التوليد", 11, True)
-    doc.text("، ".join(f"{RULE_AR.get(r, r)}: {_n(n)}" for r, n in sm["cleaned"].items()) or "لم تحتج البيانات إلى تنظيف.", 9.5)
+    doc.text("، ".join(f"{RULE_AR.get(r, r)}: {_n(n)}" for r, n in sm["cleaned"].items())
+             or ("تخطّى المدير التنظيف، واستُخدمت البيانات كما رُفعت." if sm["cleaning_decision"] == "skipped"
+                 else "لم تحتج البيانات إلى تنظيف."), 9.5)
     doc.text("ما استُبدل", 11, True)
     doc.text("، ".join(f"{KIND_AR.get(k, k)}: {_n(n)}" for k, n in sm["replaced"].items()) or "لا شيء.", 9.5)
     doc.text("قرارات المراجعة", 11, True)

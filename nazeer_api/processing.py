@@ -117,10 +117,18 @@ def _found_by_type(an) -> dict:
     """Identifier values found, per type: values in identifier columns + values inside free text."""
     from collections import Counter
 
+    from nazeer import saudi_ids as s
+    from nazeer.cleaning import NULL_LIKE
+
     out: Counter = Counter()
     for d in an.detections:
         if d.tag == "DIRECT_ID" and d.kind:
-            out[d.kind] += int(an.tables[d.table][d.column].notna().sum())
+            vals = an.tables[d.table][d.column].dropna().astype(str)
+            vals = vals[~vals.str.strip().str.lower().isin(NULL_LIKE)]
+            if d.kind in ("SAUDI_ID", "MOBILE", "IBAN", "EMAIL"):
+                out[d.kind] += int(vals.map(lambda v, k=d.kind: s.is_valid(k, v)).sum())
+            else:
+                out[d.kind] += int(len(vals))
     for sp in an.spans:
         out[sp.type] += 1
     return dict(out)
@@ -159,7 +167,8 @@ def process_upload(db: DbSession, settings: Settings, ds: Dataset, cleaning: dic
     total = sum(len(df) for df in raw.values())
     if total > settings.max_rows_masked:
         raise ProcessingError("too_many_rows_hosted")
-    opts = cl.CleanOptions.from_dict(cleaning)
+    # Cleaning is optional: an upload is detected as it is; «نظّف» re-runs with the recommended rules.
+    opts = cl.CleanOptions.from_dict(cleaning) if cleaning is not None else cl.CleanOptions.off()
     cleaned, report = cl.clean(raw, opts)
     old = originals_blob(db, ds.id, "clean")
     if old is not None:
@@ -169,9 +178,16 @@ def process_upload(db: DbSession, settings: Settings, ds: Dataset, cleaning: dic
     an = pipeline.analyze(cleaned, ds.name)
     summary = detection_summary(an, ingest_notes)
     suggestions = cl.category_suggestions(raw)
+    potential = cl.potential(raw)
+    recommended = int(sum(potential.get(r, 0) for r in cl.RECOMMENDED))
+    previous = ((ds.summary or {}).get("cleaning") or {}).get("decision")
+    decision = "applied" if cleaning is not None else (
+        "skipped" if previous == "skipped" else ("not_needed" if recommended == 0 else "pending"))
     summary["cleaning"] = {
         "report": report,
-        "potential": cl.potential(raw),
+        "decision": decision,
+        "recommended": recommended,
+        "potential": potential,
         "suggestions": [{"key": g["key"], "table": g["table"], "column": g["column"], "variants": len(g["from"]) + 1,
                          "rows": g["rows"], "approved": g["key"] in opts.merges} for g in suggestions],
         "report_only": cl.report_only(raw),
@@ -252,6 +268,7 @@ def generate_twin(db: DbSession, settings: Settings, ds: Dataset, payload: dict,
     summary = ds.summary or {}
     cleaning = summary.get("cleaning") or {}
     report["cleaning"] = cleaning.get("report")  # what was cleaned (counts only)
+    report["cleaning_decision"] = cleaning.get("decision")
     # Everything needed to rebuild this twin from the same original files at re-link time.
     # Names, options and counts only: no data value.
     key = ui.entity_key(an.profile) if mode == "masked" else None
