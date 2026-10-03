@@ -6,7 +6,7 @@ Saudi organizations need realistic non-production data. Production copies violat
 Environment facts verified during planning (not from memory):
 - The machine has Python 3.11.9. The global site has **pandas 3.0.0 and torch 2.2.2**. SDV/SDMetrics require `pandas<3` and transformers 5.x requires `torch>=2.5`, so an isolated venv is **mandatory**, not optional.
 - The spec's test vectors check out. Valid IDs `1110704341`, `1909266858` and `2129040479` pass. Invalid IDs `1234567890` and `2111111111` fail. `SA0380000000608010167519` gives mod-97 = 1 and is 24 characters long.
-- The repo location is a new folder `C:\Users\iomar\Desktop\nazeer\` with its own `git init`. The current `Desktop\python` folder is an unrelated mixed workspace.
+- The repo is a new folder `nazeer/` with its own `git init`.
 
 ---
 

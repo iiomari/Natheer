@@ -49,7 +49,7 @@ def test_recipient_view_and_review_marks(app, org_admin):
     emp, _ = invite_and_join(app, admin, org, "employee@alwaha.example.com")
     ds = ready_dataset(app, admin, org, [("patients.csv", csv_bytes(original))])
     twin = masked_twin(app, admin, org, ds["id"])
-    # one value, too few to judge: pending, marked amber in the organization's view, sharing blocked
+    # one value, too few to decide: pending, marked amber in the organization's view, sharing blocked
     row4 = admin.get(f"/api/orgs/{org}/twins/{twin['id']}/rows", params={"size": 10, "q": "رقم الطلب"}).json()["rows"][0]
     assert row4["n"] == 4 and row4["cells"]["notes"][1] == "review"
     member = next(m for m in admin.get(f"/api/orgs/{org}/members").json() if m["email"] == "employee@alwaha.example.com")

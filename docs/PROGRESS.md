@@ -23,21 +23,21 @@ This file is updated after every milestone so a new session can resume from it a
 | Arabic NER (CamelBERT + gazetteer fallback) | done | 04a84ae |
 | Final deliverables (README ar/en, demo runs, internal demo script) | done | e76aef2 |
 | UI redesign for clarity (presentation only) | done; superseded by the web product | c24ad10 |
-| **Web product** P1 Backend foundation (auth, orgs, roles, tenancy, migrations, job worker) | done | (this commit) |
-| **Site + infrastructure first** (user, 2026-10-01): Next.js app (design system, public site, auth, workspace shell, team/audit/settings), deployment setup (Railway + Aiven + Vercel + Resend), CI | done | (this commit) |
-| P2 Vertical slice (upload → detect → masked twin → report → share → recipient) + any-data ingestion + no-email links | done | (this commit) |
+| **Web product** P1 Backend foundation (auth, orgs, roles, tenancy, migrations, job worker) | done | 7372a80 |
+| **Site + infrastructure first** (user, 2026-10-01): Next.js app (design system, public site, auth, workspace shell, team/audit/settings), deployment setup (Railway + Aiven + Vercel + Resend), CI | done | 583dd71 |
+| P2 Vertical slice (upload → detect → masked twin → report → share → recipient) + any-data ingestion + no-email links | done | 42783ea |
 | Deploy (P9 early): Railway (api, worker, MySQL) + Vercel Hobby, full E2E against production | done | 3214b8a |
 | P4 Data cleaning (rules, toggles, before/after, approvals, report-only, in the twin report) | done | e8aa67f |
 | P5 Returns + admin-only re-linking (nazeer_ref, rejection thresholds, in-memory recomputation) | done; re-link design replaced by P5b | 2bf71eb |
-| Judge-test fixes (user, 2026-10-02): k-anonymity removed, review band, IBAN shapes, residual scan, Arabic UI, answer-key check, 3 sector samples | done | (this commit) |
+| Fixes from an independent test file (user, 2026-10-02): k-anonymity removed, review band, IBAN shapes, residual scan, Arabic UI, answer-key check, 3 sector samples | done | cccb8d1 |
 | P5b Per-row verification token (رمز التحقق) replaces nazeer_ref and the exact-file re-link | done | cccb8d1 |
 | Valid fakes for bracketed mobiles; amber «تنبيه» for non-blocking checks; twin viewer; one-page Arabic PDF report | done | 7535d8e |
 | Clean example datasets; cleaning made optional («نظّف» / «تخطَّ»); detection independent of cleaning | done | 1bfea7f |
 | Decisions on uncertain values (group statistics, cross-checks, admin per group / value); copy pass (−73% words) | done | 4a19348 |
-| Demo database connection (read-only, demo only) | done | (this commit) |
-| P3 Design system + all pages · P6 Team/audit/settings/email · P7 Public site + demo seed · P8 Hardening + E2E · P9 Deployment · P10 Final docs | not started | — |
-| HMA multi-table synthesis | **out of scope for the hackathon** | — |
-| PDF report | **out of scope for the hackathon** | — |
+| Demo database connection (read-only, demo only) | done | 6c518ba |
+| Returns page: legacy returns handled; Arabic error pages | done | 3a6494d |
+| Organization key rotation UI, notifications, nonce-based CSP | not started | — |
+| HMA multi-table synthesis | **out of scope** | — |
 
 ## Setup notes
 
@@ -182,10 +182,9 @@ torch 2.2) are incompatible, so always use the venv.
       `.env.example` is committed.
     - If the password is still `CHANGE_ME`, the MySQL steps are marked "waiting for
       credentials" and their tests are skipped with a reason.
-32. **Judging criteria and weights are internal only.** They appear only in
-    `docs/internal/DEMO_SCRIPT.md` (headed "Internal team document — do not share."). They
-    never appear in the app, the README, reports or any judge-facing file. Metric values may
-    be shown anywhere. There is no business or commercial section anywhere.
+32. **Internal presentation notes stay internal.** They live only in `docs/internal/` (not
+    tracked by git) and never appear in the app, the README, reports or any public file.
+    Metric values may be shown anywhere. There is no business or commercial section anywhere.
 33. **New: independent evaluation harness.** Teammates write `data/human_notes.csv`
     (`author,note`, identifiers wrapped as `⟦TYPE:value⟧`) without seeing the generator.
     `python -m nazeer.eval_human` scores Nazeer vs baseline and lists misses by type and
@@ -246,9 +245,9 @@ torch 2.2) are incompatible, so always use the venv.
     (Hugging Face offline mode and telemetry, Streamlit usage statistics, server bind
     address) instead of an unverifiable "no network calls" claim.
 51. **The "internal only" rule is enforced by a test.** `tests/test_internal_only.py` fails if
-    any judge-facing file (README, app, ui_logic, report, pipeline, notes guide, template) or
-    any generated `out/**/report.json` mentions criteria, judging, weights or a rubric
-    (English and Arabic).
+    any public file (README, docs, app, ui_logic, report, pipeline, notes guide, template) or
+    any generated `out/**/report.json` mentions internal presentation terms (English and
+    Arabic).
 52. **NER: the default name detector stays the gazetteer.** CamelBERT is offered as
     "union" (CamelBERT + gazetteer).
     - Measured on CPU: about 215–300 ms per note, so the union would need about 26 minutes for
@@ -733,7 +732,7 @@ data. A superset is refused with an Arabic message saying the original files mus
     existing test now finds export columns by header instead of position.
 98. **Twins generated before P5 cannot be re-linked:** they lack the stored generation parameters.
 
-### Judge-test fixes (user's independent hospital file, report nazeer-report-1a200097)
+### Fixes from the user's independent test file (hospital file, report nazeer-report-1a200097)
 **What the user found, and the cause:**
 1. **k-anonymity:** removed entirely (product decision by the user).
 2. **IBANs in notes, 1 of 24 found.** The cause was not the space-merging rule: normalization joins
@@ -790,7 +789,7 @@ the API and the old Streamlit app; `k_anonymity` in the report JSON. k-anonymity
 verdict or sharing. The test that needed a FAIL twin now gets it from a reviewer override that keeps the
 mobile column.
 
-**Site for judges (all text in Arabic):**
+**Site clarity (all text in Arabic):**
 - check names and details are rebuilt in Arabic from the numbers (`web/src/lib/labels.ts`);
 - the detector's reasons are in Arabic; the report carries Arabic limitations (`limitations_ar`);
 - each step shows its result at a glance:
@@ -1022,7 +1021,7 @@ hospital file as the secondary example.
 - Group statistics (Saudi ID): every ID-shaped number (10 digits starting with 1 or 2) after the same
   phrase in the same column is counted, including the ones that fail the check digit (the detector
   rejects those silently). A random number passes with probability 0.10; real IDs pass 100%.
-  - fewer than 10 numbers → too few to judge → the admin decides;
+  - fewer than 10 numbers → too few to decide → the admin decides;
   - one-sided binomial P(X ≥ k | n, 0.10) ≥ 0.01 → consistent with chance → **keep**;
   - one-sided 95% Clopper–Pearson lower bound of k/n ≥ 0.80 → IDs → **replace**;
   - otherwise (mixed) → the admin decides; Nazeer suggests replace if k/n ≥ 0.5, else keep.
@@ -1395,7 +1394,7 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
   5. **Current verdict and leak count.**
 
   It also states that detection numbers on generated data do not predict real-data
-  performance. It never mentions criteria or weights.
+  performance. It never mentions internal presentation material.
 - Tests: 224 passed, 4 skipped (MySQL credentials).
 
 ### Arabic NER: CamelBERT + gazetteer fallback
@@ -1432,7 +1431,7 @@ Command: `python -m nazeer.pipeline --csv data\demo --mode synthetic --target "i
   - `test_internal_only.py` now also covers the new README.
 - README rewritten in Arabic and English: problem, what it does, users, components,
   PowerShell install/run, MySQL flow, UI steps, metric meanings, known limitations. There is
-  no commercial section and no criteria.
+  no commercial section.
 
 ### UI redesign for clarity (presentation only)
 **Why:** the first audience sees Nazeer for the first time on a projector and must get the story in under
@@ -1503,13 +1502,13 @@ MySQL integration tests, waiting for credentials.
   same PKs/FKs, refuses the source, leak scan re-run on the target).
 - Independent evaluation harness: `python -m nazeer.eval_human`, a template, and the Arabic
   writing guide.
-- "Why it works" tab with five live metrics, and a guard test that keeps criteria and weights
-  out of every judge-facing file.
+- "Why it works" tab with five live metrics, and a guard test that keeps internal presentation
+  material out of every public file.
 - Arabic NER: CamelBERT + gazetteer union (optional), and the gazetteer default.
 - UI redesign: a four-step Arabic flow, demo mode with no typing, customer tracking, proof cards with the
   k-anonymity fix and a planted-leak demo, and no network requests (see "UI redesign for clarity").
 - Final deliverables:
-  - bilingual README (no commercial section, no criteria);
+  - bilingual README (no commercial section);
   - demo runs `out\masked_no_fix`, `out\masked`, `out\synthetic`, `out\detection_scores.json`
     and `out\METRICS_SUMMARY.md`;
   - `docs\internal\DEMO_SCRIPT.md`.
@@ -1533,11 +1532,9 @@ MySQL integration tests, waiting for credentials.
   (Arabic round trip, FK detection, read-only source, prod → dev with a target leak scan) have
   never run. Steps: see the MySQL section above. There is no `out\mysql_masked` run yet.
 - **Human-notes evaluation:** the harness is ready, and the teammates' notes are pending.
-- **Demo script weights:** the six criteria are in place, but their weights were never provided
-  (the message was truncated). The time split is an explicit equal placeholder.
 
 ### Not built
-- HMA multi-table synthesis and the PDF report: **out of scope for the hackathon** (user decision).
+- HMA multi-table synthesis: **out of scope** (user decision). A one-page PDF report was added later (7535d8e).
   The `SdvMultiTable` adapter remains as an unused seam.
 - Our own scipy copula replacing SDV (only the `Synthesizer` seam exists).
 - UI editing of `generalize` parameters (policy file only).

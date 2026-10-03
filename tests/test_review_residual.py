@@ -33,7 +33,7 @@ def _notes(*texts):
 def test_a_lone_checksum_valid_number_after_an_order_word_waits_for_the_admin():
     texts = [f"رقم الطلب {VALID_ID} لدى المختبر"] + ["تمت المتابعة مع المريض في العيادة"] * 30
     an, res = _run(_notes(*texts), overrides={"t.notes": {"tag": "FREE_TEXT", "kind": None}})
-    assert VALID_ID in res.twin["t"]["notes"].iat[0]               # too few to judge: unchanged, pending
+    assert VALID_ID in res.twin["t"]["notes"].iat[0]               # too few to decide: unchanged, pending
     assert res.report["free_text"]["review"]["totals"]["pending"] == 1
     assert res.report["verdict"] == "PASS"                           # a decision, not a leak
     key = res.report["free_text"]["review"]["groups"][0]["key"]

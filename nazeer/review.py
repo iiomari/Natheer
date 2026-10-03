@@ -9,7 +9,7 @@ that follows the same phrase in the same column is counted, including the ones t
 check digit (the detector silently rejects those). A random number passes the check digit with
 probability 1/10; real ID numbers pass 100%.
 
-    n < MIN_GROUP (10)                                  -> too few to judge: ask the admin
+    n < MIN_GROUP (10)                                  -> too few to decide: ask the admin
     one-sided binomial P(X >= k | n, 0.10) >= 0.01      -> consistent with chance: not IDs, KEEP
     95% one-sided lower bound of k/n >= 0.80            -> IDs, REPLACE
     otherwise                                           -> mixed: ask the admin
@@ -34,7 +34,7 @@ from scipy.stats import beta, binom
 from nazeer import saudi_ids as s
 
 CHANCE = 0.10          # P(random 10-digit number starting with 1/2 passes the check digit)
-MIN_GROUP = 10         # fewer ID-shaped numbers than this: too few to judge
+MIN_GROUP = 10         # fewer ID-shaped numbers than this: too few to decide
 ALPHA_CHANCE = 0.01    # binomial p-value above which the pass rate is consistent with chance
 ID_LOWER_BOUND = 0.80  # 95% lower bound of the pass rate above which the numbers are IDs
 REVIEW_BELOW = 0.7     # = detect.SPAN_REVIEW_BELOW
