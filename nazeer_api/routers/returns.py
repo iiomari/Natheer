@@ -55,18 +55,42 @@ def _audit_counts(report: dict) -> dict:
             "duplicate": c.get("duplicate"), "integrity": report.get("integrity")}
 
 
+STATUS_KEYS = ("verified", "invalid", "missing", "foreign", "old_key", "duplicate")
+
+
+def complete_report(rep: dict | None, rows_total: int = 0) -> tuple[dict, bool]:
+    """Always the full verification shape. Returns created before the verification token have no
+    report: they are marked legacy (re-upload to verify) and get an all-zero report."""
+    legacy = not rep or "counts" not in rep
+    rep = dict(rep or {})
+    counts = {k: int((rep.get("counts") or {}).get(k, 0) or 0) for k in STATUS_KEYS}
+    rows = int(rep.get("rows_returned") or (0 if legacy else rows_total) or 0)
+    by_status = rep.get("rows_by_status") or {}
+    return {
+        "rows_returned": rows,
+        "rows_shared": int(rep.get("rows_shared") or 0),
+        "coverage": rep.get("coverage"),
+        "counts": counts,
+        "integrity": float(rep.get("integrity") or 0.0),
+        "rows_by_status": {k: list(by_status.get(k) or []) for k in STATUS_KEYS if k != "verified"},
+        "added_columns": {str(t): list(c or []) for t, c in (rep.get("added_columns") or {}).items()},
+        "rows_changed_in_twin_columns": int(rep.get("rows_changed_in_twin_columns") or 0),
+        "tables": list(rep.get("tables") or []),
+    }, legacy
+
+
 def return_payload(r: Return) -> dict:
     live = r.relink_status == "ready" and r.relink_expires_at is not None and r.relink_expires_at > utcnow()
-    status = "expired" if r.relink_status == "ready" and not live else r.relink_status
-    rep = r.report or {}
+    status = "expired" if r.relink_status == "ready" and not live else (r.relink_status or "none")
+    rep, legacy = complete_report(r.report, r.rows_total or 0)
     return {"id": r.id, "share_id": r.share_id, "twin_id": r.twin_id, "dataset_name": r.twin.dataset.name,
-            "file_name": r.file_name, "created_at": r.created_at.isoformat(), "report": rep,
-            "rows_returned": rep.get("rows_returned", r.rows_total), "verified": r.rows_accepted,
-            "added_columns": r.columns, "available": r.blob_id is not None,
-            "relinkable": bool(r.blob_id and rep.get("counts", {}).get("verified")),
+            "file_name": r.file_name, "created_at": r.created_at.isoformat(), "report": rep, "legacy": legacy,
+            "rows_returned": rep["rows_returned"] or int(r.rows_total or 0), "verified": rep["counts"]["verified"],
+            "added_columns": list(r.columns or []), "available": r.blob_id is not None,
+            "relinkable": bool(r.blob_id and not legacy and rep["counts"]["verified"]),
             "relink": {"status": status, "error_code": r.relink_error, "matched": r.relink_matched,
                        "expires_at": r.relink_expires_at.isoformat() if live else None,
-                       "downloads": r.relink_downloads}}
+                       "downloads": int(r.relink_downloads or 0)}}
 
 
 # ---------------------------------------------------------------- recipient side

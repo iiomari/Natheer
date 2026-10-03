@@ -219,6 +219,7 @@ export type ReturnInfo = {
   file_name: string
   created_at: string
   report: ReturnReport
+  legacy?: boolean
   rows_returned: number
   verified: number
   added_columns: string[]

@@ -5,6 +5,7 @@ import { AlertTriangle, Download, KeyRound, Link2, Send } from "lucide-react"
 import { toast } from "sonner"
 
 import { FileDropzone, minutesLeft, useNow } from "@/components/data"
+import { SafeBoundary } from "@/components/safe-boundary"
 import { Chip, InfoTip, InlineError, Notice, Num, Section, Spinner } from "@/components/nz"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -32,9 +33,32 @@ function pct(x: number | null | undefined, digits = 1) {
 }
 
 /** The verification report: large numbers first, details below. */
-export function VerificationReport({ report, compact = false }: { report: ReturnReport; compact?: boolean }) {
+const EMPTY_COUNTS: ReturnCounts = { verified: 0, invalid: 0, missing: 0, foreign: 0, old_key: 0, duplicate: 0 }
+
+/** Any report, complete or not, as a safe complete one (old returns may lack fields). */
+export function safeReport(r: Partial<ReturnReport> | null | undefined): ReturnReport {
+  return {
+    rows_returned: r?.rows_returned ?? 0,
+    rows_shared: r?.rows_shared ?? 0,
+    coverage: r?.coverage ?? null,
+    counts: { ...EMPTY_COUNTS, ...(r?.counts ?? {}) },
+    integrity: r?.integrity ?? 0,
+    rows_by_status: r?.rows_by_status ?? {},
+    added_columns: r?.added_columns ?? {},
+    rows_changed_in_twin_columns: r?.rows_changed_in_twin_columns ?? 0,
+    tables: r?.tables ?? [],
+  }
+}
+
+export const LEGACY_LINE = "مرتجع قديم — أعد رفعه للتحقق"
+
+export function VerificationReport({ report: raw, compact = false, legacy = false }: {
+  report: Partial<ReturnReport> | null | undefined; compact?: boolean; legacy?: boolean
+}) {
+  if (legacy) return <p className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm font-semibold">{LEGACY_LINE}</p>
+  const report = safeReport(raw)
   const c = report.counts
-  const added = Object.values(report.added_columns).flat()
+  const added = Object.values(report.added_columns ?? {}).flat()
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
@@ -55,7 +79,7 @@ export function VerificationReport({ report, compact = false }: { report: Return
         {STATUS_TILES.map((t) => (
           <div key={t.key} className="rounded-xl border border-border bg-card px-4 py-3 shadow-card">
             <p className="text-sm font-semibold text-muted-foreground">{t.label}</p>
-            <p className={cn("text-3xl font-bold", c[t.key] ? t.tone : "text-muted-foreground")}><Num>{c[t.key].toLocaleString("en")}</Num></p>
+            <p className={cn("text-3xl font-bold", c[t.key] ? t.tone : "text-muted-foreground")}><Num>{(c[t.key] ?? 0).toLocaleString("en")}</Num></p>
             {!compact ? <p className="mt-1 text-xs text-muted-foreground">{t.hint}</p> : null}
           </div>
         ))}
@@ -126,21 +150,27 @@ export function ReturnResults({ share }: { share: Received }) {
           {busy ? <Spinner className="size-4" /> : <Send data-icon="inline-start" />}
           إرسال النتائج
         </Button>
-        {last ? <VerificationReport report={last.report} compact /> : null}
+        {last ? <VerificationReport report={last.report} compact legacy={last.legacy} /> : null}
       </div>
       {mine.data?.length ? (
         <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-card">
           {mine.data.map((r) => (
-            <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
+            <SafeBoundary key={r.id}>
+            <li className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
               <span>
                 <bdi className="font-semibold">{r.file_name}</bdi>
                 <span className="ms-2 text-muted-foreground">{formatDateTime(r.created_at)}</span>
               </span>
               <span className="flex flex-wrap items-center gap-2">
-                <Chip tone={r.report.integrity === 1 ? "twin" : "review"}>سلامة <Num>{pct(r.report.integrity)}</Num></Chip>
-                <Chip tone="neutral"><Num>{r.verified.toLocaleString("en")}</Num> من <Num>{r.rows_returned.toLocaleString("en")}</Num> مُتحقَّق</Chip>
+                {r.legacy ? <Chip tone="neutral">{LEGACY_LINE}</Chip> : (
+                  <>
+                    <Chip tone={safeReport(r.report).integrity === 1 ? "twin" : "review"}>سلامة <Num>{pct(safeReport(r.report).integrity)}</Num></Chip>
+                    <Chip tone="neutral"><Num>{(r.verified ?? 0).toLocaleString("en")}</Num> من <Num>{(r.rows_returned ?? 0).toLocaleString("en")}</Num> مُتحقَّق</Chip>
+                  </>
+                )}
               </span>
             </li>
+            </SafeBoundary>
           ))}
         </ul>
       ) : null}
@@ -174,7 +204,7 @@ export function RelinkDialog({ orgId, returnId, open, onOpenChange, onChanged }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [d?.relink?.status])
 
-  const partial = (d?.report.integrity ?? 1) < 1
+  const partial = d ? safeReport(d.report).integrity < 1 : false
 
   async function start() {
     setBusy(true)
@@ -206,7 +236,7 @@ export function RelinkDialog({ orgId, returnId, open, onOpenChange, onChanged }:
           <Spinner className="size-4" />
         ) : (
           <div className="space-y-5">
-            <VerificationReport report={d.report} compact />
+            <VerificationReport report={d.report} compact legacy={d.legacy} />
             {rl?.status === "ready" && rl.expires_at ? (
               <div className="space-y-3 rounded-xl border border-twin/25 bg-twin-soft p-4">
                 <p className="font-bold text-twin">رُبط <Num>{(rl.matched ?? 0).toLocaleString("en")}</Num> صف بسجلاته الحقيقية.</p>
@@ -232,7 +262,7 @@ export function RelinkDialog({ orgId, returnId, open, onOpenChange, onChanged }:
               </div>
             ) : !d.relinkable ? (
               <InlineError>
-                {d.report.counts.verified ? "انتهت مدة الاحتفاظ بهذه النتائج." : "لا يوجد صف مُتحقَّق في هذا الملف، فلا يمكن إعادة الربط."}
+                {d.legacy ? LEGACY_LINE : safeReport(d.report).counts.verified ? "انتهت مدة الاحتفاظ بهذه النتائج." : "لا يوجد صف مُتحقَّق في هذا الملف، فلا يمكن إعادة الربط."}
               </InlineError>
             ) : (
               <>
@@ -250,7 +280,7 @@ export function RelinkDialog({ orgId, returnId, open, onOpenChange, onChanged }:
                   <label className="flex items-start gap-3 rounded-xl border border-review/30 bg-review-soft p-4 text-sm text-review">
                     <input type="checkbox" className="mt-1 size-4" checked={confirm} onChange={(e) => setConfirm(e.target.checked)} />
                     <span>
-                      سلامة الصفوف <Num>{pct(d.report.integrity)}</Num> أقل من 100%. سيُربط <Num>{d.report.counts.verified}</Num> صف
+                      سلامة الصفوف <Num>{pct(safeReport(d.report).integrity)}</Num> أقل من 100%. سيُربط <Num>{safeReport(d.report).counts.verified}</Num> صف
                       مُتحقَّق فقط وتُستبعد البقية. أؤكد المتابعة (يُسجَّل في سجل التدقيق).
                     </span>
                   </label>

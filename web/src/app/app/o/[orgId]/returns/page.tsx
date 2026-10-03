@@ -6,6 +6,7 @@ import { Link2, Undo2 } from "lucide-react"
 import { LoadError, Loading, useCurrentMembership } from "@/components/org"
 import { Chip, EmptyState, Notice, PageHeader } from "@/components/nz"
 import { RelinkDialog, VerificationReport } from "@/components/returns"
+import { SafeBoundary } from "@/components/safe-boundary"
 import { Button } from "@/components/ui/button"
 import type { ReturnInfo } from "@/lib/types"
 import { formatDateTime, useApi } from "@/lib/use-api"
@@ -41,9 +42,10 @@ export default function ReturnsPage() {
         <div className="space-y-6">
           {!isAdmin ? <Notice>إعادة الربط بالسجلات الحقيقية متاحة لمدير المنشأة فقط.</Notice> : null}
           {list.data.map((r) => {
-            const st = STATUS[r.relink?.status ?? "none"]
+            const st = STATUS[r.relink?.status ?? "none"] ?? STATUS.none
             return (
-              <div key={r.id} className="space-y-5 rounded-xl border border-border bg-card p-6 shadow-card">
+              <SafeBoundary key={r.id}>
+              <div className="space-y-5 rounded-xl border border-border bg-card p-6 shadow-card">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-lg font-bold"><bdi>{r.file_name}</bdi></p>
@@ -53,15 +55,16 @@ export default function ReturnsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Chip tone={st.tone}>{st.label}</Chip>
-                    {isAdmin && r.relinkable ? (
+                    {isAdmin && r.relinkable && !r.legacy ? (
                       <Button onClick={() => setOpen(r.id)}>
                         <Link2 data-icon="inline-start" /> إعادة الربط
                       </Button>
                     ) : null}
                   </div>
                 </div>
-                <VerificationReport report={r.report} />
+                <VerificationReport report={r.report} legacy={r.legacy} />
               </div>
+              </SafeBoundary>
             )
           })}
         </div>
