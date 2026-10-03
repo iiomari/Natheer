@@ -97,7 +97,7 @@ def main() -> None:
         shot(page, "p2-03-upload.png", full=False)
         page.get_by_role("button", name="رفع ومعالجة").click()
         page.wait_for_url("**/datasets/**", timeout=30_000)
-        expect(page.get_by_role("heading", name="مراجعة الكشف")).to_be_visible(timeout=TIMEOUT)
+        expect(page.get_by_role("heading", name="الأعمدة")).to_be_visible(timeout=TIMEOUT)
         shot(page, "p2-04-review.png")
         # cleaning: opt in to phone unification, look at before/after, apply and re-detect
         # cleaning is optional: a clean file needs nothing; the toggles sit behind «خيارات التنظيف»
@@ -112,22 +112,22 @@ def main() -> None:
         shot(page, "p4-01-cleaning.png", full=False)
         page.get_by_role("button", name="طبّق وأعد الكشف").click()
         expect(page.get_by_text("نُظِّف الملف")).to_be_visible(timeout=TIMEOUT)
-        expect(page.get_by_role("heading", name="مراجعة الكشف")).to_be_visible(timeout=TIMEOUT)
+        expect(page.get_by_role("heading", name="الأعمدة")).to_be_visible(timeout=TIMEOUT)
         page.get_by_role("tab", name="أداة تقليدية").click()
-        page.get_by_role("heading", name="البيانات الشخصية داخل النصوص").scroll_into_view_if_needed()
+        page.get_by_role("heading", name="داخل النصوص").scroll_into_view_if_needed()
         shot(page, "p2-05-baseline-view.png", full=False)
 
         # generate: the masked twin passes every blocking check (no k-anonymity step any more)
         page.get_by_role("button", name="ولّد النظير").click()
         page.wait_for_url("**/twins/**", timeout=TIMEOUT)
-        expect(page.get_by_text("النتيجة: ناجح")).to_be_visible(timeout=TIMEOUT)
+        expect(page.get_by_text("ناجح · يمكن مشاركته")).to_be_visible(timeout=TIMEOUT)
         expect(page.get_by_text("فحص البقايا").first).to_be_visible()
-        expect(page.get_by_text("رمز التحقق:")).to_be_visible()
+        expect(page.get_by_text("رمز التحقق", exact=True)).to_be_visible()
         assert page.get_by_text("خطر التعرّف بالتركيب").count() == 0
         shot(page, "p2-07-twin-pass.png")
         # the one-page PDF report (Arabic), kept in docs/ui/web for review
         with page.expect_download() as d:
-            page.get_by_role("link", name="تنزيل التقرير (PDF)").click()
+            page.get_by_role("link", name="التقرير", exact=True).click()
         d.value.save_as(str(args.out / "p7-report.pdf"))
         # the twin itself: paginated table with the token column and replaced cells marked
         page.get_by_role("link", name="عرض النظير").click()
@@ -144,15 +144,15 @@ def main() -> None:
         page.wait_for_url("**/twins/**", timeout=30_000)
         page.get_by_text("تفاصيل للمختصين").click()
         page.get_by_role("button", name="عرض المعاينة (تتضمّن قيماً أصلية)").click()
-        expect(page.get_by_text("الخلايا المتغيّرة مظلّلة").first).to_be_visible(timeout=60_000)
-        page.get_by_role("heading", name="قبل وبعد").scroll_into_view_if_needed()
+        expect(page.get_by_text("النظير", exact=True).first).to_be_visible(timeout=60_000)
+        page.get_by_text("تفاصيل للمختصين").scroll_into_view_if_needed()
         shot(page, "p2-08-preview.png", full=False)
         page.evaluate("window.scrollTo(0, 0)")
 
         # share with the employee? not a member yet; share with an external recipient first
         page.get_by_role("button", name="مشاركة").first.click()
         dlg = page.get_by_role("dialog")
-        dlg.get_by_placeholder("مثال: شركة التحليل أو analyst@example.com").fill("شركة التحليل")
+        dlg.get_by_placeholder("اسم أو بريد، مثل شركة التحليل").fill("شركة التحليل")
         dlg.get_by_role("button", name="إضافة").click()
         dlg.get_by_role("button", name="مشاركة", exact=True).click()
         expect(dlg.get_by_text("أُنشئت المشاركة")).to_be_visible()
@@ -184,7 +184,7 @@ def main() -> None:
         expect(emp.get_by_text("مطالبات العرض")).to_be_visible()
         shot(emp, "p2-10-received.png")
         emp.get_by_text("مطالبات العرض").click()
-        expect(emp.get_by_text("هذه بيانات نظيرة لا تحتوي أي شخص حقيقي.")).to_be_visible()
+        expect(emp.get_by_text("بيانات نظيرة: لا شخص حقيقي فيها.")).to_be_visible()
         expect(emp.get_by_role("heading", name="ما نُظِّف قبل التوليد")).to_be_visible()
         shot(emp, "p2-11-received-detail.png")
         emp.get_by_role("link", name=re.compile("عرض البيانات")).click()
@@ -194,7 +194,7 @@ def main() -> None:
         emp.go_back()
         emp.wait_for_url("**/received/**", timeout=30_000)
         xlsx_path = None
-        for label in ("تحميل Excel (موصى به)", "تحميل CSV"):
+        for label in ("تحميل Excel", "تحميل CSV"):
             with emp.expect_download() as d:
                 emp.get_by_role("button", name=label).click()
             downloads.append(d.value.suggested_filename)
@@ -224,7 +224,7 @@ def main() -> None:
         emp.locator("input[type=file]").set_input_files(str(results))
         emp.get_by_role("button", name="إرسال النتائج").click()
         expect(emp.get_by_text(re.compile("صف مُتحقَّق")).first).to_be_visible(timeout=TIMEOUT)
-        emp.get_by_role("heading", name="إعادة النتائج إلى المنشأة").scroll_into_view_if_needed()
+        emp.get_by_role("heading", name="أعد النتائج").scroll_into_view_if_needed()
         shot(emp, "p5-01-return-sent.png", full=False)
 
         # the admin sees the verification report, confirms the partial integrity, re-links with the
@@ -293,7 +293,7 @@ def main() -> None:
             page.get_by_label("اسم مجموعة البيانات (اختياري)").fill(title)
             page.get_by_role("button", name="رفع ومعالجة").click()
             page.wait_for_url("**/datasets/**", timeout=30_000)
-            expect(page.get_by_role("heading", name="مراجعة الكشف")).to_be_visible(timeout=TIMEOUT)
+            expect(page.get_by_role("heading", name="الأعمدة")).to_be_visible(timeout=TIMEOUT)
             if "_clean" in sample:
                 expect(page.get_by_text("البيانات نظيفة")).to_be_visible()
                 if sample == SAMPLES[0][0]:
@@ -305,17 +305,17 @@ def main() -> None:
                 page.get_by_role("button", name="نظّف", exact=True).click()
                 expect(page.get_by_text("نُظِّف الملف")).to_be_visible(timeout=TIMEOUT)
             expect(page.get_by_text("ما اكتُشف:")).to_be_visible()
-            page.get_by_role("button", name="رفع مفتاح إجابة").click()
+            page.get_by_role("button", name="تحقق بمفتاح إجابة").click()
             page.locator("input[type=file][accept='.csv,text/csv']").set_input_files(str(args.samples / key_file))
             page.get_by_role("button", name="قارن").click()
             expect(page.get_by_text("وجده نَظير", exact=True)).to_be_visible(timeout=TIMEOUT)
-            page.get_by_role("heading", name="تحقق مستقل بمفتاح إجابة (اختياري)").scroll_into_view_if_needed()
+            page.get_by_text("مفتاح الإجابة", exact=True).scroll_into_view_if_needed()
             shot(page, f"p6-{sample.split('_')[0]}-answer-key.png", full=False)
             page.get_by_role("button", name="ولّد النظير").click()
             page.wait_for_url("**/twins/**", timeout=TIMEOUT)
-            expect(page.get_by_text(re.compile("النتيجة:"))).to_be_visible(timeout=TIMEOUT)
+            expect(page.get_by_text(re.compile("ناجح|راسب")).first).to_be_visible(timeout=TIMEOUT)
             shot(page, f"p6-{sample.split('_')[0]}-twin.png", full=False)
-            expect(page.get_by_text("النتيجة: ناجح")).to_be_visible(timeout=TIMEOUT)
+            expect(page.get_by_text("ناجح · يمكن مشاركته")).to_be_visible(timeout=TIMEOUT)
             page.get_by_role("button", name="مشاركة").first.click()
             dlg = page.get_by_role("dialog")
             dlg.get_by_text(member_label).click()
@@ -324,9 +324,9 @@ def main() -> None:
             dlg.get_by_role("button", name="تم").click()
             emp.goto(f"{args.url}/app/received")
             emp.get_by_text(title).first.click()
-            expect(emp.get_by_text("هذه بيانات نظيرة لا تحتوي أي شخص حقيقي.")).to_be_visible()
+            expect(emp.get_by_text("بيانات نظيرة: لا شخص حقيقي فيها.")).to_be_visible()
             with emp.expect_download() as d:
-                emp.get_by_role("button", name="تحميل Excel (موصى به)").click()
+                emp.get_by_role("button", name="تحميل Excel").click()
             downloads.append(d.value.suggested_filename)
             print("sample OK:", sample)
         browser.close()

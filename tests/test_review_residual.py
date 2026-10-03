@@ -30,15 +30,17 @@ def _notes(*texts):
 
 # ---------------------------------------------------------------- review band
 
-def test_checksum_valid_number_after_order_word_goes_to_review_and_stays():
+def test_a_lone_checksum_valid_number_after_an_order_word_waits_for_the_admin():
     texts = [f"رقم الطلب {VALID_ID} لدى المختبر"] + ["تمت المتابعة مع المريض في العيادة"] * 30
     an, res = _run(_notes(*texts), overrides={"t.notes": {"tag": "FREE_TEXT", "kind": None}})
-    assert VALID_ID in res.twin["t"]["notes"].iat[0]               # left unchanged
-    assert res.report["free_text"]["review"]["pending_by_type"] == {"SAUDI_ID": 1}
-    assert res.report["verdict"] == "PASS"                           # a reviewer's call, not a leak
-    _, approved = _run(_notes(*texts), overrides={"t.notes": {"tag": "FREE_TEXT", "kind": None}}, approve_review=True)
-    assert VALID_ID not in approved.twin["t"]["notes"].iat[0]        # replaced once approved
-    assert approved.report["free_text"]["review"]["approved"] is True
+    assert VALID_ID in res.twin["t"]["notes"].iat[0]               # too few to judge: unchanged, pending
+    assert res.report["free_text"]["review"]["totals"]["pending"] == 1
+    assert res.report["verdict"] == "PASS"                           # a decision, not a leak
+    key = res.report["free_text"]["review"]["groups"][0]["key"]
+    _, decided = _run(_notes(*texts), overrides={"t.notes": {"tag": "FREE_TEXT", "kind": None}},
+                      review_decisions={"groups": {key: "replace"}})
+    assert VALID_ID not in decided.twin["t"]["notes"].iat[0]
+    assert decided.report["free_text"]["review"]["totals"] == {"auto": 0, "admin": 1, "pending": 0, "replace": 1, "keep": 0}
 
 
 def test_id_in_identifying_context_is_still_replaced():

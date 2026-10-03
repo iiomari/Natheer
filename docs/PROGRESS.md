@@ -32,7 +32,8 @@ This file is updated after every milestone so a new session can resume from it a
 | Judge-test fixes (user, 2026-10-02): k-anonymity removed, review band, IBAN shapes, residual scan, Arabic UI, answer-key check, 3 sector samples | done | (this commit) |
 | P5b Per-row verification token (رمز التحقق) replaces nazeer_ref and the exact-file re-link | done | cccb8d1 |
 | Valid fakes for bracketed mobiles; amber «تنبيه» for non-blocking checks; twin viewer; one-page Arabic PDF report | done | 7535d8e |
-| Clean example datasets; cleaning made optional («نظّف» / «تخطَّ»); detection independent of cleaning | done | (this commit) |
+| Clean example datasets; cleaning made optional («نظّف» / «تخطَّ»); detection independent of cleaning | done | 1bfea7f |
+| Decisions on uncertain values (group statistics, cross-checks, admin per group / value); copy pass (−73% words) | done | (this commit) |
 | P3 Design system + all pages · P6 Team/audit/settings/email · P7 Public site + demo seed · P8 Hardening + E2E · P9 Deployment · P10 Final docs | not started | — |
 | HMA multi-table synthesis | **out of scope for the hackathon** | — |
 | PDF report | **out of scope for the hackathon** | — |
@@ -1012,6 +1013,95 @@ hospital file as the secondary example.
      after «نظّف».
 109. **Type inference ignores null placeholders**, so detection gives the same result with or without
      cleaning.
+
+### Decisions on uncertain values; copy pass
+**Engine (`nazeer/review.py`).**
+- Grouping: uncertain values (free-text spans below confidence 0.7) are grouped by (table, column,
+  context phrase). The phrase is the one or two words just before the number, normalized.
+- Group statistics (Saudi ID): every ID-shaped number (10 digits starting with 1 or 2) after the same
+  phrase in the same column is counted, including the ones that fail the check digit (the detector
+  rejects those silently). A random number passes with probability 0.10; real IDs pass 100%.
+  - fewer than 10 numbers → too few to judge → the admin decides;
+  - one-sided binomial P(X ≥ k | n, 0.10) ≥ 0.01 → consistent with chance → **keep**;
+  - one-sided 95% Clopper–Pearson lower bound of k/n ≥ 0.80 → IDs → **replace**;
+  - otherwise (mixed) → the admin decides; Nazeer suggests replace if k/n ≥ 0.5, else keep.
+- Cross-checks per value, before the group rule:
+  - equal to a value of a detected ID column → replace;
+  - equal to a value of a non-personal column → keep;
+  - IBAN shape with a failing checksum → replace (an account number).
+- Precedence: admin per value > admin per group > automatic. Undecided values stay unchanged; the
+  twin can be generated but **not shared** (`decisions_pending`, 409) until they are decided.
+- Every decision carries a reason code and numbers. The UI turns it into one Arabic line, e.g.
+  «١٢٪ فقط من الأرقام بعد «رقم الوثيقة» تجتاز خوارزمية الهوية — أرقام مرجعية، تُترك.»
+- Everything stored is value-free: phrases, counts, cell positions.
+
+**API:**
+- `GET/PUT …/decisions`: groups, 3 session-only examples, all values of a group with `?group=`;
+  decisions are keyed by group and by position, never by value;
+- `POST …/decisions/accept`: one click, Nazeer's suggestion for every pending group;
+- `POST /twins/{id}/apply-decisions`: re-runs the twin with the current decisions. If the twin has no
+  shares yet it is updated **in place** (same id); generation is deterministic, so only the decided
+  cells change (tested). The report carries `review_decisions` (auto / admin / pending). Audit entries
+  hold group phrases and counts only.
+
+**UI:**
+- dataset page: «القرارات», with a neutral «قرارات بانتظارك» list (one row per group: phrase, count, 3
+  examples, Nazeer's suggestion and reason, «أبقِها كما هي» / «حوّلها لنظير», «كل القيم» for per-value
+  overrides, «تراجع»), «طبّق اقتراحات نَظير», and a collapsed reversible «قرارات اتخذها نَظير»;
+- twin page: «N قرارات اتخذها نَظير تلقائياً، M بقرارك»; while decisions are pending, «مشاركة» is disabled
+  and one line offers «طبّق اقتراحات نَظير»; «طبّق القرارات على النظير» when decisions changed;
+- the PDF carries the same line.
+
+**Results on the five samples:**
+
+| File | Values sent to review before | Decided by Nazeer now | Left for the admin |
+|---|---|---|---|
+| clinic_appointments_clean | 101 | 101 (replace: «الحجز المرجعي», 101/101 pass) | 0 |
+| bank_accounts_clean | 76 | 76 (replace: «رقم العملية», 76/76) | 0 |
+| hospital_patients_test | 25 | 25 (replace: «رقم الطلب», 25/25) | 0 |
+| bank_customers_test | 46 | 46 (replace: «رقم العملية», 46/46) | 0 |
+| insurance_claims_test | 51 | 51 (replace: «رقم الوثيقة», 51/51) | 0 |
+
+**Honest note:** in every sample, including the user's hospital file, the planted look-alike numbers
+pass the ID check digit 100%. Statistically that cannot be told apart from real IDs, so Nazeer replaces
+them (the safe side) and shows why; the admin can reverse it in one click. Real reference numbers pass
+about 10% and are kept. `tests/test_review_decisions.py` proves both paths, the mixed case, per-value
+overrides, the ID-column cross-check, and that switching back and forth loses nothing.
+`tests_api/test_decisions.py` covers the API, sharing being blocked while pending, the in-place apply
+(only the decided cell changes) and the value-free audit.
+
+**Answer-key evaluator:** look-alikes expected «مراجعة» are now counted as decided with evidence (kept or
+replaced) or waiting; only «تجاهل» look-alikes that get replaced count as wrong.
+
+**Copy pass** (`docs/ui/copy/README.md`): words per screen of the main flow, measured by
+`scripts/ui_copy_audit.py`: **2,519 → 672 (−73%)**.
+
+| Screen | Before | After |
+|---|---|---|
+| upload dialog | 139 | 108 |
+| messy file (cleaning) | 995 | 200 |
+| detection (clean file) | 963 | 177 |
+| twin report | 218 | 78 |
+| share dialog | 62 | 37 |
+| recipient | 142 | 72 |
+
+How:
+- one primary button per screen;
+- headings and buttons of 1–3 words;
+- extra explanation in "ⓘ" tooltips or collapsed sections;
+- numbers instead of sentences;
+- identifier columns only by default;
+- the token rule said once per screen.
+
+**Verified:** full suite (see the commit); local browser E2E on every flow and all five samples,
+0 external requests.
+
+**Deviations:**
+110. **Uncertain values are decided by Nazeer from evidence** (user decision), not left to a blanket
+     "replace all". `approve_review` is removed.
+111. **Pending decisions block sharing**, not the verdict: the twin is PASS, sharing waits for decisions.
+112. **Applying decisions re-runs generation from the session's originals.** It is deterministic, so
+     only the decided cells change, but it needs the session to be open.
 
 ## Milestone log
 

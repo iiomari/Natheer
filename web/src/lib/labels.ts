@@ -119,3 +119,31 @@ export const ENCODING_AR: Record<string, string> = {
 }
 
 export const DELIMITER_AR: Record<string, string> = { ",": "فاصلة", ";": "فاصلة منقوطة", tab: "مسافة جدولة", "|": "خط عمودي" }
+
+const AR_DIGITS = (n: number | string) => String(n).replace(/[0-9]/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)])
+
+export type DecisionReason = { code: string; n?: number; k?: number; column?: string }
+
+/** One Arabic line explaining a decision on uncertain values. */
+export function reasonLine(r: DecisionReason, phrase: string): string {
+  const pct = r.n ? Math.round(((r.k ?? 0) / r.n) * 100) : 0
+  const ctx = phrase ? `بعد «${phrase}»` : "في هذا العمود"
+  switch (r.code) {
+    case "chance":
+      return `${AR_DIGITS(pct)}٪ فقط من الأرقام ${ctx} تجتاز خوارزمية الهوية — أرقام مرجعية، تُترك.`
+    case "ids":
+      return `${AR_DIGITS(pct)}٪ من الأرقام ${ctx} تجتاز خوارزمية الهوية — هويات، تُستبدل.`
+    case "mixed":
+      return `${AR_DIGITS(pct)}٪ من الأرقام ${ctx} تجتاز الخوارزمية — نسبة لا تحسم.`
+    case "too_few":
+      return `${AR_DIGITS(r.n ?? 0)} أرقام فقط ${ctx} — أقل من أن تُحسم.`
+    case "matches_id_column":
+      return `يطابق رقماً في عمود الهوية «${(r.column ?? "").split(".").pop()}».`
+    case "matches_reference_column":
+      return `يطابق رقماً في عمود «${(r.column ?? "").split(".").pop()}» — رقم مرجعي.`
+    case "iban_shape":
+      return "صيغة آيبان سعودي كاملة — رقم حساب، يُستبدل."
+    default:
+      return "لا دليل كافٍ."
+  }
+}

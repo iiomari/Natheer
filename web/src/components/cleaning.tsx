@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Eye, RotateCcw, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
-import { Chip, InlineError, Ltr, Notice, Num, Section, Spinner } from "@/components/nz"
+import { Chip, InfoTip, InlineError, Ltr, Notice, Num, Section, Spinner } from "@/components/nz"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -272,7 +272,7 @@ export function CleaningNote({ cleaning }: { cleaning: { rules: string[]; change
   if (!cleaning) return null
   const done = cleaning.rules.filter((r) => (cleaning.changed[r] ?? 0) > 0)
   return (
-    <Section title="ما نُظِّف قبل التوليد" description="أجرت المنشأة هذه الخطوات على بياناتها قبل صنع النظير.">
+    <Section title="ما نُظِّف قبل التوليد">
       {done.length ? (
         <ul className="grid gap-2 sm:grid-cols-2">
           {done.map((r) => (
@@ -283,7 +283,7 @@ export function CleaningNote({ cleaning }: { cleaning: { rules: string[]; change
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-muted-foreground">لم تحتج البيانات إلى أي تنظيف.</p>
+        <p className="text-sm text-muted-foreground">لا شيء.</p>
       )}
     </Section>
   )
@@ -318,14 +318,15 @@ export function CleaningStep({ orgId, ds, onApplied }: { orgId: string; ds: Data
 
   const line =
     decision === "not_needed" ? <><span className="font-bold text-twin">البيانات نظيفة</span> — لا حاجة للتنظيف.</>
-    : decision === "pending" ? <><span className="font-bold">يمكن تنظيف <Num>{(c.recommended ?? 0).toLocaleString("en")}</Num> خلية</span> (مسافات زائدة، قيم فارغة، أرقام وتواريخ بصيغ مختلفة، صفوف مكررة). التنظيف اختياري.</>
+    : decision === "pending" ? <span className="inline-flex items-center gap-1.5"><span className="font-bold">يمكن تنظيف <Num>{(c.recommended ?? 0).toLocaleString("en")}</Num> خلية</span> · اختياري
+        <InfoTip>مسافات زائدة، قيم فارغة، أرقام وتواريخ بصيغ مختلفة، صفوف مكررة. لا يتغيّر معنى أي قيمة.</InfoTip></span>
     : decision === "skipped" ? <>تخطّيتَ التنظيف: تُستخدم البيانات كما رُفعت.</>
     : <><span className="font-bold text-twin">نُظِّف الملف</span>: تغيّرت <Num>{changed.toLocaleString("en")}</Num> قيمة.</>
 
   return (
     <div className="space-y-4">
       <div className={cn("flex flex-wrap items-center justify-between gap-3 rounded-xl border px-5 py-4 shadow-card",
-        decision === "pending" ? "border-review/30 bg-review-soft" : "border-border bg-card")}>
+        decision === "pending" ? "border-primary/20 bg-accent/60" : "border-border bg-card")}>
         <p className="text-sm leading-7">{line}</p>
         <div className="flex flex-wrap items-center gap-2">
           {decision === "pending" && ds.session_open ? (

@@ -109,7 +109,6 @@ def detection_summary(an, ingest_notes: list[dict]) -> dict:
         "ingest": ingest_notes,
         "total_rows": int(sum(len(df) for df in an.tables.values())),
         "found_by_type": _found_by_type(an),
-        "review": _review_counts(an),
     }
 
 
@@ -134,13 +133,12 @@ def _found_by_type(an) -> dict:
     return dict(out)
 
 
-def _review_counts(an) -> dict:
-    from collections import Counter
+def review_state(tables, an, decisions: dict | None) -> dict:
+    """Groups of uncertain values with Nazeer's automatic decisions and the admin's (positions only)."""
+    from nazeer.review import resolve
 
-    from nazeer.detect import SPAN_REVIEW_BELOW
-
-    c = Counter(sp.type for sp in an.spans if sp.confidence < SPAN_REVIEW_BELOW)
-    return {"by_type": dict(c), "total": int(sum(c.values()))}
+    _, summary = resolve(tables, an.spans, an.detections, decisions)
+    return summary
 
 
 def process_upload(db: DbSession, settings: Settings, ds: Dataset, cleaning: dict | None = None) -> dict:
@@ -177,6 +175,12 @@ def process_upload(db: DbSession, settings: Settings, ds: Dataset, cleaning: dic
              expires_at=ds.session_expires_at, dataset_id=ds.id)
     an = pipeline.analyze(cleaned, ds.name)
     summary = detection_summary(an, ingest_notes)
+    # Admin decisions survive re-cleaning per group; per-value decisions refer to positions that
+    # cleaning may move, so they are dropped then.
+    prev = (ds.summary or {}).get("decisions") or {}
+    decisions = {"groups": dict(prev.get("groups") or {}), "values": {} if cleaning is not None else dict(prev.get("values") or {})}
+    summary["decisions"] = decisions
+    summary["review"] = review_state(cleaned, an, decisions)
     suggestions = cl.category_suggestions(raw)
     potential = cl.potential(raw)
     recommended = int(sum(potential.get(r, 0) for r in cl.RECOMMENDED))
@@ -243,7 +247,7 @@ def generate_twin(db: DbSession, settings: Settings, ds: Dataset, payload: dict,
     org = db.get(Organization, ds.org_id)
     if mode == "masked":
         res = pipeline.run_masked(an, policy, org_key(settings, org), overrides,
-                                  approve_review=bool(payload.get("approve_review")),
+                                  review_decisions=(ds.summary or {}).get("decisions"),
                                   cleared_columns=payload.get("cleared_columns") or [])
         proof = ui.proof(an, res)
     else:
@@ -275,12 +279,23 @@ def generate_twin(db: DbSession, settings: Settings, ds: Dataset, payload: dict,
     opts = dict((cleaning.get("report") or {}).get("options") or {})
     opts["merges"] = [g["key"] for g in cleaning.get("suggestions", []) if g.get("approved")]
     report["generation"] = _json_safe({
-        "dataset_name": ds.name, "cleaning": opts, "overrides": overrides, "approve_review": bool(payload.get("approve_review")),
+        "dataset_name": ds.name, "cleaning": opts, "overrides": overrides, "decisions": (ds.summary or {}).get("decisions") or {},
         "cleared_columns": payload.get("cleared_columns") or [],
         "link": {"table": key[0], "column": key[1]} if key else None,
         "source": [{"table": n["table"], "rows": n["rows"]} for n in summary.get("ingest", [])],
         "token": token_info,
     })
+    target = db.get(Twin, payload["replace_twin_id"]) if payload.get("replace_twin_id") else None
+    if target is not None and target.dataset_id == ds.id and target.purged_at is None and             db.execute(select(Share.id).where(Share.twin_id == target.id)).first() is None:
+        # Decisions re-applied before any share: same twin, same id. Generation is deterministic, so
+        # only the decided cells change.
+        old = db.get(Blob, target.blob_id) if target.blob_id else None
+        target.blob_id, target.verdict, target.report = blob.id if blob else None, res.report["verdict"], report
+        target.proof, target.key_version, target.mode = _json_safe(proof), org.key_version, mode
+        if old is not None:
+            db.delete(old)
+        db.commit()
+        return target
     twin = Twin(org_id=ds.org_id, dataset_id=ds.id, blob_id=blob.id if blob else None, mode=mode,
                 verdict=res.report["verdict"], report=report, proof=_json_safe(proof),
                 key_version=org.key_version, created_by=created_by)

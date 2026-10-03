@@ -46,6 +46,10 @@ def share_status(s: Share) -> str:
     return "active"
 
 
+def pending_decisions(t: Twin) -> int:
+    return int((((t.report or {}).get("free_text") or {}).get("review") or {}).get("totals", {}).get("pending", 0))
+
+
 def shareable(t: Twin) -> bool:
     return t.verdict == "PASS" and t.blob_id is not None and t.purged_at is None
 
@@ -78,6 +82,8 @@ def create_share(org_id: str, twin_id: str, body: ShareIn, m: Membership = Depen
         raise api_error(404, "not_found")
     if not shareable(twin):
         raise api_error(409, "twin_not_shareable")
+    if pending_decisions(twin):
+        raise api_error(409, "decisions_pending")
     if not body.member_ids and not body.external_labels:
         raise api_error(422, "no_recipients")
     share = Share(org_id=org_id, twin_id=twin.id, formats=sorted(set(body.formats)), message=body.message,

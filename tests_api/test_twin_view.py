@@ -42,13 +42,29 @@ def test_recipient_view_and_review_marks(app, org_admin):
     phrases = ["تمت المتابعة مع المريض في العيادة", "يحتاج المريض إلى تحاليل إضافية قبل الموعد القادم",
                "تم صرف العلاج حسب وصفة الطبيب المعالج", "المريض راجع قسم الطوارئ مساء أمس", "لا توجد ملاحظات إضافية"]
     original["notes"] = ["رقم الطلب 1000000008 لدى المختبر" if i == 3 else f"{phrases[i % 5]} رقم {i}" for i in range(120)]
-    emp, share, twin, _ = share_to_employee(app, admin, org, original)
+    from tests_api.conftest import invite_and_join
+    from tests_api.test_p5_tokens import csv_bytes
+    from tests_api.test_p2 import work
+
+    emp, _ = invite_and_join(app, admin, org, "employee@alwaha.example.com")
+    ds = ready_dataset(app, admin, org, [("patients.csv", csv_bytes(original))])
+    twin = masked_twin(app, admin, org, ds["id"])
+    # one value, too few to judge: pending, marked amber in the organization's view, sharing blocked
+    row4 = admin.get(f"/api/orgs/{org}/twins/{twin['id']}/rows", params={"size": 10, "q": "رقم الطلب"}).json()["rows"][0]
+    assert row4["n"] == 4 and row4["cells"]["notes"][1] == "review"
+    member = next(m for m in admin.get(f"/api/orgs/{org}/members").json() if m["email"] == "employee@alwaha.example.com")
+    assert admin.post(f"/api/orgs/{org}/twins/{twin['id']}/shares", json={"member_ids": [member["id"]]}).status_code == 409
+    key = admin.get(f"/api/orgs/{org}/datasets/{ds['id']}/decisions").json()["groups"][0]["key"]
+    admin.put(f"/api/orgs/{org}/datasets/{ds['id']}/decisions", json={"groups": {key: "keep"}})
+    admin.post(f"/api/orgs/{org}/twins/{twin['id']}/apply-decisions")
+    work(app)
+    row4 = admin.get(f"/api/orgs/{org}/twins/{twin['id']}/rows", params={"size": 10, "q": "رقم الطلب"}).json()["rows"][0]
+    assert row4["cells"]["notes"][1] is None and "1000000008" in row4["cells"]["notes"][0]     # decided: kept, unmarked
+    share = admin.post(f"/api/orgs/{org}/twins/{twin['id']}/shares", json={"member_ids": [member["id"]]}).json()
     r = emp.get(f"/api/received/{share['id']}/rows", params={"size": 10}).json()
     assert r["total"] == 120 and r["columns"][0] == TOKEN_COLUMN
     org_tok = admin.get(f"/api/orgs/{org}/twins/{twin['id']}/rows", params={"size": 10}).json()
     assert r["rows"][0]["cells"][TOKEN_COLUMN][0] != org_tok["rows"][0]["cells"][TOKEN_COLUMN][0]  # per-share tokens
-    row4 = emp.get(f"/api/received/{share['id']}/rows", params={"size": 10, "q": "رقم الطلب"}).json()["rows"][0]
-    assert row4["n"] == 4 and row4["cells"]["notes"][1] == "review"
     other, _ = __import__("tests_api.conftest", fromlist=["signup"]).signup(app, "o@x.example.com", org="أخرى")
     assert other.get(f"/api/received/{share['id']}/rows").status_code == 404
 

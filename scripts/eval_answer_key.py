@@ -31,6 +31,7 @@ def run(paths: list[Path], key_path: Path, cleaning: bool = True) -> dict:
     out["verdict"] = res.report["verdict"]
     out["failed_checks"] = res.report.get("failed_checks", [])
     out["spans_by_type"] = res.report.get("free_text", {}).get("spans_by_type", {})
+    out["review_totals"] = (res.report.get("free_text", {}).get("review") or {}).get("totals", {})
     return out
 
 
@@ -47,7 +48,10 @@ def main(argv: list[str] | None = None) -> None:
     for k, v in out["types"].items():
         print(f"{k:<12}{v['planted']:>8}{v['found']:>8}{v['replaced']:>9}{v['missed']:>8}{v['recall']:>8.1%}")
     lk = out["look_alikes"]
-    print(f"look-alikes {lk['total']}: ignored {lk['ignored']}, review {lk['review']}, wrongly replaced {lk['wrong']}")
+    print(f"look-alikes {lk['total']}: ignored {lk['ignored']}, decided with evidence {lk['review']} "
+          f"(kept {lk['review_kept']}, replaced {lk['review_replaced']}), wrongly replaced {lk['wrong']}")
+    t = out.get("review_totals", {})
+    print(f"uncertain values: decided by Nazeer {t.get('auto', 0)}, waiting for the admin {t.get('pending', 0)}")
     if a.json:
         a.json.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
 

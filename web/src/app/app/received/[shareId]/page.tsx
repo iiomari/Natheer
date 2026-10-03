@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, Download, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 
 import { CleaningNote } from "@/components/cleaning"
-import { ReturnResults, TOKEN_RULE } from "@/components/returns"
+import { ReturnResults } from "@/components/returns"
 import { LoadError, Loading } from "@/components/org"
 import { Chip, EmptyState, Notice, Num, PageHeader, Spinner, VerdictChip } from "@/components/nz"
 import { Button } from "@/components/ui/button"
@@ -48,7 +48,7 @@ export default function ReceivedDetail() {
             <>
               {d.formats.includes("xlsx") ? (
                 <Button onClick={() => download("xlsx")} disabled={busy !== null}>
-                  {busy === "xlsx" ? <Spinner className="size-4" /> : <Download data-icon="inline-start" />} تحميل Excel (موصى به)
+                  {busy === "xlsx" ? <Spinner className="size-4" /> : <Download data-icon="inline-start" />} تحميل Excel
                 </Button>
               ) : null}
               {d.formats.includes("csv") ? (
@@ -61,13 +61,12 @@ export default function ReceivedDetail() {
         }
       />
       <div className="mb-8">
-        <Notice tone="twin" icon={ShieldCheck}>هذه بيانات نظيرة لا تحتوي أي شخص حقيقي.</Notice>
-        {d.returns ? <p className="mt-3 text-sm leading-7 text-muted-foreground">{TOKEN_RULE}</p> : null}
+        <Notice tone="twin" icon={ShieldCheck}>بيانات نظيرة: لا شخص حقيقي فيها.</Notice>
       </div>
       {d.status !== "active" ? (
         <EmptyState
           title={d.status === "expired" ? "انتهت صلاحية هذه المشاركة" : "ألغت المنشأة هذه المشاركة"}
-          description="لم يعد التنزيل متاحاً. تواصل مع المنشأة إن احتجت البيانات مجدداً."
+          description="تواصل مع المنشأة إن احتجتها."
         />
       ) : (
         <div className="space-y-10">
@@ -76,7 +75,7 @@ export default function ReceivedDetail() {
             <Chip tone="primary">{d.mode === "masked" ? "نظير مقنّع" : "نظير اصطناعي"}</Chip>
             {d.proof?.leak ? (
               <span className="text-sm text-muted-foreground">
-                فحص التسريب: <Num>{d.proof.leak.leaks}</Num> معرّف حقيقي في <Num>{d.proof.leak.cells.toLocaleString("en")}</Num> خلية
+                تسريب <Num>{d.proof.leak.leaks}</Num> · <Num>{d.proof.leak.cells.toLocaleString("en")}</Num> خلية
               </span>
             ) : null}
           </div>

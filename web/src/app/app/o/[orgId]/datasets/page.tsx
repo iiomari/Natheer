@@ -9,7 +9,7 @@ import { FileDropzone, useNow } from "@/components/data"
 import { DatasetStatus } from "@/components/dataset"
 import { TextField } from "@/components/form"
 import { LoadError, Loading, useCurrentMembership } from "@/components/org"
-import { EmptyState, InlineError, Notice, Num, PageHeader, Spinner, VerdictChip } from "@/components/nz"
+import { EmptyState, InfoTip, InlineError, Notice, Num, PageHeader, Spinner, VerdictChip } from "@/components/nz"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { messageFor, upload } from "@/lib/api"
@@ -22,22 +22,22 @@ type Sample = { label: string; rows: string; file: string; key: string; name: st
 
 const SAMPLE_GROUPS: { title: string; items: Sample[] }[] = [
   {
-    title: "بيانات نظيفة (الاستخدام الأشيع)",
+    title: "نظيفة (الأشيع)",
     items: [
-      { label: "مواعيد عيادات لتدريب نموذج (عمود «لم_يحضر»)", rows: "1,000 صف", file: "clinic_appointments_clean.csv",
+      { label: "مواعيد عيادات (لتدريب نموذج)", rows: "1,000 صف", file: "clinic_appointments_clean.csv",
         key: "clinic_appointments_answer_key.csv", name: "مواعيد العيادات" },
-      { label: "عملاء بنك بالمعرّفات والملاحظات", rows: "600 صف", file: "bank_accounts_clean.csv",
+      { label: "عملاء بنك", rows: "600 صف", file: "bank_accounts_clean.csv",
         key: "bank_accounts_answer_key.csv", name: "عملاء البنك" },
     ],
   },
   {
-    title: "بيانات تحتاج تنظيف",
+    title: "تحتاج تنظيف",
     items: [
       { label: "مرضى مستشفى", rows: "612 صفاً", file: "hospital_patients_test.csv", key: "hospital_patients_answer_key.csv",
         name: "مرضى المستشفى" },
-      { label: "عملاء بنك (فاصلة منقوطة وسطر عنوان)", rows: "458 صفاً", file: "bank_customers_test.csv",
+      { label: "عملاء بنك", rows: "458 صفاً", file: "bank_customers_test.csv",
         key: "bank_customers_answer_key.csv", name: "عملاء البنك (غير منظّف)" },
-      { label: "مطالبات تأمين (Excel بورقتين)", rows: "780 صفاً", file: "insurance_claims_test.xlsx",
+      { label: "مطالبات تأمين (Excel)", rows: "780 صفاً", file: "insurance_claims_test.xlsx",
         key: "insurance_claims_answer_key.csv", name: "مطالبات التأمين" },
     ],
   },
@@ -89,12 +89,12 @@ function UploadDialog({ orgId, open, onOpenChange }: { orgId: string; open: bool
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-lg">رفع بيانات</DialogTitle>
-          <DialogDescription>ملف واحد أو عدة ملفات مترابطة. كل ورقة في Excel تُعامل كجدول.</DialogDescription>
+          <DialogDescription>CSV أو Excel · كل ورقة جدول.</DialogDescription>
         </DialogHeader>
         <form id="upload-form" onSubmit={onSubmit} className="space-y-5" noValidate>
-          <Notice icon={Info}>يُرجى استخدام بيانات تجريبية في هذه النسخة.</Notice>
+          <Notice icon={Info}>نسخة عرض: استخدم بيانات تجريبية فقط.</Notice>
           <div className="space-y-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
-            <p className="font-semibold">ملفات تجريبية جاهزة (مع مفاتيح الإجابة)</p>
+            <p className="font-semibold">ملفات جاهزة</p>
             {SAMPLE_GROUPS.map((g) => (
               <div key={g.title}>
                 <p className="mb-1 text-xs font-bold text-muted-foreground">{g.title}</p>
@@ -120,15 +120,15 @@ function UploadDialog({ orgId, open, onOpenChange }: { orgId: string; open: bool
             ))}
           </div>
           {error ? <InlineError>{error}</InlineError> : null}
-          <TextField name="name" label="اسم مجموعة البيانات (اختياري)" placeholder="مثال: مطالبات الربع الأول"
+          <TextField name="name" label="اسم مجموعة البيانات (اختياري)" placeholder="اختياري"
             value={name} onChange={(e) => setName(e.target.value)} />
           <FileDropzone files={files} onChange={setFiles} accept={ACCEPT} />
-          <p className="text-xs leading-5 text-muted-foreground">
-            تُحفظ الملفات الأصلية مشفّرة مدة جلسة المعالجة فقط (<Num>30</Num> دقيقة)، ثم تُحذف تلقائياً.
+          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+            تُحذف الأصول بعد <Num>30</Num> دقيقة <InfoTip>تُحفظ الملفات الأصلية مشفّرة مدة جلسة المعالجة فقط، ثم تُحذف تلقائياً.</InfoTip>
           </p>
         </form>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>إلغاء</Button>
           <Button type="submit" form="upload-form" disabled={busy || !files.length}>
             {busy ? <Spinner className="size-4" /> : <Upload data-icon="inline-start" />}
             رفع ومعالجة

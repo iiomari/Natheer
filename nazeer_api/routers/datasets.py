@@ -234,29 +234,100 @@ def cleaning_suggestions(org_id: str, dataset_id: str, m: Membership = Depends(d
     return category_suggestions(_raw_tables(db, settings, ds))
 
 
-REVIEW_EXAMPLES = 12
+class DecisionsIn(BaseModel):
+    groups: dict[str, Literal["keep", "replace"] | None] = Field(default_factory=dict)
+    values: dict[str, dict[str, Literal["keep", "replace"] | None]] = Field(default_factory=dict)
 
 
-@router.get("/datasets/{dataset_id}/review")
-def review_examples(org_id: str, dataset_id: str, m: Membership = Depends(data_manager),
-                    db: DbSession = Depends(get_db), settings: Settings = Depends(get_settings_dep)) -> dict:
-    """Free-text values the detector is unsure of, in their sentence (original text: session only)."""
-    from nazeer import pipeline
-    from nazeer.detect import SPAN_REVIEW_BELOW
+def _snippet(text: str, start: int, end: int, pad: int = 28) -> dict:
+    a, b = max(0, start - pad), min(len(text), end + pad)
+    return {"before": ("…" if a else "") + text[a:start], "value": text[start:end], "after": text[end:b] + ("…" if b < len(text) else "")}
 
+
+@router.get("/datasets/{dataset_id}/decisions")
+def get_decisions(org_id: str, dataset_id: str, group: str | None = None, m: Membership = Depends(data_manager),
+                  db: DbSession = Depends(get_db), settings: Settings = Depends(get_settings_dep)) -> dict:
+    """Groups of uncertain values, Nazeer's decisions and reasons, the admin's decisions. Examples
+    (original text) only while the session is open; all values of one group with ?group=key."""
     ds = _dataset(db, org_id, dataset_id)
-    try:
-        tables = load_tables(db, settings, ds)
-    except ProcessingError as e:
-        raise api_error(410, e.code) from None
-    an = pipeline.analyze(tables, ds.name)
-    pending = [sp for sp in an.spans if sp.confidence < SPAN_REVIEW_BELOW]
-    items = []
-    for sp in pending[:REVIEW_EXAMPLES]:
-        text = an.tables[sp.table][sp.column].iat[sp.row]
-        items.append({"table": sp.table, "column": sp.column, "row": sp.row + 1, "kind": sp.type,
-                      "text": text, "start": sp.start, "end": sp.end})
-    return {"total": len(pending), "items": items}
+    review = (ds.summary or {}).get("review") or {"groups": [], "totals": {}}
+    tables = None
+    if session_open(ds):
+        try:
+            tables = load_tables(db, settings, ds)
+        except ProcessingError:
+            tables = None
+    groups = []
+    for g in review.get("groups", []):
+        out = {k: v for k, v in g.items() if k != "values"}
+        vals = g["values"] if group == g["key"] else g["values"][:3]
+        if tables is not None:
+            col = tables[g["table"]][g["column"]]
+            out["examples" if group != g["key"] else "items"] = [
+                {**_snippet(col.iat[v["row"]], v["start"], v["end"]), "id": f"{v['row']}:{v['start']}", "row": v["row"] + 1,
+                 "final": v["final"], "auto": v["auto"], "admin": v["admin"], "reason": v["reason"]} for v in vals]
+        groups.append(out)
+    return {"groups": groups, "totals": review.get("totals", {}), "rule": review.get("rule"),
+            "session_open": tables is not None}
+
+
+def _save_decisions(db: DbSession, ds: Dataset, decisions: dict, m: Membership, action: str) -> dict:
+    from nazeer.review import refresh
+
+    summary = dict(ds.summary or {})
+    summary["decisions"] = decisions
+    summary["review"] = refresh(summary.get("review") or {}, decisions)
+    ds.summary = summary
+    t = summary["review"]["totals"]
+    audit.record(db, action, org_id=ds.org_id, actor_user_id=m.user_id, target_type="dataset", target_id=ds.id,
+                 groups=[g["phrase"] for g in summary["review"]["groups"] if g.get("admin") or g["key"] in decisions.get("values", {})][:20],
+                 auto=t.get("auto"), admin=t.get("admin"), pending=t.get("pending"))
+    db.commit()
+    return {"totals": t}
+
+
+@router.put("/datasets/{dataset_id}/decisions")
+def put_decisions(org_id: str, dataset_id: str, body: DecisionsIn, m: Membership = Depends(data_manager),
+                  db: DbSession = Depends(get_db)) -> dict:
+    """Keep / replace per group or per value. Keys only; never a value."""
+    ds = _dataset(db, org_id, dataset_id)
+    review = (ds.summary or {}).get("review") or {}
+    known = {g["key"]: {f"{v['row']}:{v['start']}" for v in g["values"]} for g in review.get("groups", [])}
+    current = (ds.summary or {}).get("decisions") or {"groups": {}, "values": {}}
+    groups, values = dict(current.get("groups") or {}), {k: dict(v) for k, v in (current.get("values") or {}).items()}
+    for key, d in body.groups.items():
+        if key not in known:
+            raise api_error(422, "unknown_decision_group")
+        if d is None:
+            groups.pop(key, None)
+        else:
+            groups[key] = d
+            values.pop(key, None)           # a group decision resets that group's per-value choices
+    for key, per in body.values.items():
+        if key not in known or any(vid not in known[key] for vid in per):
+            raise api_error(422, "unknown_decision_value")
+        slot = values.setdefault(key, {})
+        for vid, d in per.items():
+            if d is None:
+                slot.pop(vid, None)
+            else:
+                slot[vid] = d
+    return _save_decisions(db, ds, {"groups": groups, "values": values}, m, "dataset.decisions_changed")
+
+
+@router.post("/datasets/{dataset_id}/decisions/accept")
+def accept_suggestions(org_id: str, dataset_id: str, m: Membership = Depends(data_manager),
+                       db: DbSession = Depends(get_db)) -> dict:
+    """One click: Nazeer's suggestion for every group still waiting for a decision."""
+    ds = _dataset(db, org_id, dataset_id)
+    review = (ds.summary or {}).get("review") or {}
+    current = (ds.summary or {}).get("decisions") or {"groups": {}, "values": {}}
+    groups = dict(current.get("groups") or {})
+    for g in review.get("groups", []):
+        if g["pending"]:
+            groups[g["key"]] = g["suggestion"]
+    return _save_decisions(db, ds, {"groups": groups, "values": current.get("values") or {}}, m,
+                           "dataset.decisions_suggestions_accepted")
 
 
 @router.post("/datasets/{dataset_id}/answer-key")
@@ -293,7 +364,7 @@ async def answer_key_check(org_id: str, dataset_id: str, file: UploadFile = File
 class GenerateIn(BaseModel):
     mode: Literal["masked", "synthetic"] = "masked"
     overrides: dict = Field(default_factory=dict)
-    approve_review: bool = False  # also replace the free-text values the detector is unsure of
+    replace_twin_id: str | None = Field(default=None, max_length=32)  # re-apply decisions to this twin (no shares yet)
     cleared_columns: list[str] = Field(default_factory=list, max_length=200)  # "table.column": confirmed not identifiers
     target: str | None = Field(default=None, max_length=200)
 
@@ -311,7 +382,7 @@ def generate(org_id: str, dataset_id: str, body: GenerateIn, m: Membership = Dep
         raise api_error(422, "synthetic_too_large")
     j = jobs.enqueue(db, org_id, "generate", {"dataset_id": ds.id, **body.model_dump()}, created_by=m.user_id)
     audit.record(db, "twin.generate_requested", org_id=org_id, actor_user_id=m.user_id, target_type="dataset",
-                 target_id=ds.id, mode=body.mode, overrides=len(body.overrides), approve_review=body.approve_review,
+                 target_id=ds.id, mode=body.mode, overrides=len(body.overrides),
                  cleared_columns=len(body.cleared_columns))
     db.commit()
     return {"job_id": j.id}
@@ -345,6 +416,12 @@ def _limitations_ar() -> list[str]:
     return LIMITATIONS_AR
 
 
+def _review_brief(review: dict | None) -> dict:
+    review = review or {}
+    return {"totals": review.get("totals") or {"auto": 0, "admin": 0, "pending": 0},
+            "groups": [{k: v for k, v in g.items() if k != "values"} for g in review.get("groups", [])]}
+
+
 def _plain_summary(t: Twin) -> dict:
     from nazeer_api.report_pdf import summary
 
@@ -361,9 +438,10 @@ def twin_payload(t: Twin) -> dict:
             "failed_checks": rep.get("failed_checks", []), "limitations": rep.get("limitations", []),
             "limitations_ar": rep.get("limitations_ar") or _limitations_ar(),
             "token": (rep.get("generation") or {}).get("token"),
-            "options": {k_: (rep.get("generation") or {}).get(k_) for k_ in ("approve_review", "cleared_columns", "overrides")},
+            "options": {k_: (rep.get("generation") or {}).get(k_) for k_ in ("cleared_columns", "overrides")},
+            "decisions_stale": ((rep.get("generation") or {}).get("decisions") or {}) != ((t.dataset.summary or {}).get("decisions") or {}),
             "summary": _plain_summary(t),
-            "review": (rep.get("free_text") or {}).get("review"), "residual": rep.get("residual_scan"),
+            "review": _review_brief((rep.get("free_text") or {}).get("review")), "residual": rep.get("residual_scan"),
             "utility": rep.get("utility"), "synthetic": rep.get("synthetic"),
             "privacy": rep.get("privacy")}
 
@@ -398,6 +476,24 @@ def _twin_blob(db: DbSession, t: Twin) -> Blob:
     if t.blob_id is None:
         raise api_error(410, "twin_purged" if t.purged_at else "twin_withheld")
     return db.get(Blob, t.blob_id)
+
+
+@router.post("/twins/{twin_id}/apply-decisions", status_code=202)
+def apply_decisions(org_id: str, twin_id: str, m: Membership = Depends(data_manager), db: DbSession = Depends(get_db)) -> dict:
+    """Re-run the twin with the dataset's current decisions (same twin if not shared yet). Needs the session."""
+    t = _twin(db, org_id, twin_id)
+    ds = t.dataset
+    if not session_open(ds):
+        raise api_error(410, "session_expired")
+    gen = (t.report or {}).get("generation") or {}
+    payload = {"dataset_id": ds.id, "mode": t.mode, "overrides": gen.get("overrides") or {},
+               "cleared_columns": gen.get("cleared_columns") or [], "replace_twin_id": t.id}
+    j = jobs.enqueue(db, org_id, "generate", payload, created_by=m.user_id)
+    totals = ((ds.summary or {}).get("review") or {}).get("totals") or {}
+    audit.record(db, "twin.decisions_applied", org_id=org_id, actor_user_id=m.user_id, target_type="twin", target_id=t.id,
+                 auto=totals.get("auto"), admin=totals.get("admin"), pending=totals.get("pending"))
+    db.commit()
+    return {"job_id": j.id}
 
 
 @router.get("/twins/{twin_id}/rows")

@@ -8,7 +8,6 @@ import { toast } from "sonner"
 
 import { LoadError, Loading } from "@/components/org"
 import { PageHeader, Spinner } from "@/components/nz"
-import { TOKEN_RULE } from "@/components/returns"
 import { TwinTable } from "@/components/twin-table"
 import { Button } from "@/components/ui/button"
 import { api, messageFor } from "@/lib/api"
@@ -60,7 +59,6 @@ export default function ReceivedViewPage() {
           ) : null
         }
       />
-      {d.returns ? <p className="mb-4 text-sm text-muted-foreground">{TOKEN_RULE}</p> : null}
       {d.status === "active" ? <TwinTable endpoint={`/received/${shareId}/rows`} /> : <p className="text-muted-foreground">لم تعد هذه المشاركة متاحة.</p>}
     </>
   )

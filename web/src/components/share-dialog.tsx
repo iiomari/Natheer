@@ -66,13 +66,13 @@ export function ShareDialog({ orgId, twinId, open, onOpenChange }: {
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="text-lg">مشاركة النظير</DialogTitle>
-          <DialogDescription>يرى المستلمون النظير فقط، ولا تُشارك البيانات الأصلية أبداً.</DialogDescription>
+          <DialogDescription>يرى المستلمون النظير فقط.</DialogDescription>
         </DialogHeader>
         {result ? (
           <div className="space-y-5">
             <Notice tone="twin">
-              أُنشئت المشاركة. الأعضاء المختارون يرونها مباشرة في «البيانات المستلمة».
-              {result.new_links?.length ? " أرسل كل رابط لصاحبه؛ يعمل لحساب واحد فقط، ويظهر هنا مرة واحدة." : null}
+              أُنشئت المشاركة.
+              {result.new_links?.length ? " أرسل كل رابط لصاحبه؛ يظهر مرة واحدة." : null}
             </Notice>
             {result.new_links?.map((l) => <CopyLink key={l.link_path} path={l.link_path} label={l.label} />)}
             <DialogFooter>
@@ -103,15 +103,15 @@ export function ShareDialog({ orgId, twinId, open, onOpenChange }: {
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-muted-foreground">لا يوجد أعضاء آخرون بعد. ادعُهم من صفحة الفريق.</p>
+                <p className="text-sm text-muted-foreground">لا أعضاء آخرون بعد.</p>
               )}
             </Field>
-            <Field label="مستلمون خارجيون" hint="اكتب اسماً أو بريداً لتمييز كل رابط. لكل مستلم رابط خاص يُستخدم مرة واحدة.">
+            <Field label="مستلمون خارجيون">
               <div className="flex gap-2">
                 <Input
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  placeholder="مثال: شركة التحليل أو analyst@example.com"
+                  placeholder="اسم أو بريد، مثل شركة التحليل"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && draft.trim()) {
                       e.preventDefault()
@@ -158,11 +158,11 @@ export function ShareDialog({ orgId, twinId, open, onOpenChange }: {
                 </div>
               </Field>
             </div>
-            <Field label="رسالة (اختياري)">
-              <Input value={message} onChange={(e) => setMessage(e.target.value.slice(0, 500))} placeholder="مثال: نرجو التحليل قبل نهاية الشهر" />
+            <Field label="رسالة">
+              <Input value={message} onChange={(e) => setMessage(e.target.value.slice(0, 500))} placeholder="اختياري" />
             </Field>
             <DialogFooter>
-              <Button variant="outline" onClick={() => close(false)}>إلغاء</Button>
+              <Button variant="ghost" onClick={() => close(false)}>إلغاء</Button>
               <Button onClick={submit} disabled={busy || !formats.length || (!picked.length && !externals.length)}>
                 {busy ? <Spinner className="size-4" /> : null}
                 مشاركة

@@ -372,9 +372,8 @@ def proof(analysis, result) -> dict:
                         "links": ri}
     res = rep.get("residual_scan")
     out["residual"] = None if res is None else {"status": res["verdict"], "found": res["found"], "by_kind": res["by_kind"]}
-    review = rep.get("free_text", {}).get("review", {})
-    out["review"] = {"pending": sum(review.get("pending_by_type", {}).values()),
-                     "by_type": review.get("pending_by_type", {}), "approved": review.get("approved", False)}
+    totals = (rep.get("free_text", {}).get("review") or {}).get("totals") or {}
+    out["review"] = {"auto": totals.get("auto", 0), "admin": totals.get("admin", 0), "pending": totals.get("pending", 0)}
     return out
 
 

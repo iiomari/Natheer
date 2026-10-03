@@ -5,7 +5,7 @@ import { AlertTriangle, Download, KeyRound, Link2, Send } from "lucide-react"
 import { toast } from "sonner"
 
 import { FileDropzone, minutesLeft, useNow } from "@/components/data"
-import { Chip, InlineError, Notice, Num, Section, Spinner } from "@/components/nz"
+import { Chip, InfoTip, InlineError, Notice, Num, Section, Spinner } from "@/components/nz"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ApiError, messageFor, upload } from "@/lib/api"
@@ -15,7 +15,8 @@ import { cn } from "@/lib/utils"
 
 const ACCEPT = ".xlsx,.csv,.tsv,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
-export const TOKEN_RULE = "لا تحذف عمود رمز_التحقق ولا تعدّله. أضف نتائجك في أعمدة جديدة. يمكنك حذف صفوف وإرجاع جزء من البيانات."
+export const TOKEN_RULE = "لا تحذف عمود رمز_التحقق ولا تعدّله؛ أضف نتائجك في أعمدة جديدة."
+export const TOKEN_RULE_MORE = "يمكنك حذف صفوف وإرجاع جزء من البيانات فقط."
 
 const STATUS_TILES: { key: keyof ReturnCounts; label: string; tone: string; hint: string }[] = [
   { key: "verified", label: "مُتحقَّق", tone: "text-twin", hint: "رمزه صحيح ومن هذه المشاركة" },
@@ -116,10 +117,9 @@ export function ReturnResults({ share }: { share: Received }) {
   }
 
   return (
-    <Section title="إعادة النتائج إلى المنشأة" description="بعد عملك على البيانات، أعد ملف نتائجك لتربطه المنشأة بسجلاتها الحقيقية.">
+    <Section title="أعد النتائج">
       <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-card">
-        <Notice tone="review" icon={KeyRound}>{TOKEN_RULE}</Notice>
-        <p className="text-sm text-muted-foreground">ننصح بالعمل على ملف Excel وإعادته كما هو (CSV مقبول أيضاً).</p>
+        <p className="flex items-center gap-1.5 text-sm font-semibold"><KeyRound className="size-4 text-primary" aria-hidden="true" />{TOKEN_RULE}<InfoTip>{TOKEN_RULE_MORE} ملف Excel أو CSV.</InfoTip></p>
         <FileDropzone files={files} onChange={(f) => setFiles(f.slice(-1))} accept={ACCEPT} />
         {error ? <InlineError>{messageFor(error)}</InlineError> : null}
         <Button onClick={send} disabled={!files.length || busy}>

@@ -4,7 +4,8 @@
  */
 import Link from "next/link"
 import type { LucideIcon } from "lucide-react"
-import { AlertTriangle, CheckCircle2, CircleHelp, ShieldCheck, XCircle } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { AlertTriangle, CheckCircle2, CircleHelp, Info, ShieldCheck, XCircle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -275,5 +276,17 @@ export function Spinner({ className }: { className?: string }) {
       aria-label="جارٍ التحميل"
       className={cn("inline-block size-5 animate-spin rounded-full border-2 border-current border-t-transparent", className)}
     />
+  )
+}
+
+/** "ⓘ": extra explanation on hover or focus. Nothing essential may live only here. */
+export function InfoTip({ children, label = "معلومة" }: { children: React.ReactNode; label?: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={<button type="button" aria-label={label} className="inline-flex size-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring" />}>
+        <Info className="size-4" aria-hidden="true" />
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs text-sm leading-6">{children}</TooltipContent>
+    </Tooltip>
   )
 }

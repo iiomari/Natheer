@@ -58,7 +58,7 @@ TWIN_AR = {"SAUDI_ID": "هوية بديلة", "MOBILE": "جوال بديل", "IB
            "PERSON_NAME": "اسم بديل"}
 ACTION_AR = {"pseudonymize": "بديل", "remap": "مفتاح جديد", "replace_spans": "استبدال داخل النص",
              "keep": "كما هو", "drop": "حُذف"}
-CHECK_AR = {"leak_scan": "فحص التسريب", "residual_identifiers": "فحص البقايا", "free_text_review": "قيم للمراجعة", "exact_copies": "نسخ مطابقة للأصل", "human_review": "المراجعة البشرية",
+CHECK_AR = {"leak_scan": "فحص التسريب", "residual_identifiers": "فحص البقايا", "review_decisions": "القرارات", "exact_copies": "نسخ مطابقة للأصل", "human_review": "المراجعة البشرية",
             "free_text_replacement": "الاستبدال داخل النص", "detection_vs_golden": "الكشف مقابل مفتاح الإجابة",
             "holdout_split": "فصل بيانات الاختبار قبل التدريب", "dcr": "البُعد عن بيانات التدريب",
             "utility_tstr": "الفائدة للتحليل", "fidelity": "التشابه الإحصائي", "dcr_robustness": "ثبات البُعد عبر التقسيمات",
@@ -525,10 +525,10 @@ def step_detect() -> None:
 
 # ---------------------------------------------------------------- step 3: twin
 
-def _run_masked(an, approve_review: bool = False):
+def _run_masked(an):
     key, is_demo = _key()
     res = pipeline.run_masked(an, load_policy(pipeline.DEFAULT_POLICY), key, st.session_state["overrides"],
-                              approve_review=approve_review, golden_dir=st.session_state["golden_dir"])
+                              golden_dir=st.session_state["golden_dir"])
     if is_demo:
         res.report["key"] = {"source": DEMO_KEY_NOTE}
     return res
@@ -551,7 +551,7 @@ def run_twin() -> None:
            "ندرّب النموذج الإحصائي ونقيس الفائدة والخصوصية… (قرابة دقيقة)")
     with st.spinner(msg):
         if mode == "masked":
-            res = _guarded(lambda: _run_masked(an, None))
+            res = _guarded(lambda: _run_masked(an))
         else:
             res = _guarded(lambda: pipeline.run_synthetic(
                 an, load_policy(pipeline.DEFAULT_POLICY), st.session_state["overrides"],

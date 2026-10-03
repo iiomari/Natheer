@@ -164,22 +164,32 @@ def spans_for(analysis: Analysis, dets: list[ColumnDetection]) -> tuple[list[Spa
 # ---------------------------------------------------------------- masked mode (5a)
 
 def run_masked(analysis: Analysis, policy: Policy, key: bytes, overrides: dict | None = None,
-               approve_review: bool = False, golden_dir: Path | None = None,
+               review_decisions: dict | None = None, golden_dir: Path | None = None,
                cleared_columns: list[str] | tuple[str, ...] = ()) -> RunResult:
     """Masked twin. Free-text spans the detector is unsure of (confidence below
-    detect.SPAN_REVIEW_BELOW, e.g. a checksum-valid number after "رقم الطلب") are left unchanged
-    and listed for review unless `approve_review` is set. `cleared_columns` ("table.column") are
-    columns a reviewer confirmed hold no identifiers: the residual scan does not flag them."""
+    detect.SPAN_REVIEW_BELOW, e.g. a checksum-valid number after "رقم الطلب") are decided by
+    `review.resolve`: automatically from group statistics and cross-checks, or by the admin
+    (`review_decisions`). Undecided values stay unchanged (pending: sharing is blocked upstream).
+    `cleared_columns` ("table.column") are columns a reviewer confirmed hold no identifiers."""
+    from nazeer import review as rv
+
     run_id = new_run_id()
     overrides = overrides or {}
     dets = apply_overrides(analysis.detections, overrides)
     decisions = resolve(policy, analysis.profile, analysis.detections, overrides)
     spans, all_spans = spans_for(analysis, dets)
     min_conf = policy.thresholds["min_span_confidence"]
-    cut = min_conf if approve_review else max(min_conf, detect.SPAN_REVIEW_BELOW)
-    pending = [sp for sp in spans if min_conf <= sp.confidence < cut]
+    cut = max(min_conf, detect.SPAN_REVIEW_BELOW)
+    to_replace, review_summary = rv.resolve(analysis.tables, [sp for sp in spans if sp.confidence >= min_conf],
+                                            dets, review_decisions)
+    chosen = [sp for sp in spans if sp.confidence >= cut
+              or (sp.confidence >= min_conf and (sp.table, sp.column, sp.row, sp.start) in to_replace)]
+    pending = [sp for sp in spans if min_conf <= sp.confidence < cut
+               and (sp.table, sp.column, sp.row, sp.start) not in to_replace]   # kept or undecided
+    undecided = {(g["table"], g["column"], v["row"], v["start"]) for g in review_summary["groups"]
+                 for v in g["values"] if v["final"] == "pending"}
     pseudo = transform.Pseudonymizer(key, keep_first_digit=policy.rules.get("SAUDI_ID", {}).get("keep_first_digit", True))
-    twin, tstats = transform.apply(analysis.tables, analysis.profile, decisions, spans, pseudo, cut)
+    twin, tstats = transform.apply(analysis.tables, analysis.profile, decisions, chosen, pseudo, min_conf)
 
     # The leak scan looks for EVERY identifier ever detected, including in columns a reviewer
     # un-tagged: an override can never hide an identifier from the scan. Values left for review
@@ -198,9 +208,7 @@ def run_masked(analysis: Analysis, policy: Policy, key: bytes, overrides: dict |
 
     base = _base_report(analysis, run_id, "masked", policy, decisions, dets)
     base["free_text"]["spans_replaced_by_type"] = tstats["spans_replaced"]
-    base["free_text"]["review"] = {"pending_by_type": dict(Counter(sp.type for sp in pending)),
-                                   "approved": bool(approve_review),
-                                   "threshold": detect.SPAN_REVIEW_BELOW}
+    base["free_text"]["review"] = {**review_summary, "threshold": detect.SPAN_REVIEW_BELOW}
     base["transform"] = {"pseudonym_collisions_resolved": tstats["collisions"]}
     base["privacy"] = {"exact_copies": copies,
                        "note": "masked twin: rows correspond to real people; DCR is not meaningful in this mode"}
@@ -219,10 +227,10 @@ def run_masked(analysis: Analysis, policy: Policy, key: bytes, overrides: dict |
     b.add("exact_copies", "PASS" if n_copies == 0 else "FAIL", True,
           f"{n_copies} twin row(s) identical to an original row", value=copies, threshold=0)
     _review_check(b, dets)
-    b.add("free_text_review", "INFO", False,
-          (f"{len(pending)} uncertain value(s) left unchanged for review" if pending and not approve_review
-           else ("uncertain values replaced after approval" if approve_review else "no uncertain values")),
-          value=dict(Counter(sp.type for sp in pending)))
+    tot = review_summary["totals"]
+    b.add("review_decisions", "INFO", False,
+          f"{tot['auto']} uncertain value(s) decided by Nazeer, {tot['admin']} by the admin, {tot['pending']} pending",
+          value=tot)
     b.add("free_text_replacement", "INFO", False,
           f"{sum(tstats['spans_replaced'].values())} identifier spans replaced in free text",
           value=tstats["spans_replaced"])
@@ -237,17 +245,18 @@ def run_masked(analysis: Analysis, policy: Policy, key: bytes, overrides: dict |
     for d in decisions:
         if d.action in ("pseudonymize", "remap") and d.column in twin[d.table].columns:
             marks.setdefault(d.table, {}).setdefault("replaced_columns", []).append(d.column)
-    for sp in spans:
-        if sp.confidence >= cut:
-            marks.setdefault(sp.table, {}).setdefault("changed_cells", {}).setdefault(sp.column, set()).add(sp.row)
+    for sp in chosen:
+        marks.setdefault(sp.table, {}).setdefault("changed_cells", {}).setdefault(sp.column, set()).add(sp.row)
     for sp in pending:
-        marks.setdefault(sp.table, {}).setdefault("review_cells", {}).setdefault(sp.column, set()).add(sp.row)
+        if (sp.table, sp.column, sp.row, sp.start) in undecided:
+            marks.setdefault(sp.table, {}).setdefault("review_cells", {}).setdefault(sp.column, set()).add(sp.row)
     for t in marks.values():
         for key in ("changed_cells", "review_cells"):
             if key in t:
                 t[key] = {c: sorted(rows) for c, rows in t[key].items()}
     return RunResult(run_id, "masked", report, twin, twin_withheld=leak["hard_fail"], decisions=decisions,
-                     extras={"transform": tstats, "pending_review": pending, "marks": marks})
+                     extras={"transform": tstats, "pending_review": pending, "marks": marks,
+                             "review": review_summary})
 
 
 # ---------------------------------------------------------------- synthetic mode (5b)
@@ -481,8 +490,6 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--policy", type=Path, default=DEFAULT_POLICY)
     ap.add_argument("--overrides", type=Path, help='JSON: {"table.column": {"tag": ..., "kind": ..., "action": {...}}}')
-    ap.add_argument("--approve-review", action="store_true",
-                    help="also replace free-text values the detector is unsure of (default: leave them for review)")
     ap.add_argument("--target", default=None, help='synthetic mode: utility target, e.g. "is_large_claim=amount>p90"')
     ap.add_argument("--dcr-seeds", type=int, default=5, help="synthetic mode: DCR robustness repeats (0 = off)")
     ap.add_argument("--ner", choices=["gazetteer", "union", "camel", "auto"], default="gazetteer",
@@ -519,7 +526,7 @@ def main(argv: list[str] | None = None) -> int:
     golden = args.golden or (args.csv / "_golden" if args.csv else None)
 
     if args.mode == "masked":
-        result = run_masked(analysis, policy, load_key(), overrides, args.approve_review, golden)
+        result = run_masked(analysis, policy, load_key(), overrides, None, golden)
     else:
         result = run_synthetic(analysis, policy, overrides, target=args.target, golden_dir=golden,
                                method=args.synthesizer, robustness_seeds=args.dcr_seeds)

@@ -33,7 +33,7 @@ export function TwinLegend() {
   return (
     <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
       <span className="flex items-center gap-2"><span className="inline-block size-4 rounded bg-twin-soft ring-1 ring-twin/30" /> قيمة استُبدلت ببديل</span>
-      <span className="flex items-center gap-2"><span className="inline-block size-4 rounded bg-review-soft ring-1 ring-review/50" /> فيها قيمة تُركت للمراجعة</span>
+      <span className="flex items-center gap-2"><span className="inline-block size-4 rounded bg-review-soft ring-1 ring-review/50" /> قيمة بانتظار قرارك</span>
       <span className="flex items-center gap-2"><span className="inline-block size-4 rounded border border-border bg-card" /> لم تتغيّر</span>
     </div>
   )
@@ -127,8 +127,8 @@ export function TwinTable({ endpoint }: { endpoint: string }) {
                         mark === "replaced" && "bg-twin-soft/70",
                         mark === "review" && "bg-review-soft ring-1 ring-inset ring-review/50",
                         c === TOKEN && "font-mono text-xs text-muted-foreground")}
-                      title={mark === "review" ? "قيمة تُركت للمراجعة" : undefined}>
-                      {mark === "review" ? <span className="me-1 font-bold text-review" aria-label="للمراجعة">؟</span> : null}
+                      title={mark === "review" ? "بانتظار قرارك" : undefined}>
+                      {mark === "review" ? <span className="me-1 font-bold text-review" aria-label="بانتظار قرارك">؟</span> : null}
                       <Value v={v} />
                     </td>
                   )

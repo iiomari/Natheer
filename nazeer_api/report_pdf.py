@@ -91,11 +91,11 @@ def summary(twin) -> dict:
             replaced[c["kind"]] = replaced.get(c["kind"], 0) + int(rows)
     for k, n in (rep.get("free_text", {}).get("spans_replaced_by_type") or {}).items():
         replaced[k] = replaced.get(k, 0) + int(n)
-    review = rep.get("free_text", {}).get("review") or {}
+    totals = (rep.get("free_text", {}).get("review") or {}).get("totals") or {}
     gen = rep.get("generation") or {}
     return {"cleaned": cleaned, "replaced": replaced, "cleaning_decision": rep.get("cleaning_decision"),
-            "review": {"pending": int(sum((review.get("pending_by_type") or {}).values())),
-                       "approved": bool(review.get("approved")),
+            "review": {"auto": int(totals.get("auto", 0)), "admin": int(totals.get("admin", 0)),
+                       "pending": int(totals.get("pending", 0)),
                        "cleared_columns": len(gen.get("cleared_columns") or [])}}
 
 
@@ -150,15 +150,11 @@ def build(twin, org_name: str) -> bytes:
                  else "لم تحتج البيانات إلى تنظيف."), 9.5)
     doc.text("ما استُبدل", 11, True)
     doc.text("، ".join(f"{KIND_AR.get(k, k)}: {_n(n)}" for k, n in sm["replaced"].items()) or "لا شيء.", 9.5)
-    doc.text("قرارات المراجعة", 11, True)
+    doc.text("القرارات", 11, True)
     rv = sm["review"]
-    lines = []
-    if rv["approved"]:
-        lines.append("وافق المدير على استبدال القيم غير المؤكدة.")
-    elif rv["pending"]:
-        lines.append(f"{_n(rv['pending'])} قيمة غير مؤكدة (مثل «رقم الطلب») تُركت كما هي بقرار المراجعة.")
-    else:
-        lines.append("لا قيم معلّقة للمراجعة.")
+    lines = [f"{_n(rv['auto'])} قرارات اتخذها نَظير تلقائياً، {_n(rv['admin'])} بقرارك."]
+    if rv["pending"]:
+        lines.append(f"{_n(rv['pending'])} بانتظار القرار.")
     if rv["cleared_columns"]:
         lines.append(f"أكّد المدير أن {rv['cleared_columns']} عموداً لا يحتوي معرّفات.")
     doc.text(" ".join(lines), 9.5)

@@ -102,7 +102,7 @@ export type Dataset = {
     entity: { table: string } | null
     ingest: { table: string; source: string; rows: number; columns: number; encoding: string | null; delimiter: string | null; header: string; dropped_empty_rows: number; dropped_empty_columns: number; renamed_columns: number }[]
     total_rows: number
-    review?: { by_type: Record<string, number>; total: number }
+    review?: { totals: { auto: number; admin: number; pending: number } }
     found_by_type?: Record<string, number>
     cleaning?: {
       report: {
@@ -147,17 +147,18 @@ export type Twin = {
     validity?: { status: string; share: number | null } | null
     links?: { status: string; orphans: number } | null
     residual?: { status: string; found: number; by_kind: Record<string, number> } | null
-    review?: { pending: number; by_type: Record<string, number>; approved: boolean } | null
+    review?: { auto: number; admin: number; pending: number } | null
   }
   checks: { name: string; status: string; blocking: boolean; detail: string; value?: unknown; threshold?: unknown }[]
   failed_checks: string[]
   limitations: string[]
   limitations_ar: string[]
-  review: { pending_by_type: Record<string, number>; approved: boolean } | null
+  review: { totals: { auto: number; admin: number; pending: number }; groups: { key: string; phrase: string; count: number; pending: number }[] } | null
+  decisions_stale?: boolean
   residual: { verdict: string; found: number; by_kind: Record<string, number>; locations: { table: string; column: string; row: number; kind: string }[] } | null
   token: { column: string; length: number } | null
-  summary?: { cleaned: Record<string, number>; replaced: Record<string, number>; cleaning_decision?: string | null; review: { pending: number; approved: boolean; cleared_columns: number } }
-  options: { approve_review: boolean | null; cleared_columns: string[] | null; overrides: Record<string, unknown> | null }
+  summary?: { cleaned: Record<string, number>; replaced: Record<string, number>; cleaning_decision?: string | null; review: { auto: number; admin: number; pending: number; cleared_columns: number } }
+  options: { cleared_columns: string[] | null; overrides: Record<string, unknown> | null }
   utility: { max_auc_drop?: number | null; note?: string; models?: Record<string, { real: { auc: number }; twin: { auc: number } }> } | null
   privacy: { dcr?: { share_twin_closer_to_train_than_holdout: number; passed: boolean } } | null
 }

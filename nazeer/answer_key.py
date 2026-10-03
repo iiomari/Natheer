@@ -172,7 +172,10 @@ def evaluate(tables: dict[str, pd.DataFrame], detections, spans, entries: list[E
         return best is not None, best
 
     per = {k: {"planted": 0, "found": 0, "replaced": 0, "missed": 0, "not_located": 0} for k in TYPES}
-    look = {"total": 0, "ignored": 0, "review": 0, "wrong": 0, "not_located": 0}
+    # Look-alikes. Expected "ignore": ignored, or wrongly replaced. Expected "review": a value a tool
+    # must not treat blindly; Nazeer decides it with evidence (kept or replaced) or leaves it to the admin.
+    look = {"total": 0, "ignored": 0, "review": 0, "review_kept": 0, "review_replaced": 0, "wrong": 0,
+            "not_located": 0}
     for e in entries:
         loc = _locate(tables, e)
         if e.expected == "replace":
@@ -203,10 +206,14 @@ def evaluate(tables: dict[str, pd.DataFrame], detections, spans, entries: list[E
             kept = True
             if twin is not None and t in twin and col in twin[t].columns:
                 kept = _present(e.type, e.value, twin[t][col].iat[row])
-            if not found and kept:
+            if e.expected == "review" and found and (conf or 0) < review_below:
+                look["review"] += 1
+                look["review_kept" if kept else "review_replaced"] += 1
+            elif not found and kept:
                 look["ignored"] += 1
             elif found and kept and (conf or 0) < review_below:
                 look["review"] += 1
+                look["review_kept"] += 1
             else:
                 look["wrong"] += 1
     for p in per.values():
