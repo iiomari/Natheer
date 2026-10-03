@@ -116,6 +116,12 @@ async def upload(org_id: str, request: Request, files: list[UploadFile] = File(.
         if total > LIMITS["max_total_bytes"]:
             raise api_error(413, "ingest:total_too_large")
         payload.append(((f.filename or "file.csv")[:200], data))
+    return _create_dataset(db, settings, org_id, m, payload, name, "dataset.uploaded")
+
+
+def _create_dataset(db: DbSession, settings: Settings, org_id: str, m: Membership, payload: list, name: str,
+                    action: str) -> dict:
+    total = sum(len(d) for _, d in payload)
     if org_usage_bytes(db, org_id) + total > settings.org_quota_mb * 1024 * 1024:
         raise api_error(413, "quota_exceeded")
     title = (name or "").strip()[:160] or payload[0][0].rsplit(".", 1)[0][:160] or "مجموعة بيانات"
@@ -126,10 +132,43 @@ async def upload(org_id: str, request: Request, files: list[UploadFile] = File(.
     put_blob(db, settings.master_key, org_id, "upload", pack_upload(payload), expires_at=ds.session_expires_at,
              dataset_id=ds.id)
     jobs.enqueue(db, org_id, "process", {"dataset_id": ds.id}, created_by=m.user_id)
-    audit.record(db, "dataset.uploaded", org_id=org_id, actor_user_id=m.user_id, target_type="dataset",
+    audit.record(db, action, org_id=org_id, actor_user_id=m.user_id, target_type="dataset",
                  target_id=ds.id, files=len(payload))
     db.commit()
     return dataset_payload(db, ds, detail=True)
+
+
+# ---------------------------------------------------------------- demo database (read-only, demo only)
+
+class DemoImportIn(BaseModel):
+    tables: list[str] = Field(min_length=1, max_length=10)
+    name: str = Field(default="", max_length=160)
+
+
+@router.get("/demo-db/tables")
+def demo_db_tables(org_id: str, m: Membership = Depends(data_manager),
+                   settings: Settings = Depends(get_settings_dep)) -> dict:
+    from nazeer_api.demo_db import DemoDbError, list_tables
+
+    if not settings.demo_db_url:
+        return {"available": False, "tables": []}
+    try:
+        return {"available": True, "tables": list_tables(settings.demo_db_url)}
+    except DemoDbError as e:
+        raise api_error(502, e.code) from None
+
+
+@router.post("/demo-db/import", status_code=201)
+def demo_db_import(org_id: str, body: DemoImportIn, m: Membership = Depends(data_manager),
+                   db: DbSession = Depends(get_db), settings: Settings = Depends(get_settings_dep)) -> dict:
+    """The selected tables enter the normal flow exactly like uploaded files."""
+    from nazeer_api.demo_db import DemoDbError, read_tables
+
+    try:
+        files = read_tables(settings.demo_db_url, body.tables)
+    except DemoDbError as e:
+        raise api_error(422 if e.code == "demo_db_unknown_table" else 502, e.code) from None
+    return _create_dataset(db, settings, org_id, m, files, body.name or "قاعدة البيانات التجريبية", "dataset.imported_demo_db")
 
 
 @router.get("/datasets/{dataset_id}")

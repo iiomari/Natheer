@@ -74,6 +74,9 @@ def main() -> int:
         if rc != 0:
             log.error("migrations failed (exit %d); not starting", rc)
             return rc
+        from nazeer_api.demo_seed import provision_from_env
+
+        provision_from_env()  # demo only, when DEMO_DB_RO_PASSWORD is set
     if role == "api":
         return supervise({"api": _api_cmd()})
     if role == "worker":

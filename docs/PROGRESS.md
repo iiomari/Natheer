@@ -33,7 +33,8 @@ This file is updated after every milestone so a new session can resume from it a
 | P5b Per-row verification token (رمز التحقق) replaces nazeer_ref and the exact-file re-link | done | cccb8d1 |
 | Valid fakes for bracketed mobiles; amber «تنبيه» for non-blocking checks; twin viewer; one-page Arabic PDF report | done | 7535d8e |
 | Clean example datasets; cleaning made optional («نظّف» / «تخطَّ»); detection independent of cleaning | done | 1bfea7f |
-| Decisions on uncertain values (group statistics, cross-checks, admin per group / value); copy pass (−73% words) | done | (this commit) |
+| Decisions on uncertain values (group statistics, cross-checks, admin per group / value); copy pass (−73% words) | done | 4a19348 |
+| Demo database connection (read-only, demo only) | done | (this commit) |
 | P3 Design system + all pages · P6 Team/audit/settings/email · P7 Public site + demo seed · P8 Hardening + E2E · P9 Deployment · P10 Final docs | not started | — |
 | HMA multi-table synthesis | **out of scope for the hackathon** | — |
 | PDF report | **out of scope for the hackathon** | — |
@@ -1102,6 +1103,29 @@ How:
 111. **Pending decisions block sharing**, not the verdict: the twin is PASS, sharing waits for decisions.
 112. **Applying decisions re-runs generation from the session's originals.** It is deterministic, so
      only the decided cells change, but it needs the session to be open.
+
+### Demo database connection (demo only)
+- **Upload dialog:** a second tab, «الاتصال بقاعدة بيانات», with one button, «اتصل بقاعدة البيانات
+  التجريبية», and one line, «في الاستخدام الفعلي يتصل نَظير بقواعد المنشأة من داخلها.». No host or
+  credential fields. Then the tables with row counts and checkboxes → «استورد ومعالجة» → the normal flow.
+- **Database:** `nazeer_demo_source`, a separate database in the project's existing Railway MySQL (no
+  extra service, no extra cost). Fictional `patients` (300) and `appointments` (900, foreign key to
+  patients).
+- **Access:** user `nazeer_demo_ro` with SELECT only on that database. `DEMO_DB_URL` (api, worker) and
+  `DEMO_DB_RO_PASSWORD` (api) live only in Railway variables, set through stdin and never printed.
+- **Provisioning:** the API provisions at startup when `DEMO_DB_RO_PASSWORD` is set
+  (`nazeer_api/demo_seed.py`). It is idempotent (database, user, grant; tables filled once) and runs over
+  the private network: the MySQL service has no public endpoint, and Railway SSH would have needed a key
+  on the account.
+- **Read-only twice over:** the database user can only SELECT, and `nazeer_api/demo_db.py` issues only
+  SELECT on table names from the database's own catalog (max 20,000 rows per table). Errors carry a code
+  only; the URL and driver messages are never logged or returned.
+- **Tests** (`tests_api/test_demo_db.py`, 4):
+  - hidden when not configured;
+  - a read-only connection refuses INSERT;
+  - tables and counts → import → foreign key detected → twin PASS → share;
+  - an unreachable URL with a password: the password and user name appear in no response, log, audit
+    entry or settings repr.
 
 ## Milestone log
 

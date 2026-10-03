@@ -80,6 +80,9 @@ class Settings:
     twin_retention_days: int = 14
     job_stale_seconds: int = 300
     job_max_attempts: int = 3
+    # Demo only: a read-only database of fictional tables ("اتصل بقاعدة البيانات التجريبية").
+    # Never logged, never returned. Unset: the option is hidden.
+    demo_db_url: str | None = field(default=None, repr=False)
 
     @property
     def cookie_prefix(self) -> str:
@@ -121,6 +124,7 @@ def load_settings(env_file: Path | None = None) -> Settings:
         org_quota_mb=int(os.environ.get("NAZEER_ORG_QUOTA_MB", "100")),
         session_minutes=int(os.environ.get("NAZEER_SESSION_MINUTES", "30")),
         twin_retention_days=int(os.environ.get("NAZEER_TWIN_RETENTION_DAYS", "14")),
+        demo_db_url=normalize_database_url(os.environ.get("DEMO_DB_URL", "")) or None,
     )
 
 
